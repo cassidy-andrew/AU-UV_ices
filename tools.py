@@ -148,13 +148,37 @@ class Spectrum:
         """
         Averages the scans relating to this spectrum.
         """
-        # match backgrounds and spectra
+        scans = []
         
-        # create scan objects
-        
+        for i in range(0, len(self.bkgds)):
+            # match backgrounds and spectra
+            this_bkgd = self.bkgds[i]
+            suffix = this_bkgd[-3:]
+            # look for samples with a matching suffix
+            samples = [s for s in self.samples if suffix in s]
+            # samples is now a list, but there should only be 1 or 0 items
+            if len(samples) == 0:
+                this_sample = None
+            else:
+                this_sample = samples[0]
+
+            # create scan objects
+            this_scan = SingleScan(this_bkgd, this_sample)
+            scans.append(this_scan)
+            
         # average the scan objects
+        data = pd.DataFrame()
+        # just copy the wavelength values from the first background
+        data['wavelength'] = scans[0].bkgd['wavelength']
+        # calculate the average absorbance
+        absorbances = []
+        for scan in scans:
+            absorbances.append(scan.data['absorbance'])
+        averaged = pd.concat(absorbances, axis=1).mean(axis=1)
+        data['absorbance'] = averaged
         
-        #self.data = averaged
+        self.scans = scans
+        self.data = data
     
     def change_name(self, new_name):
         """
@@ -178,7 +202,7 @@ class Spectrum:
         
         sample_fname : (str) the path to the background file being added
         """
-        self.sample.append(sample_fname)
+        self.samples.append(sample_fname)
         
     def remove_bkgd(self, bkgd_name):
         """
@@ -202,12 +226,9 @@ class Spectrum:
         the self.visible parameter is false, the plot_absorbance
         function will skip plotting this spectrum.
         """
-        if self.visible:
-            self.visible = False
-        else:
-            self.visible = True
+        self.visible = not self.visible
             
-    def change_offset(self, offset):
+    def change_offset(self, new_offset):
         """
         Gives the spectrum an offset value. When plotted in the 
         plot_absorbance function, the offset value will simply be
@@ -217,15 +238,50 @@ class Spectrum:
         offset : (float) the offset for the spectrum, in absorbance
                  units
         """
-        self.offset = offset
+        self.offset = new_offset
         
         
     def change_color(self, new_color):
         """
+        Changes the color used for plotting this spectrum
         """
         self.color = new_color
             
-            
+# Function to prevent zero values in an array
+def preventDivisionByZero(some_array):
+    corrected_array = some_array.copy()
+    for i, entry in enumerate(some_array):
+        # If element is zero, set to some small value
+        if abs(entry) < float_info.epsilon:
+            corrected_array[i] = float_info.epsilon
+    
+    return corrected_array
+
+# Converting wavelength (nm) to energy (eV)
+def WLtoE(wl):
+    # Prevent division by zero error
+    wl = preventDivisionByZero(wl)
+
+    # E = h*c/wl            
+    h = constants.h         # Planck constant
+    c = constants.c         # Speed of light
+    J_eV = constants.e      # Joule-electronvolt relationship
+    
+    wl_nm = wl * 10**(-9)   # convert wl from nm to m
+    E_J = (h*c) / wl_nm     # energy in units of J
+    E_eV = E_J / J_eV       # energy in units of eV
+    
+    return E_eV  
+
+# Converting energy (eV) to wavelength (nm)
+def EtoWL(E):
+    # Prevent division by zero error
+    E = preventDivisionByZero(E)
+    
+    # Calculates the wavelength in nm
+    return constants.h * constants.c / (constants.e * E) * 10**9
+
+
 def plot_absorbance(spectra, xlim=None, ylim=None):
     """
     Takes spectra and plots them, with absorbance on the y axis and
@@ -238,4 +294,42 @@ def plot_absorbance(spectra, xlim=None, ylim=None):
     ylim : (tuple) the y limits of the graph. This should be a tuple
            containing two float values, in absorbance units.
     """
+    plt.style.use('./au-uv.mplstyle')
     
+    fig, ax1 = plt.subplots(1, 1)
+    fig.set_size_inches(7, 5)
+    
+    if xlim:
+        ax1.set_xlim(xlim)
+    if ylim:
+        ax1.set_ylim(ylim)
+    
+    for spec in spectra:
+        if spec.visible:
+            ax1.plot(spec.data['wavelength'], spec.data['absorbance'],
+                     color=spec.color, label=spec.name)
+            
+    # Create the second x-axis on which the energy in eV will be displayed
+    ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
+    ax2.set_xlabel('Wavelength / eV')
+
+    # Get ticks from ax1 (wavelengths)
+    wl_ticks = ax1.get_xticks()
+    wl_ticks = preventDivisionByZero(wl_ticks)
+
+    # Based on the ticks from ax1 (wavelengths), calculate the corresponding
+    # energies in eV
+    E_ticks = WLtoE(wl_ticks)
+
+    # Set the ticks for ax2 (Energy)
+    ax2.set_xticks(E_ticks)
+
+    # Allow for two decimal places on ax2 (Energy)
+    ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+
+    ax1.set_ylabel("Absorbance")
+    ax1.set_xlabel("Wavelength (nm)")
+    ax1.grid()
+    ax1.legend()
+    plt.close()
+    return fig
