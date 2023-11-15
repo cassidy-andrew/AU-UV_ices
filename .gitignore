@@ -1,5 +1,11 @@
+# Development secrets
+playground.ipynb
+brainstorming.ipynb
+gpt_interface_test.py
+
 # Data products
 data/
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
