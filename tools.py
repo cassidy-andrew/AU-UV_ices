@@ -1,9 +1,6 @@
 import numpy as np
 import pandas as pd
-import glob
 
-from os.path import join
-from os import listdir
 from sys import float_info
 
 import matplotlib as mpl
@@ -11,11 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 
 import scipy.constants as constants
-from cycler import cycler
 
-
-# When we want to plot a spectrum we need to choose the scans
-# Each scan has a background, and a sample
 
 class SingleScan:
     """
@@ -297,7 +290,7 @@ def plot_absorbance(spectra, xlim=None, ylim=None):
     plt.style.use('./au-uv.mplstyle')
     
     fig, ax1 = plt.subplots(1, 1)
-    fig.set_size_inches(7, 5)
+    #fig.set_size_inches(7, 5)
     
     if xlim:
         ax1.set_xlim(xlim)
@@ -311,7 +304,7 @@ def plot_absorbance(spectra, xlim=None, ylim=None):
             
     # Create the second x-axis on which the energy in eV will be displayed
     ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
-    ax2.set_xlabel('Wavelength / eV')
+    ax2.set_xlabel('Wavelength (eV)')
 
     # Get ticks from ax1 (wavelengths)
     wl_ticks = ax1.get_xticks()
