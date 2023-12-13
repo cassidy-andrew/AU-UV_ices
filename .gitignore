@@ -1,3 +1,13 @@
+# Development secrets
+#playground.ipynb
+brainstorming.ipynb
+gpt_interface_test.py
+notes_move_me_please.ipynb
+
+# Data products
+data/
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
