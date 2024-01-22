@@ -1,4 +1,5 @@
 import numpy as np
+from numpy import inf
 import pandas as pd
 
 from sys import float_info
@@ -10,6 +11,7 @@ from matplotlib.ticker import FormatStrFormatter
 import scipy.constants as constants
 from scipy.optimize import curve_fit
 
+import gaussians
 
 def scattering_baseline(wl, a, b, c):
     """
@@ -60,6 +62,28 @@ def EtoWL(E):
     
     # Calculates the wavelength in nm
     return constants.h * constants.c / (constants.e * E) * 10**9
+
+def lighten_color(color, amount=0.5):
+    """
+    Lightens the given color by multiplying (1-luminosity) by the given amount.
+    Input can be matplotlib color string, hex string, or RGB tuple.
+    
+    Original Author: ihincks on Github
+    https://gist.github.com/ihincks/6a420b599f43fcd7dbd79d56798c4e5a
+
+    Examples:
+    >> lighten_color('g', 0.3)
+    >> lighten_color('#F034A3', 0.6)
+    >> lighten_color((.3,.55,.1), 0.5)
+    """
+    import matplotlib.colors as mc
+    import colorsys
+    try:
+        c = mc.cnames[color]
+    except:
+        c = color
+    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+    return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
 
 class SingleScan:
@@ -167,6 +191,21 @@ class Spectrum:
                spectrum, averaged together from its corresponding
                scans.
         fit : (dict) The fitted spectrum after calling `fit_peaks()`.
+        fit_components : (list) a list of dictionaries which make up the fit
+                         components after `fit_peaks()` is called. Each 
+                         dictionary has the following components: parameters,
+                         and absorbance. The `parameters` are the three values
+                         which describe the gaussian: amplitude, center, and
+                         standard deviation. The `absorbance` has the y values
+                         of the gaussian corresponding to the `data` parameter's
+                         wavelength values.
+        fit_results : (dict) A dictionary of the best fit results after
+                      `best_fit()` is called. It consists of the following
+                      components: redchi2, p, pcov, best_fit. `redchi2` is the
+                      reduced chi square value of the fit. `p` is the fit
+                      parameters. `pcov` is the covariance matrix of those
+                      parameters. `best_fit` are the absorbance values
+                      calculated to fit the data.
         name : (str) the name of this spectrum, which will be shown
                in plot legends.
         offset : (float) by how much the spectrum should be offset
@@ -174,6 +213,8 @@ class Spectrum:
                  Defaults to 0.0.
         peaks : (list) a list of the peak positions in the spectrum. Is None
                 prior to calling `fit_peaks()`.
+        peak_errors : (list) a list of the standard deviation peak errors. Is
+                      None prior to calling `fit_peaks()`
         residuals : (pandas.DataFrame) The residuals after fitting with
                     `fit_peaks()`.
         samples : (list) a list of sample files that make up the scans.
@@ -195,10 +236,13 @@ class Spectrum:
         self.bkgds = []
         self.samples = []
         self.data = None
-        self.peaks = None
         self.fit = None
         self.residuals = None
         self.baseline_p = None
+        self.peaks = None
+        self.peak_errors = None
+        self.fit_components = []
+        self.fit_results = None
         
     def average_scans(self):
         """
@@ -364,29 +408,164 @@ class Spectrum:
             self.data['raw_absorbance'] = self.data['absorbance']
         self.data['absorbance'] = subtracted
         
-    def fit_peaks(self, verbose=False, n_guassians=None):
+    def fit_peaks(self, verbose=False, p0=None, ng_lower=1, ng_upper=7,
+                  bounds=None, do_baseline=False, fit_lim_low=120,
+                  fit_lim_high=340, custom_components=None):
         """
         Finds and fits the peaks in the spectrum by fitting the spectrum with 
         some number of asymmetric Gaussian functions. The locations of the peaks
         as well as the fitted spectrum are returned, but also added to a peaks
-        and fit parameter of the object.
+        and fit parameter of the object. The best fit is saved as a column in
+        the spectrum's `data` DataFrame parameter.
         
         Parameters:
         
-        n_gaussians : (int) the number of gaussians to fit, between 1 and 10.
-                      If None (default), all numbers 1 through 10 will be tried
-                      and the best fit will be returned.
+        do_baseline : (boolean) Whether or not to fit using the rayleigh
+                      scattering baseline function as a part of the fit.
+        bounds : (touple) The upper and lower bounds for all of the parameters
+                 to be fit. Defaults to (0, 340).
+        fit_lim_low : (float) the lower limit on the wavelength range used in
+                      fitting. Defults to 120.
+        ng_lower : (int) The lower limit on the number of gaussians to try and
+                   fit with. Defaults to 1.
+        ng_upper : (int) The upper limit on the number of gaussians to try and
+                   fit with. Defaults to 7. Higher numbers will take longer and
+                   may be unstable.
+        p0 : (list) The initial guesses for the parameters to fit with. The
+             guesses should be in groups of three; a, c, and s, where a is the 
+             amplitude of the gaussian, c is the center wavelength, and s is the
+             standard deviation. If you have `do_baseline` to True, you should
+             include an additional two parameters *at the start* of p0. These
+             parameters are m and k, where m controls the steepness of the
+             scattering curve, and k controls the amplitude.
         verbose : (boolean) If true, prints debug and progress statements.
                   Defaults to False.
         """
-        # check if raw_absorbance exists, and the baseline substraction is done
+        # we only want to fit where the data are good
+        fit_df = self.data[(self.data['wavelength'] > fit_lim_low) &
+                           (self.data['wavelength'] < fit_lim_high)].copy()
         
-        best_fit = None
+        # do the fit
+        # this method is computationally expensive and bad. It will be fixed in
+        # the future... :/
+        
+        errors = []
+        if custom_components:
+            if not p0:
+                errors.append("You must provide your own guesses" +
+                              " if you are using custom components!!!! >:O")
+            if do_baseline:
+                errors.append("Baseline fitting with custom components is not" +
+                              "supported!!! >:O")
+            if len(errors) > 0:
+                for error in errors:
+                    print(error)
+                return None
+        
+        if not p0:
+            if do_baseline:
+                guesses = [1, 0] + [6.0,135,20, 3.0,185,20, 2.0,240,20,
+                                    0.4,270,20, 0.4,290,20, 0.1,325,10,
+                                    1.0,150,10, 1.0,300,10, 1.0,200,10]
+            else:
+                guesses = [6.0,135,20, 3.0,185,20, 2.0,240,20,
+                           0.4,270,20, 0.4,290,20, 0.1,325,10,
+                           1.0,150,10, 1.0,300,10, 1.0,200,10]
+        else:
+            guesses = p0
+
+        if do_baseline:
+            gs = [gaussians.g1s, gaussians.g2s, gaussians.g3s,
+                  gaussians.g4s, gaussians.g5s, gaussians.g6s,
+                  gaussians.g7s, gaussians.g8s, gaussians.g9s]
+            # if we are doing the baseline, there are 2 extra parameters
+            # we need to modify our indices in some places by 2
+            ib = 2
+        else:
+            gs = [gaussians.g1, gaussians.g2, gaussians.g3,
+                  gaussians.g4, gaussians.g5, gaussians.g6,
+                  gaussians.g7, gaussians.g8, gaussians.g9]
+            ib = 0
+
+        fit_results = []
+        for n in range(ng_lower, ng_upper):
+            if verbose:
+                print("Attempting fit with {0} gaussians".format(n))
+            try:
+                if bounds is None:
+                    these_bounds = (0, 340)
+                else:
+                    these_bounds = (bounds[0][:ib+n*3], bounds[1][:ib+n*3])
+                    #print(these_bounds)
+                p, pcov = curve_fit(f=gs[n-1], xdata=fit_df['wavelength'], 
+                                    ydata=fit_df["absorbance"]+self.offset,
+                                    p0=guesses[:ib+n*3], bounds=these_bounds)
+                best_fit = gs[n-1](fit_df['wavelength'], *p)
+                redchi2 = (((best_fit-fit_df['absorbance'])**2)
+                           /best_fit).sum() / (ib+n*3)
+                fit_results.append({'redchi2':redchi2, 'n':n,
+                                    'best_fit':best_fit, 'p':p, 'pcov':pcov})
+                if verbose:
+                    print("success! reduced chi2: {0:.2f}".format(redchi2))
+            except:
+                continue
+                
+        best_chi2 = 1000
+        best_i = 0
+        for i in range(0, len(fit_results)):
+            this_diff = np.abs(1-fit_results[i]['redchi2'])
+            best_diff = np.abs(1-best_chi2)
+            if this_diff < best_diff:
+                #if fit_results[i]['redchi2'] < best_chi2:
+                best_i = i
+                best_chi2 = fit_results[i]['redchi2']
+
+        
+        if verbose:
+            print("The best fit was achieved with " +
+                  "{0}".format(fit_results[best_i]['n']) +
+                  " gaussians and a reduced chi2 of"+
+                  " {0:.2f}".format(fit_results[best_i]['redchi2']))
+
+        fit_df['best_fit'] = fit_results[best_i]['best_fit']
+        self.fit_results = fit_results[best_i]
+        p = fit_results[best_i]['p']
+        pcov = fit_results[best_i]['pcov']
+        perr = np.sqrt(np.diag(pcov))
+        
+        # add the best fit to self.data, but if it already exists
+        # get rid of it first.
+        if 'best_fit' in self.data:
+            self.data = self.data.drop(columns=['best_fit'])
+        self.data = self.data.merge(fit_df, how='left')
+        
+        # un-offset the fit, to match self.data['absorbance'] and give accurate
+        # residuals
+        self.data['best_fit'] = self.data['best_fit'] - self.offset
+            
+        # calculate residuals
+        self.data['residuals'] = self.data['absorbance']-self.data['best_fit']
+        
+        # extract the peak positions
         peaks = []
-        residuals = None
+        peak_errors = []
+        for i in range(1, len(p), 3):
+            peaks.append(p[i])
+            peak_errors.append(perr[i])
+            
+        # get peak errors
+            
         self.peaks = peaks
-        self.fit = best_fit
-        self.residuals = residuals
+        self.peak_errors = peak_errors
+        
+        # save the individual gaussians that make up the fit
+        self.fit_components = []
+        ps = [p[ib:][i*3:(i+1)*3] for i in range((len(p[ib:])+3-1)//3)]
+        for params in ps:
+            # each item in ps is a list of three numbers, for one gaussian
+            this_gaussian = gaussians.g1(self.data['wavelength'], *params)
+            self.fit_components.append({'parameters':params,
+                                        'absorbance':this_gaussian-self.offset})
         
         
 class StichedSpectrum(Spectrum):
@@ -470,9 +649,121 @@ class StichedSpectrum(Spectrum):
                            join="inner", ignore_index=True)
 
         return new_df
+    
+def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
+             plot_fit_components=True, figsize=(7,5), fig=None, ax1=None,
+             save_path=None, plot_residuals=True, res_lims=(-0.0075, 0.0075)):
+    """
+    Takes a single spectrum which has been fit using the `fit_peaks()` function,
+    and plots the results of the fit, with absorbance on the y axis and
+    wavelength in nanometers on the x axis.
+    
+    plot_fit_components : (boolean)
+    plot_peaks : (boolean) whether or not to plot vertical lines at the centers
+                 of the fitted peaks. Defaults to False.
+    spec : (Spectrum or StichedSpectrum) The fited spectrum to be plotted.
+    xlim : (tuple) the x limits of the graph. This should be a tuple
+           containing two float values, in nanometer units.
+    ylim : (tuple) the y limits of the graph. This should be a tuple
+           containing two float values, in absorbance units.
+    """
+    plt.style.use('./au-uv.mplstyle')
+    
+    # make sure the passed spectrum has been fit
+    if spec.peaks is None:
+        print("The spectrum you passed hasn't been fit yet!")
+        return None
+    
+    # setup the axes
+    if plot_residuals:
+        fig, ax = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]},
+                               sharex=True)
+        ax1 = ax[0]
+        axr = ax[1]
+        
+    if ax1 is None:
+        fig, ax1 = plt.subplots(1, 1)
+        fig.set_size_inches(figsize[0], figsize[1])
+    
+    if xlim:
+        ax1.set_xlim(xlim)
+    if ylim:
+        ax1.set_ylim(ylim)
+        
+    # plot the data
+    ax1.plot(spec.data['wavelength'], spec.data['absorbance']+spec.offset,
+             color=spec.color, label=spec.name)
+    # calculate a color for the fit
+    fit_color = lighten_color(spec.color, amount=1.2)
+    # plot the fit
+    ax1.plot(spec.data['wavelength'], spec.data['best_fit']+spec.offset,
+             color=fit_color, linestyle='--', label=spec.name+" Best Fit")
+    # plot the peaks as vertical lines if desired
+    if plot_peaks:
+        for peak in spec.peaks:
+            ax1.axvline(peak, linestyle='-.',
+                       color=lighten_color(spec.color, amount=1.1))
+    # plot shaded gaussian fit components if desired
+    if plot_fit_components:
+        for component in spec.fit_components:
+            ax1.plot(spec.data['wavelength'],
+                     component['absorbance']+spec.offset,
+                     color='xkcd:grey', linestyle='-')
+            ax1.fill_between(spec.data['wavelength'], 0,
+                             component['absorbance']+spec.offset,
+                             color='xkcd:grey', alpha=.2)
+            
+    # Create the second x-axis on which the energy in eV will be displayed
+    ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
+    ax2.set_xlabel('Wavelength (eV)')
+
+    # Get ticks from ax1 (wavelengths)
+    wl_ticks = ax1.get_xticks()
+    wl_ticks = preventDivisionByZero(wl_ticks)
+
+    # Based on the ticks from ax1 (wavelengths), calculate the corresponding
+    # energies in eV
+    E_ticks = WLtoE(wl_ticks)
+
+    # Set the ticks for ax2 (Energy)
+    ax2.set_xticks(E_ticks)
+
+    # Allow for two decimal places on ax2 (Energy)
+    ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+
+    ax1.set_ylabel("Absorbance")
+    if plot_residuals:
+        axr.set_xlabel("Wavelength (nm)")
+        axr.plot(spec.data['wavelength'], spec.data['residuals'],
+                 color=spec.color, label='Residuals')
+        if spec.data['residuals'].min() <= 0:
+            rymin = spec.data['residuals'].min()*1.4
+        else:
+            rymin = spec.data['residuals'].min()*0.6
+        if spec.data['residuals'].max() <= 0:
+            rymax = spec.data['residuals'].max()*0.6
+        else:
+            rymax = spec.data['residuals'].max()*1.4
+        axr.set_ylim(rymin, rymax)
+        axr.legend()
+        if res_lims is not None:
+            axr.set_ylim(res_lims[0], res_lims[1])
+        
+    #ax1.grid()
+    ax1.legend()
+    
+    fig.tight_layout()
+    fig.subplots_adjust(hspace=0.1)
+    
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
+
+    return ax1, axr
 
 
-def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=True):
+def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
+                    plot_peaks=False, plot_fit_components=False, figsize=(7,5),
+                    raw=False, fig=None, ax1=None, save_path=None):
     """
     Takes spectra and plots them, with absorbance on the y axis and
     wavelength in nanometers on the x axis. Also wavelength in eV on the
@@ -482,6 +773,8 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=True):
               in this file.
     plot_fit : (boolean) To plot the fit to the data as well as its residuals,
                if the spectra have been fitted.
+    raw : (boolean) If True, plots the raw data instead of the calibrated data.
+          Defaults to False.
     xlim : (tuple) the x limits of the graph. This should be a tuple
            containing two float values, in nanometer units.
     ylim : (tuple) the y limits of the graph. This should be a tuple
@@ -489,8 +782,9 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=True):
     """
     plt.style.use('./au-uv.mplstyle')
     
-    fig, ax1 = plt.subplots(1, 1)
-    #fig.set_size_inches(7, 5)
+    if ax1 is None:
+        fig, ax1 = plt.subplots(1, 1)
+        fig.set_size_inches(figsize[0], figsize[1])
     
     if xlim:
         ax1.set_xlim(xlim)
@@ -499,14 +793,32 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=True):
     
     for spec in spectra:
         if spec.visible:
-            ax1.plot(spec.data['wavelength'], 
-                     spec.data['absorbance']+spec.offset,
-                     color=spec.color, label=spec.name)
-            
-    # plot peak positions
-    if peaks != None:
-        for peak in peaks:
-            ax1.axvline(x=peak[0])
+            if raw:
+                ax1.plot(spec.data['wavelength'], 
+                         spec.data['raw_absorbance']+spec.offset,
+                         color=spec.color, label=spec.name)
+            else:
+                ax1.plot(spec.data['wavelength'], 
+                         spec.data['absorbance']+spec.offset,
+                         color=spec.color, label=spec.name)
+        if plot_fit:
+            ax1.plot(spec.data['wavelength'],
+                     spec.data['best_fit']+spec.offset,
+                     color=lighten_color(spec.color, amount=1.2),
+                     linestyle='--', label=spec.name+" Best Fit")
+        if plot_peaks:
+            for peak in spec.peaks:
+                ax1.axvline(peak, linestyle='-.',
+                           color=lighten_color(spec.color, amount=1.1))
+        if plot_fit_components:
+            for component in spec.fit_components:
+                ax1.plot(spec.data['wavelength'],
+                         component['absorbance']+spec.offset,
+                         color='xkcd:grey', linestyle='-')
+                ax1.fill_between(spec.data['wavelength'], 0,
+                                 component['absorbance']+spec.offset,
+                                 color='xkcd:grey', alpha=.2)
+
             
     # Create the second x-axis on which the energy in eV will be displayed
     ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
@@ -528,7 +840,10 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=True):
 
     ax1.set_ylabel("Absorbance")
     ax1.set_xlabel("Wavelength (nm)")
-    ax1.grid()
+    #ax1.grid()
     ax1.legend()
-    plt.close()
-    return fig
+    
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
+
+    return ax1

@@ -415,7 +415,7 @@ figure.dpi:         100       # figure dots per inch
 ## * TICKS                                                                   *
 ## ***************************************************************************
 ## See https://matplotlib.org/stable/api/axis_api.html#matplotlib.axis.Tick
-xtick.top:           False   # draw ticks on the top side
+xtick.top:           True   # draw ticks on the top side
 xtick.bottom:        True    # draw ticks on the bottom side
 xtick.labeltop:      False   # draw label on the top
 xtick.labelbottom:   True    # draw label on the bottom
@@ -438,7 +438,7 @@ xtick.minor.bottom:  True    # draw x axis bottom minor ticks
 xtick.alignment:     center  # alignment of xticks
 
 ytick.left:          True    # draw ticks on the left side
-ytick.right:         False   # draw ticks on the right side
+ytick.right:         True   # draw ticks on the right side
 ytick.labelleft:     True    # draw tick labels on the left side
 ytick.labelright:    False   # draw tick labels on the right side
 ytick.major.size:    6       # major tick size in points
@@ -478,10 +478,10 @@ grid.alpha:     0.8        # transparency, between 0.0 and 1.0
 ## * LEGEND                                                                  *
 ## ***************************************************************************
 #legend.loc:           best
-#legend.frameon:       True     # if True, draw the legend on a background patch
-#legend.framealpha:    0.8      # legend patch transparency
+legend.frameon:        True     # if True, draw the legend on a background patch
+legend.framealpha:     1.0      # legend patch transparency
 #legend.facecolor:     inherit  # inherit from axes.facecolor; or color spec
-#legend.edgecolor:     0.8      # background patch boundary color
+legend.edgecolor:      1.0      # background patch boundary color
 #legend.fancybox:      True     # if True, use a rounded box for the
                                 # legend background, else a rectangle
 #legend.shadow:        False    # if True, give background a shadow effect
@@ -593,7 +593,7 @@ hist.bins: auto  # The default number of histogram bins or 'auto'.
 #savefig.dpi:       figure      # figure dots per inch or 'figure'
 #savefig.facecolor: auto        # figure face color when saving
 #savefig.edgecolor: auto        # figure edge color when saving
-#savefig.format:    png         # {png, ps, pdf, svg}
+savefig.format:     svg        # {png, ps, pdf, svg}
 savefig.bbox:       tight       # {tight, standard}
                                 # 'tight' is incompatible with generating frames
                                 # for animation

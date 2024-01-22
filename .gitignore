@@ -1,19 +1,26 @@
 # Development secrets
-#playground.ipynb
+playground.ipynb
 brainstorming.ipynb
 gpt_interface_test.py
 notes_move_me_please.ipynb
 
 # stuff I am working on as I develop
-hexane.ipynb
-hexane_n2.ipynb
-propane.ipynb
-propane_n2.ipynb
-octane.ipynb
-octane_n2.ipynb
+a_hexane.ipynb
+a_hexane_n2.ipynb
+a_propane.ipynb
+a_propane_n2.ipynb
+a_propane_backup.ipynb
+a_octane.ipynb
+a_octane_n2.ipynb
+background_check.ipynb
+Report.md
+Report.ipynb
+tools_backup.py
 
 # Data products
 data/
+raw_data/
+calibrated_data/
 
 
 # Byte-compiled / optimized / DLL files
