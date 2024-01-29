@@ -408,8 +408,29 @@ class Spectrum:
             self.data['raw_absorbance'] = self.data['absorbance']
         self.data['absorbance'] = subtracted
         
-    def fit_peaks(self, verbose=False, p0=None, ng_lower=1, ng_upper=7,
-                  bounds=None, do_baseline=False, fit_lim_low=120,
+    def _fit_function(self, x, *P):
+        """
+        
+        """
+        n_comps = len(self._comps)
+        A = P[:n_comps]
+        B = P[n_comps:]
+        
+        #print(A)
+        #print(B)
+        
+        cterm = sum([a*comp for a, comp in zip(A, self._comps)])
+        
+        n_gaussians = len(B) // 3
+        # splits all gaussian parameters B into lists of 3 parameters
+        gauss_guesses = [B[i*3:(i+1)*3] for i in range((len(B)+3-1)//3)]
+        for gguess in gauss_guesses:
+            cterm += gaussians.g1(x, *gguess)
+            
+        return cterm
+        
+    def fit_peaks(self, verbose=False, guesses=None, ng_lower=1, ng_upper=7,
+                  do_baseline=False, fit_lim_low=120,
                   fit_lim_high=340, custom_components=None):
         """
         Finds and fits the peaks in the spectrum by fitting the spectrum with 
@@ -422,57 +443,51 @@ class Spectrum:
         
         do_baseline : (boolean) Whether or not to fit using the rayleigh
                       scattering baseline function as a part of the fit.
-        bounds : (touple) The upper and lower bounds for all of the parameters
-                 to be fit. Defaults to (0, 340).
         fit_lim_low : (float) the lower limit on the wavelength range used in
                       fitting. Defults to 120.
+        guesses: (list) a list of dictionaries containing the guesses to your
+                 fit. The dictionaries must be of the form: {'lower':, 'guess':,
+                 'upper':} where 'guess' is your guess for the value of a fit
+                 parameter, and 'lower' and 'upper' are lower and upper limits
+                 respectively. Guesses for gaussian fit parameters must be in
+                 groups of three; a, c, and s, where a is the amplitude of the
+                 gaussian, c is the center wavelength, and s is the standard
+                 deviation. If you have `do_baseline` to True, you should
+                 include an additional two parameters *at the start* of p0.
+                 These parameters are m and k, where m controls the steepness of
+                 the scattering curve, and k controls the amplitude. If you have
+                 any custom components, you must include guesses for the
+                 amplitudes of those components at the start of the list, before
+                 your guesses for the baseline.
         ng_lower : (int) The lower limit on the number of gaussians to try and
                    fit with. Defaults to 1.
         ng_upper : (int) The upper limit on the number of gaussians to try and
                    fit with. Defaults to 7. Higher numbers will take longer and
                    may be unstable.
-        p0 : (list) The initial guesses for the parameters to fit with. The
-             guesses should be in groups of three; a, c, and s, where a is the 
-             amplitude of the gaussian, c is the center wavelength, and s is the
-             standard deviation. If you have `do_baseline` to True, you should
-             include an additional two parameters *at the start* of p0. These
-             parameters are m and k, where m controls the steepness of the
-             scattering curve, and k controls the amplitude.
         verbose : (boolean) If true, prints debug and progress statements.
                   Defaults to False.
         """
         # we only want to fit where the data are good
         fit_df = self.data[(self.data['wavelength'] > fit_lim_low) &
                            (self.data['wavelength'] < fit_lim_high)].copy()
-        
+        #self.fit_df = fit_df
         # do the fit
         # this method is computationally expensive and bad. It will be fixed in
         # the future... :/
         
-        errors = []
-        if custom_components:
-            if not p0:
-                errors.append("You must provide your own guesses" +
-                              " if you are using custom components!!!! >:O")
-            if do_baseline:
-                errors.append("Baseline fitting with custom components is not" +
-                              "supported!!! >:O")
-            if len(errors) > 0:
-                for error in errors:
-                    print(error)
-                return None
-        
-        if not p0:
-            if do_baseline:
-                guesses = [1, 0] + [6.0,135,20, 3.0,185,20, 2.0,240,20,
-                                    0.4,270,20, 0.4,290,20, 0.1,325,10,
-                                    1.0,150,10, 1.0,300,10, 1.0,200,10]
-            else:
-                guesses = [6.0,135,20, 3.0,185,20, 2.0,240,20,
-                           0.4,270,20, 0.4,290,20, 0.1,325,10,
-                           1.0,150,10, 1.0,300,10, 1.0,200,10]
-        else:
-            guesses = p0
+        if not guesses:
+            print("you must provide guesses!! >:O")
+            return None
+            
+        # unwrap guesses and bounds
+        p0 = []
+        lower_bounds = []
+        upper_bounds = []
+        for guess in guesses:
+            p0.append(guess['guess'])
+            lower_bounds.append(guess['lower'])
+            upper_bounds.append(guess['upper'])
+        bounds = (lower_bounds, upper_bounds)
 
         if do_baseline:
             gs = [gaussians.g1s, gaussians.g2s, gaussians.g3s,
@@ -486,30 +501,57 @@ class Spectrum:
                   gaussians.g4, gaussians.g5, gaussians.g6,
                   gaussians.g7, gaussians.g8, gaussians.g9]
             ib = 0
+            
+        errors = []
+        if custom_components is not None:
+            self._comps = []
+            for comp in custom_components:
+                self._comps.append(comp[(comp['wavelength'] > fit_lim_low) &
+                                   (comp['wavelength'] < fit_lim_high)]['absorbance'].copy())
+            #ib = len(self._comps)
+            if not p0:
+                errors.append("You must provide your own guesses" +
+                              " if you are using custom components!!!! >:O")
+            if do_baseline:
+                errors.append("Baseline fitting with custom components is not" +
+                              "supported!!! >:O")
+            if len(errors) > 0:
+                for error in errors:
+                    print(error)
+                return None
 
         fit_results = []
         for n in range(ng_lower, ng_upper):
             if verbose:
                 print("Attempting fit with {0} gaussians".format(n))
-            try:
-                if bounds is None:
-                    these_bounds = (0, 340)
-                else:
-                    these_bounds = (bounds[0][:ib+n*3], bounds[1][:ib+n*3])
-                    #print(these_bounds)
+            #try:
+            if bounds is None:
+                these_bounds = (0, 340)
+            else:
+                these_bounds = (bounds[0][:ib+n*3], bounds[1][:ib+n*3])
+                #print(these_bounds)
+            if custom_components is not None:
+                p, pcov = curve_fit(f=self._fit_function,
+                                    xdata=fit_df['wavelength'], 
+                                ydata=fit_df["absorbance"]+self.offset,
+                                p0=p0, bounds=bounds)
+                #best_fit = gs[n-1](fit_df['wavelength'], *p)
+            else:
+                
                 p, pcov = curve_fit(f=gs[n-1], xdata=fit_df['wavelength'], 
                                     ydata=fit_df["absorbance"]+self.offset,
-                                    p0=guesses[:ib+n*3], bounds=these_bounds)
+                                    p0=p0[:ib+n*3], bounds=these_bounds)
                 best_fit = gs[n-1](fit_df['wavelength'], *p)
                 redchi2 = (((best_fit-fit_df['absorbance'])**2)
                            /best_fit).sum() / (ib+n*3)
                 fit_results.append({'redchi2':redchi2, 'n':n,
                                     'best_fit':best_fit, 'p':p, 'pcov':pcov})
-                if verbose:
-                    print("success! reduced chi2: {0:.2f}".format(redchi2))
-            except:
-                continue
+            if verbose:
+                print("success! reduced chi2: {0:.2f}".format(redchi2))
+            #except:
+            #    continue
                 
+        #print(fit_results)
         best_chi2 = 1000
         best_i = 0
         for i in range(0, len(fit_results)):
@@ -568,9 +610,9 @@ class Spectrum:
                                         'absorbance':this_gaussian-self.offset})
         
         
-class StichedSpectrum(Spectrum):
+class StitchedSpectrum(Spectrum):
     """
-    Represents a stiched spectrum, so the combination of two spectra
+    Represents a stitched spectrum, so the combination of two spectra
     
     Parameters belonging to the fully constructed object:
         

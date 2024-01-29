@@ -3,6 +3,7 @@ playground.ipynb
 brainstorming.ipynb
 gpt_interface_test.py
 notes_move_me_please.ipynb
+test.txt
 
 # stuff I am working on as I develop
 a_hexane.ipynb
@@ -16,6 +17,11 @@ background_check.ipynb
 Report.md
 Report.ipynb
 tools_backup.py
+
+# depreciated
+read_and_fit_raw_VUV_spectral_data.ipynb
+display_full_spectrum.py
+display_full_spectrum.ipynb
 
 # Data products
 data/
