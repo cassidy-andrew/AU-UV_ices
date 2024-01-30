@@ -190,7 +190,6 @@ class Spectrum:
         data : (pandas.DataFrame) the data belonging to this
                spectrum, averaged together from its corresponding
                scans.
-        fit : (dict) The fitted spectrum after calling `fit_peaks()`.
         fit_components : (list) a list of dictionaries which make up the fit
                          components after `fit_peaks()` is called. Each 
                          dictionary has the following components: parameters,
@@ -200,7 +199,7 @@ class Spectrum:
                          of the gaussian corresponding to the `data` parameter's
                          wavelength values.
         fit_results : (dict) A dictionary of the best fit results after
-                      `best_fit()` is called. It consists of the following
+                      `fit_peaks()` is called. It consists of the following
                       components: redchi2, p, pcov, best_fit. `redchi2` is the
                       reduced chi square value of the fit. `p` is the fit
                       parameters. `pcov` is the covariance matrix of those
@@ -215,8 +214,6 @@ class Spectrum:
                 prior to calling `fit_peaks()`.
         peak_errors : (list) a list of the standard deviation peak errors. Is
                       None prior to calling `fit_peaks()`
-        residuals : (pandas.DataFrame) The residuals after fitting with
-                    `fit_peaks()`.
         samples : (list) a list of sample files that make up the scans.
         scans : (list) a list of SingleScan objects that will be
                 averaged together to make this spectrum.
@@ -236,8 +233,6 @@ class Spectrum:
         self.bkgds = []
         self.samples = []
         self.data = None
-        self.fit = None
-        self.residuals = None
         self.baseline_p = None
         self.peaks = None
         self.peak_errors = None
@@ -430,8 +425,7 @@ class Spectrum:
         return cterm
         
     def fit_peaks(self, verbose=False, guesses=None, ng_lower=1, ng_upper=7,
-                  do_baseline=False, fit_lim_low=120,
-                  fit_lim_high=340, custom_components=None):
+                  do_baseline=False, fit_lim=(120, 340), custom_components=None):
         """
         Finds and fits the peaks in the spectrum by fitting the spectrum with 
         some number of asymmetric Gaussian functions. The locations of the peaks
@@ -468,8 +462,8 @@ class Spectrum:
                   Defaults to False.
         """
         # we only want to fit where the data are good
-        fit_df = self.data[(self.data['wavelength'] > fit_lim_low) &
-                           (self.data['wavelength'] < fit_lim_high)].copy()
+        fit_df = self.data[(self.data['wavelength'] > fit_lim[0]) &
+                           (self.data['wavelength'] < fit_lim[1])].copy()
         #self.fit_df = fit_df
         # do the fit
         # this method is computationally expensive and bad. It will be fixed in
