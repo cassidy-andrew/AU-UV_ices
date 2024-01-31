@@ -11,14 +11,21 @@ from matplotlib.ticker import FormatStrFormatter
 import scipy.constants as constants
 from scipy.optimize import curve_fit
 
-import gaussians
+#import gaussians
 
-def scattering_baseline(wl, a, b, c):
+def scattering(wl, m, k):
     """
-    The rayleigh scattering baseline, as outlined in equation 11 of 
+    The rayleigh scattering function, as outlined in equation 11 of 
     Ioppolo et al. 2021: https://doi.org/10.1051/0004-6361/202039184
     """
-    return c*np.log(1/(1-a*(wl**-4))) + b
+    return k*np.log(1/(1-m*(wl**-4)))
+
+def gaussian(x, a1,c1,s1):
+    """
+    A single gaussian function, centered at c1 with standard deviation s1, and
+    amplitude a1.
+    """
+    return (a1/(s1*(np.sqrt(2*np.pi)))) * np.exp((-1.0/2.0)*(((x-c1)/s1)**2))
 
 def preventDivisionByZero(some_array):
     """
@@ -238,6 +245,7 @@ class Spectrum:
         self.peak_errors = None
         self.fit_components = []
         self.fit_results = None
+        self._comps = None
         
     def average_scans(self):
         """
@@ -245,6 +253,7 @@ class Spectrum:
         """
         scans = []
         
+        # pair backgrounds and samples into SingleScan objects
         for i in range(0, len(self.bkgds)):
             # match backgrounds and spectra
             this_bkgd = self.bkgds[i]
@@ -261,7 +270,8 @@ class Spectrum:
             this_scan = SingleScan(this_bkgd, this_sample)
             scans.append(this_scan)
             
-        # average the scan objects
+        # average the SingleScan objects
+        # make a dataframe to put the averaged data in
         data = pd.DataFrame()
         # just copy the wavelength values from the first background
         data['wavelength'] = scans[0].bkgd['wavelength']
@@ -343,13 +353,14 @@ class Spectrum:
         self.color = new_color
         
         
-    def save_to_csv(self, path):
+    def export(self, path):
         """
-        Saves the spectrum data to a csv file
+        Saves the spectrum object. Its data will be saved to a csv file.
         
-        path : (str) the path where you want to save the file
+        path : (str) the path where you want to save the file. This should be a
+               directory.
         """
-        self.data.to_csv(path, index=False)
+        self.data.to_csv(path+"/data.csv", index=False)
         
     
     def subtract_baseline(self, regions, p0=None):
@@ -407,25 +418,49 @@ class Spectrum:
         """
         
         """
-        n_comps = len(self._comps)
-        A = P[:n_comps]
-        B = P[n_comps:]
+        # y will hold our spectrum
+        y = np.zeros(len(x))
         
-        #print(A)
-        #print(B)
+        # initialize our parameter space. At this point, P contains all
+        # parameters for all components of the fit. We need to sort them out.
+        # parameters relating to custom components are first
+        if self._comps is not None:
+            self._n_comps = len(self._comps)
+        else:
+            self._n_comps = 0
+        # parameters relating to scattering are second
+        if self._do_scattering:
+            self._n_scatt = 2
+        else:
+            self._n_scatt = 0
+        # remaining parameters are relating to the gaussians. We make new lists
+        # for the parameters below:        
+        # parameters relating to our custom components
+        C = P[:self._n_comps]
+        # parameters relating to our scattering
+        S = P[self._n_comps:self._n_comps+self._n_scatt]
+        # parameters realting to our gaussians
+        G = P[self._n_comps+self._n_scatt:]
         
-        cterm = sum([a*comp for a, comp in zip(A, self._comps)])
-        
-        n_gaussians = len(B) // 3
-        # splits all gaussian parameters B into lists of 3 parameters
-        gauss_guesses = [B[i*3:(i+1)*3] for i in range((len(B)+3-1)//3)]
-        for gguess in gauss_guesses:
-            cterm += gaussians.g1(x, *gguess)
+        # add the custom components terms to our y values
+        if self._do_comps:
+            y += sum([c*comp['absorbance'] for c, comp in zip(C, self._comps)])
             
-        return cterm
+        # add the scattering terms to our y values
+        if self._do_scattering:
+            y += scattering(x, *S)
+        
+        # add the gaussian terms to our y values
+        n_gaussians = len(G) // 3
+        # splits all gaussian parameters B into lists of 3 parameters
+        gauss_guesses = [G[i*3:(i+1)*3] for i in range((len(G)+3-1)//3)]
+        for gguess in gauss_guesses:
+            y += gaussian(x, *gguess)
+            
+        return y
         
     def fit_peaks(self, verbose=False, guesses=None, ng_lower=1, ng_upper=7,
-                  do_baseline=False, fit_lim=(120, 340), custom_components=None):
+                  do_scattering=False, fit_lim=(120, 340), custom_components=None):
         """
         Finds and fits the peaks in the spectrum by fitting the spectrum with 
         some number of asymmetric Gaussian functions. The locations of the peaks
@@ -435,8 +470,8 @@ class Spectrum:
         
         Parameters:
         
-        do_baseline : (boolean) Whether or not to fit using the rayleigh
-                      scattering baseline function as a part of the fit.
+        do_scattering : (boolean) Whether or not to fit using the rayleigh
+                      scattering function as a part of the fit.
         fit_lim_low : (float) the lower limit on the wavelength range used in
                       fitting. Defults to 120.
         guesses: (list) a list of dictionaries containing the guesses to your
@@ -483,69 +518,72 @@ class Spectrum:
             upper_bounds.append(guess['upper'])
         bounds = (lower_bounds, upper_bounds)
 
-        if do_baseline:
-            gs = [gaussians.g1s, gaussians.g2s, gaussians.g3s,
-                  gaussians.g4s, gaussians.g5s, gaussians.g6s,
-                  gaussians.g7s, gaussians.g8s, gaussians.g9s]
+        # check if we are fitting the rayleigh scattering or not
+        if do_scattering:
+            self._do_scattering = True
             # if we are doing the baseline, there are 2 extra parameters
             # we need to modify our indices in some places by 2
-            ib = 2
+            #ib = 2
+            self._n_scatt = 2
         else:
-            gs = [gaussians.g1, gaussians.g2, gaussians.g3,
-                  gaussians.g4, gaussians.g5, gaussians.g6,
-                  gaussians.g7, gaussians.g8, gaussians.g9]
-            ib = 0
+            self._do_scattering = False
+            #ib = 0
+            self._n_scatt = 0
             
+        # initialize the function based on what custom components we are using
         errors = []
         if custom_components is not None:
             self._comps = []
+            self._do_comps = True
             for comp in custom_components:
-                self._comps.append(comp[(comp['wavelength'] > fit_lim_low) &
-                                   (comp['wavelength'] < fit_lim_high)]['absorbance'].copy())
+                self._comps.append(comp[(comp['wavelength'] > fit_lim[0]) &
+                                   (comp['wavelength'] < fit_lim[1])].copy())
             #ib = len(self._comps)
+            self._n_comps = len(self._comps)
             if not p0:
                 errors.append("You must provide your own guesses" +
                               " if you are using custom components!!!! >:O")
-            if do_baseline:
-                errors.append("Baseline fitting with custom components is not" +
-                              "supported!!! >:O")
             if len(errors) > 0:
                 for error in errors:
                     print(error)
                 return None
+        else:
+            self._comps = None
+            self._do_comps = False
+            self._n_comps = 0
 
+        # a place to store our fit results
         fit_results = []
+        # do the fitting with different numbers of gaussians
         for n in range(ng_lower, ng_upper):
             if verbose:
                 print("Attempting fit with {0} gaussians".format(n))
             #try:
-            if bounds is None:
+            """if bounds is None:
                 these_bounds = (0, 340)
             else:
                 these_bounds = (bounds[0][:ib+n*3], bounds[1][:ib+n*3])
-                #print(these_bounds)
-            if custom_components is not None:
-                p, pcov = curve_fit(f=self._fit_function,
-                                    xdata=fit_df['wavelength'], 
-                                ydata=fit_df["absorbance"]+self.offset,
-                                p0=p0, bounds=bounds)
-                #best_fit = gs[n-1](fit_df['wavelength'], *p)
-            else:
-                
-                p, pcov = curve_fit(f=gs[n-1], xdata=fit_df['wavelength'], 
-                                    ydata=fit_df["absorbance"]+self.offset,
-                                    p0=p0[:ib+n*3], bounds=these_bounds)
-                best_fit = gs[n-1](fit_df['wavelength'], *p)
-                redchi2 = (((best_fit-fit_df['absorbance'])**2)
-                           /best_fit).sum() / (ib+n*3)
-                fit_results.append({'redchi2':redchi2, 'n':n,
-                                    'best_fit':best_fit, 'p':p, 'pcov':pcov})
+                #print(these_bounds)"""
+            these_p0 = p0[:self._n_comps+self._n_scatt+n*3]
+            these_bounds = (bounds[0][:self._n_comps+self._n_scatt+n*3],
+                            bounds[1][:self._n_comps+self._n_scatt+n*3])
+            #print(these_p0)
+            #print(these_bounds)
+            p, pcov = curve_fit(f=self._fit_function,
+                                xdata=fit_df['wavelength'], 
+                            ydata=fit_df["absorbance"]+self.offset,
+                            p0=these_p0, bounds=these_bounds)
+            best_fit = self._fit_function(fit_df['wavelength'], *p)
+            redchi2 = (((best_fit-fit_df['absorbance'])**2)
+                       /best_fit).sum() / (len(p))
+            fit_results.append({'redchi2':redchi2, 'n':n,
+                                'best_fit':best_fit, 'p':p, 'pcov':pcov})
             if verbose:
                 print("success! reduced chi2: {0:.2f}".format(redchi2))
             #except:
             #    continue
                 
-        #print(fit_results)
+        # evaluate which of our fits was best, based on the reduced chi square
         best_chi2 = 1000
         best_i = 0
         for i in range(0, len(fit_results)):
@@ -556,52 +594,102 @@ class Spectrum:
                 best_i = i
                 best_chi2 = fit_results[i]['redchi2']
 
-        
         if verbose:
             print("The best fit was achieved with " +
                   "{0}".format(fit_results[best_i]['n']) +
                   " gaussians and a reduced chi2 of"+
                   " {0:.2f}".format(fit_results[best_i]['redchi2']))
-
-        fit_df['best_fit'] = fit_results[best_i]['best_fit']
-        self.fit_results = fit_results[best_i]
-        p = fit_results[best_i]['p']
-        pcov = fit_results[best_i]['pcov']
-        perr = np.sqrt(np.diag(pcov))
         
+        # manage the fit parameters in a different function to avoid bloat
+        #print(fit_results[best_i])
+        self._manage_fit_parameters(fit_results[best_i], fit_df)
+            
+    def _manage_fit_parameters(self, fit_result, fit_df):
+        """
+        Takes the fit results from the fitting function, and organizes them in
+        a way the user will want to interact with. Assigns those results to
+        object parameters which can easily be exported later.
+        """
+        # Take care of adding the absorbance and residual values to self.data.
+        # self.data has a different wavelength range than our fitted absorbance
+        # values. But fit_df does not. So, add the fitted absorbance to fit_df
+        # and then merge fit_df into self.data so that the wavelengths line up.
+        fit_df['best_fit'] = fit_result['best_fit']
         # add the best fit to self.data, but if it already exists
         # get rid of it first.
         if 'best_fit' in self.data:
             self.data = self.data.drop(columns=['best_fit'])
         self.data = self.data.merge(fit_df, how='left')
-        
         # un-offset the fit, to match self.data['absorbance'] and give accurate
         # residuals
         self.data['best_fit'] = self.data['best_fit'] - self.offset
-            
         # calculate residuals
         self.data['residuals'] = self.data['absorbance']-self.data['best_fit']
         
-        # extract the peak positions
-        peaks = []
-        peak_errors = []
-        for i in range(1, len(p), 3):
-            peaks.append(p[i])
-            peak_errors.append(perr[i])
-            
-        # get peak errors
-            
-        self.peaks = peaks
-        self.peak_errors = peak_errors
+        #self.fit_results = fit_result
+        # we will use these to calculate our peaks later
+        p = fit_result['p']
+        pcov = fit_result['pcov']
+        perr = np.sqrt(np.diag(pcov))
         
-        # save the individual gaussians that make up the fit
+        # make a list of all the parameters an their errors
+        all_params = []
+        for i in range(0, len(p)):
+            all_params.append({'value':p[i], 'error':perr[i]})
+        
+        # parameters relating to our custom components
+        C = all_params[:self._n_comps]
+        # parameters relating to our scattering
+        S = all_params[self._n_comps:self._n_comps+self._n_scatt]
+        # parameters realting to our gaussians
+        G = all_params[self._n_comps+self._n_scatt:]
+        
+        # Extract the guassian peak positions and their errors. 
+        peaks = []
+        for i in range(1, len(G), 3):
+            peaks.append({'peak':G[i]['value'], 'peak_error':G[i]['error']})
+
+        self.peaks = peaks
+        
+        # save the general fit results
+        self.fit_results = {'reduced_chi_square':fit_result['redchi2'],
+                            'n_gaussians':fit_result['n'],
+                            'n_custom_components':self._n_comps,
+                            'fitted_scattering':self._do_scattering,
+                            'custom_component_parameters':C,
+                            'scattering_parameters':S,
+                            'gaussian_parameters':G,
+                            'p':p,
+                            'pcov':pcov}
+        
+        # save the individual components that make up the fit
         self.fit_components = []
-        ps = [p[ib:][i*3:(i+1)*3] for i in range((len(p[ib:])+3-1)//3)]
+        # handle the custom components
+        if self._do_comps:
+            for i in range(0, self._n_comps):
+                this_comp = self._comps[i]
+                this_ab = [C[i]['value']*ab for ab in this_comp['absorbance']]
+                self.fit_components.append({'parameters':C[i],
+                                        'wavelength':this_comp['wavelength'],
+                                        'absorbance':this_ab})
+        # handle the scattering
+        if self._do_scattering:
+            self.fit_components.append({'parameters':S,
+                                        'wavelength':self.data['wavelength'],
+                                        'absorbance':scattering(x,S[0]['value'],
+                                                                S[1]['value'])})
+        # handle the gaussians
+        ps = [G[i*3:(i+1)*3] for i in range((len(G)+3-1)//3)]
         for params in ps:
             # each item in ps is a list of three numbers, for one gaussian
-            this_gaussian = gaussians.g1(self.data['wavelength'], *params)
+            values = []
+            for parameter in params:
+                values.append(parameter['value'])
+            this_gaussian = gaussian(self.data['wavelength'], *values)
             self.fit_components.append({'parameters':params,
+                                        'wavelength':self.data['wavelength'],
                                         'absorbance':this_gaussian-self.offset})
+        
         
         
 class StitchedSpectrum(Spectrum):
@@ -737,16 +825,16 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
     # plot the peaks as vertical lines if desired
     if plot_peaks:
         for peak in spec.peaks:
-            ax1.axvline(peak, linestyle='-.',
+            ax1.axvline(peak['peak'], linestyle='-.',
                        color=lighten_color(spec.color, amount=1.1))
     # plot shaded gaussian fit components if desired
     if plot_fit_components:
         for component in spec.fit_components:
-            ax1.plot(spec.data['wavelength'],
-                     component['absorbance']+spec.offset,
+            ax1.plot(component['wavelength'],
+                     [spec.offset+c for c in component['absorbance']],
                      color='xkcd:grey', linestyle='-')
-            ax1.fill_between(spec.data['wavelength'], 0,
-                             component['absorbance']+spec.offset,
+            ax1.fill_between(component['wavelength'], 0,
+                             [spec.offset+c for c in component['absorbance']],
                              color='xkcd:grey', alpha=.2)
             
     # Create the second x-axis on which the energy in eV will be displayed
