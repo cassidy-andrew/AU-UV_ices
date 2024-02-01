@@ -11,7 +11,6 @@ from matplotlib.ticker import FormatStrFormatter
 import scipy.constants as constants
 from scipy.optimize import curve_fit
 
-#import gaussians
 
 def scattering(wl, m, k):
     """
@@ -363,60 +362,90 @@ class Spectrum:
         self.data.to_csv(path+"/data.csv", index=False)
         
     
-    def subtract_baseline(self, regions, p0=None):
+    def subtract_baseline(self, lim=None, how="min"):
         """
-        Performs a baseline subtraction on the spectrum.
+        Performs a baseline subtraction on the spectrum. This is done just by
+        shifting all values such that some chosen value is zero. There are two
+        methods, determined by the how parameter.
         
-        p0 : (list) initial guesses for the rayleigh scattering parameters.
-        regions : (list) regions in wavelength where the spectrum should be
-                  flat. This should be a list of pairs of numbers. For example,
-                  [(550, 566),(585, 610)] would say that between 550 and 566 nm,
-                  and between 585 and 610 nm, the spectrum should be flat. These
-                  ranges will then have a line fitted to them, and that line 
-                  will be subtracted from the overall spectrum.
+        lim : (tuple or None) the limits on where the zero point is searched
+              for. Defaults to None.
+        how : (str) How to determine the zero point. Acceptable values are
+              "min", and "right". When "min", the function will find the minimum
+              absorbance value within the wavelength range set by lim, and shift
+              the data such that it is zero. When "right", the rightmost
+              value will be shifted such that it is zero.
         """
-        # select the regions that will be fit
-        dfs = []
-        for region in regions:
-            lolim = region[0]
-            uplim = region[1]
-            dfs.append(self.data[(self.data['wavelength'] > lolim) &
-                                (self.data['wavelength'] < uplim)])
-        # concat the regions into one dataframe
-        fit_df = pd.concat(dfs, join="inner", ignore_index=True)
+        # set limits for finding the shift value
+        if lim is not None:
+            search_df = self.data[(self.data['wavelength'] >= lim[0]) &
+                                  (self.data['wavelength'] <= lim[1])]
+        else:
+            search_df = self.data
         
-        # fit the dataframe with the rayleigh scattering baseline
-        if "raw_absorbance" in self.data:
-            """p = np.polyfit(x=fit_df['wavelength'],
-                           y=fit_df['raw_absorbance'], deg=2)"""
-            p, pcov = curve_fit(f=scattering_baseline,
-                                xdata=fit_df['wavelength'],
-                                ydata=fit_df["raw_absorbance"],
-                                p0=p0)
+        # if this has already been run, make sure we search on unshifted data
+        if 'raw_absorbance' in self.data.columns:
+            key = 'raw_absorbance'
         else:
-            """p = np.polyfit(x=fit_df['wavelength'],
-                           y=fit_df['absorbance'], deg=2)"""
-            p, pcov = curve_fit(f=scattering_baseline,
-                                xdata=fit_df['wavelength'],
-                                ydata=fit_df["absorbance"],
-                                p0=p0)
-        self.baseline_p = p
-        # fitted line
-        #y = [p[0]*x**2 +p[1]*x + p[2] for x in self.data['wavelength']]
-        y = scattering_baseline(self.data['wavelength'], p[0], p[1], p[2])
-        self.data['baseline'] = y
-        # subtract the fitted baseline
-        if "raw_absorbance" in self.data:
-            subtracted = [a1-a2 for a1,a2 in zip(self.data['raw_absorbance'],y)]
+            key = 'absorbance'
+        
+        # do the shifting
+        if how == "min":
+            # get the minimum value as the shift
+            shift = -1*search_df[key].min()
+        elif how == "right":
+            # get the rightmost value as the shift
+            shift = -1*search_df[key].iloc[-1]
         else:
-            subtracted = [a1-a2 for a1, a2 in zip(self.data['absorbance'], y)]
-            # save the raw absorbance, and update the data
-            self.data['raw_absorbance'] = self.data['absorbance']
-        self.data['absorbance'] = subtracted
+            print("Invalid value for the how parameter."+
+                  " You entered '{0}',".format(how) + 
+                  " but only 'min' or 'right' are accepted." +
+                  " Run help(tools.Spectrum.subtract_baseline) for help.")
+            return None
+        
+        # apply the shift
+        shifted = [a+shift for a in self.data[key]]
+        
+        # remap the unshifted data to 'raw_absorbance' if needed
+        if not ('raw_absorbance' in self.data.columns):  
+            self.data['raw_absorbance'] = self.data['absorbance'].copy()
+        # remap the shifted data to 'absorbance'
+        self.data['absorbance'] = shifted
+        
+    def _make_guesses(self, ng_upper, wavelengths):
+        """
+        Generate guesses for fit parameters if none are provided. Custom
+        component scale values will be initialized to 1. Scattering parameters
+        will be k=0, m=1. Gaussians will have amplitude 1, standard deviation 5,
+        and central positions evenly distributed in wavelength space.
+        """
+        guesses = []
+        # handle custom components
+        if self._do_comps:
+            for n in range(0, self._n_comps):
+                guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
+                
+        if self._do_scattering:
+            guesses.append({'lower':0, 'guess':0, 'upper':np.inf})
+            guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
+            
+        centers = np.linspace(wavelengths.iloc[0], wavelengths.iloc[-1], ng_upper)
+        for n in range(0, ng_upper):
+            guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
+            guesses.append({'lower':0, 'guess':centers[n], 'upper':np.inf})
+            guesses.append({'lower':0, 'guess':5, 'upper':np.inf})
+            
+        return guesses
         
     def _fit_function(self, x, *P):
         """
-        
+        The fit function. It is a linear combination of several optional
+        components: custom components which can be any array-like object, a 
+        rayleigh scattering term, and any number of gaussian functions. The
+        number of gaussian functions is determined by the number of parameters
+        passed to the function. Passed parameters must be in the order of: 
+        scale factors for the custom components, parameters for the scattering
+        function, and parameters for the gaussians. 
         """
         # y will hold our spectrum
         y = np.zeros(len(x))
@@ -499,24 +528,6 @@ class Spectrum:
         # we only want to fit where the data are good
         fit_df = self.data[(self.data['wavelength'] > fit_lim[0]) &
                            (self.data['wavelength'] < fit_lim[1])].copy()
-        #self.fit_df = fit_df
-        # do the fit
-        # this method is computationally expensive and bad. It will be fixed in
-        # the future... :/
-        
-        if not guesses:
-            print("you must provide guesses!! >:O")
-            return None
-            
-        # unwrap guesses and bounds
-        p0 = []
-        lower_bounds = []
-        upper_bounds = []
-        for guess in guesses:
-            p0.append(guess['guess'])
-            lower_bounds.append(guess['lower'])
-            upper_bounds.append(guess['upper'])
-        bounds = (lower_bounds, upper_bounds)
 
         # check if we are fitting the rayleigh scattering or not
         if do_scattering:
@@ -530,8 +541,8 @@ class Spectrum:
             #ib = 0
             self._n_scatt = 0
             
-        # initialize the function based on what custom components we are using
-        errors = []
+        # check if we are using custom components and if so, format them
+        #errors = []
         if custom_components is not None:
             self._comps = []
             self._do_comps = True
@@ -540,17 +551,32 @@ class Spectrum:
                                    (comp['wavelength'] < fit_lim[1])].copy())
             #ib = len(self._comps)
             self._n_comps = len(self._comps)
-            if not p0:
+            """if not guesses:
                 errors.append("You must provide your own guesses" +
                               " if you are using custom components!!!! >:O")
             if len(errors) > 0:
                 for error in errors:
                     print(error)
-                return None
+                return None"""
         else:
             self._comps = None
             self._do_comps = False
             self._n_comps = 0
+            
+        # manage the guesses for the fitted parameters
+        if guesses is None:
+            #print("you must provide guesses!! >:O")
+            guesses = self._make_guesses(ng_upper, fit_df['wavelength'])
+            
+        # unwrap guesses and bounds
+        p0 = []
+        lower_bounds = []
+        upper_bounds = []
+        for guess in guesses:
+            p0.append(guess['guess'])
+            lower_bounds.append(guess['lower'])
+            upper_bounds.append(guess['upper'])
+        bounds = (lower_bounds, upper_bounds)
 
         # a place to store our fit results
         fit_results = []
@@ -646,8 +672,11 @@ class Spectrum:
         
         # Extract the guassian peak positions and their errors. 
         peaks = []
-        for i in range(1, len(G), 3):
-            peaks.append({'peak':G[i]['value'], 'peak_error':G[i]['error']})
+        for i in range(0, len(G), 3):
+            G[i]['parameter'] = 'amplitude'
+            G[i+1]['parameter'] = 'center'
+            G[i+2]['parameter'] = 'std'
+            peaks.append({'peak':G[i+1]['value'], 'peak_error':G[i+1]['error']})
 
         self.peaks = peaks
         
