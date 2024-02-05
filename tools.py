@@ -359,7 +359,7 @@ class Spectrum:
         path : (str) the path where you want to save the file. This should be a
                directory.
         """
-        self.data.to_csv(path+"/data.csv", index=False)
+        self.data.to_csv(path, index=False)
         
     
     def subtract_baseline(self, lim=None, how="min"):
@@ -429,7 +429,7 @@ class Spectrum:
             guesses.append({'lower':0, 'guess':0, 'upper':np.inf})
             guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
             
-        centers = np.linspace(wavelengths.iloc[0], wavelengths.iloc[-1], ng_upper)
+        centers = np.linspace(wavelengths.iloc[0],wavelengths.iloc[-1],ng_upper)
         for n in range(0, ng_upper):
             guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
             guesses.append({'lower':0, 'guess':centers[n], 'upper':np.inf})
@@ -489,7 +489,8 @@ class Spectrum:
         return y
         
     def fit_peaks(self, verbose=False, guesses=None, ng_lower=1, ng_upper=7,
-                  do_scattering=False, fit_lim=(120, 340), custom_components=None):
+                  do_scattering=False, fit_lim=(120, 340),
+                  custom_components=None):
         """
         Finds and fits the peaks in the spectrum by fitting the spectrum with 
         some number of asymmetric Gaussian functions. The locations of the peaks
@@ -719,8 +720,7 @@ class Spectrum:
                                         'wavelength':self.data['wavelength'],
                                         'absorbance':this_gaussian-self.offset})
         
-        
-        
+
 class StitchedSpectrum(Spectrum):
     """
     Represents a stitched spectrum, so the combination of two spectra
