@@ -706,7 +706,8 @@ class Spectrum:
         if self._do_scattering:
             self.fit_components.append({'parameters':S,
                                         'wavelength':self.data['wavelength'],
-                                        'absorbance':scattering(x,S[0]['value'],
+                                        'absorbance':scattering(self.data['wavelength'],
+                                                                S[0]['value'],
                                                                 S[1]['value'])})
         # handle the gaussians
         ps = [G[i*3:(i+1)*3] for i in range((len(G)+3-1)//3)]
