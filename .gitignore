@@ -23,6 +23,7 @@ playground.ipynb
 read_and_fit_raw_VUV_spectral_data.ipynb
 display_full_spectrum.py
 display_full_spectrum.ipynb
+tools.py
 
 # Data products
 data/

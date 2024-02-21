@@ -416,7 +416,7 @@ class Spectrum:
         """
         Generate guesses for fit parameters if none are provided. Custom
         component scale values will be initialized to 1. Scattering parameters
-        will be k=0, m=1. Gaussians will have amplitude 1, standard deviation 5,
+        will be k=1, m=1. Gaussians will have amplitude 1, standard deviation 5,
         and central positions evenly distributed in wavelength space.
         """
         guesses = []
@@ -426,13 +426,16 @@ class Spectrum:
                 guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
                 
         if self._do_scattering:
-            guesses.append({'lower':0, 'guess':0, 'upper':np.inf})
-            guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
+            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) # m
+            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) # k
             
         centers = np.linspace(wavelengths.iloc[0],wavelengths.iloc[-1],ng_upper)
         for n in range(0, ng_upper):
-            guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
+            # amplitude
+            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) 
+            # center
             guesses.append({'lower':0, 'guess':centers[n], 'upper':np.inf})
+            # standard deviation
             guesses.append({'lower':0, 'guess':5, 'upper':np.inf})
             
         return guesses
