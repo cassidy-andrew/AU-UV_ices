@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from scipy.ndimage.filters import gaussian_filter
 
 
 def _sloped_depositon_curve(x, m, c, xc, w, A):
@@ -19,6 +20,22 @@ def _sloped_depositon_curve(x, m, c, xc, w, A):
     A : (float) The amplitude of the sinusoidal component.
     """
     return (m*x+c)+A*np.sin(np.pi*(x-xc)/w)
+
+def _sloped_depositon_curve_n(x, m, c, xc, w, n):
+    """
+    The function used to fit the deposition time scan. It is the linear
+    combintation of a linear function and a sin function. The parameters are as
+    follows:
+    
+    x : (array-like) The x values of the function, in seconds.
+    m : (float) The slope of the linear component.
+    c : (float) The y-intercept of the linear component.
+    xc : (float) The x-shift on the sinusoidal component.
+    w : (float) The 'wavelength' of the sinusoidal component. Remember that this
+        is a time scan, so the units of this 'wavelength' are seconds.
+    n : (float) The index of refraction of the ice.
+    """
+    return (m*x+c)+(c*((n-1)/(n+1)))*np.sin(np.pi*(x-xc)/w)
 
 
 class DepositionTimeScan:
@@ -68,12 +85,14 @@ class DepositionTimeScan:
         df.columns = column_names
         
         return df
-        
+
     def find_dosing_rate(self, guesses=None, t_start=0, t_end=np.inf,
-                         theta_radians=12, verbose=False):
+                         theta_radians=12, verbose=False, do_smoothing=True):
         """
         Determine the refractive index of the ice and the dosing rate.
         
+        do_smoothing : (boolean) whether or not to apply gaussian smoothing to
+                       the data before fitting. Defaults to True.
         guesses : (list) Guesses on the initial parameters fit to the timescan
                   curve. These must be provided as a list of dictionaries:
                   {'lower':, 'guess':, 'upper':} where 'guess' is your guess for
@@ -97,11 +116,11 @@ class DepositionTimeScan:
         if guesses is None:
             guesses = [{'lower':-np.inf, 'guess':3e-6, 'upper':np.inf}, # m
                        {'lower':-np.inf, 'guess':0, 'upper':np.inf}, # c
-                       {'lower':-np.inf, 'guess':100, 'upper':np.inf}, # xc
-                       {'lower':0, 'guess':500, 'upper':np.inf}, # w
-                       {'lower':-np.inf, 'guess':0.01, 'upper':np.inf} # A
+                       {'lower':-np.inf, 'guess':200, 'upper':np.inf}, # xc
+                       {'lower':0, 'guess':300, 'upper':np.inf}, # w
+                       {'lower':1, 'guess':1.2, 'upper':4.1} # n
                         ]
-            
+        
         # unwrap guesses and bounds
         p0 = []
         lower_bounds = []
@@ -111,27 +130,39 @@ class DepositionTimeScan:
             lower_bounds.append(guess['lower'])
             upper_bounds.append(guess['upper'])
         bounds = (lower_bounds, upper_bounds)
-        #print(bounds)
-        # apply limits
-        fit_df = self.data[(self.data['Time/s'] > t_start) & 
+
+        # smooth if needed, and apply time limits
+        if do_smoothing:
+            # smooth
+            self.data['smoothed Ch2'] = gaussian_filter(self.data['Ch2/volts'], sigma=7)
+            # apply time limits
+            fit_df = self.data[(self.data['Time/s'] > t_start) & 
                            (self.data['Time/s'] < t_end)].copy()
+            # we fit to this
+            fit_y = fit_df['smoothed Ch2']
+        else:
+            # apply time limits
+            fit_df = self.data[(self.data['Time/s'] > t_start) & 
+                           (self.data['Time/s'] < t_end)].copy()
+            # we fit to this
+            fit_y = fit_df['Ch2/volts']
         
         # do the fit        
-        popt, pcov = curve_fit(_sloped_depositon_curve, fit_df['Time/s'], 
-                               fit_df['Ch2/volts'], p0=p0, bounds=bounds)
+        popt, pcov = curve_fit(_sloped_depositon_curve_n, fit_df['Time/s'], 
+                               fit_y, p0=p0, bounds=bounds)
         perr = np.sqrt(np.diag(pcov))
         
         # extract fit parameters
-        m, c, xc, w, A = popt[:5]
-        m_err, c_err, xc_err, w_err, A_err = perr[:5]
+        m, c, xc, w, n = popt[:5]
+        m_err, c_err, xc_err, w_err, n_err = perr[:5]
         self.fit_parameters = [{'name':'m', 'value':m, 'error':m_err},
                                {'name':'c', 'value':c, 'error':c_err},
                                {'name':'xc', 'value':xc, 'error':xc_err},
                                {'name':'w', 'value':w, 'error':w_err},
-                               {'name':'A', 'value':A, 'error':A_err}]
+                               {'name':'n', 'value':n, 'error':n_err}]
         
         # get the fitted line
-        y= _sloped_depositon_curve(fit_df['Time/s'], m, c, xc, w, A)
+        y= _sloped_depositon_curve_n(fit_df['Time/s'], m, c, xc, w, n)
         fit_df['fit'] = y
         
         # get the reduced chi square
@@ -139,19 +170,14 @@ class DepositionTimeScan:
         self.redchi2 = redchi2
         
         # refractive index at 632.8 nm
-        n2 = (c+A)/(c-A)
-        n2_err = c_err*2+A_err*2
-        self.refractive_index = {'value':n2, 'error':n2_err}
-        
-        if n2 < 1:
-            print(f"Warning! The found refractive index of \033[1m{n2:.3f} +- "+ 
-                  f"{n2_err:.3f}\033[0m is less than 1, which is not physical!"+
-                  " Check the fit, maybe something went wrong?")
+        #n2 = (c+A)/(c-A)
+        #n2_err = c_err*2+A_err*2
+        self.refractive_index = {'value':n, 'error':n_err}
         
         theta = np.radians(theta_radians)
-        theta2 = np.arcsin(theta/n2)
-        d=632.8/(2*n2*np.cos(theta2))
-        d_err=n2_err
+        theta2 = np.arcsin(theta/n)
+        d=632.8/(2*n*np.cos(theta2))
+        d_err=n_err
         rate=d/(2*w)
         rate_err = d_err+w_err/w
         self.dosing_rate = {'value':rate, 'error':rate_err}
@@ -163,7 +189,7 @@ class DepositionTimeScan:
         
         self.fit_parameters += [
             {"name":"dosing rate (nm/s)", "value":rate, "error":rate_err},
-            {"name":"refractive index", "value":n2, "error":n2_err},
+            {"name":"refractive index", "value":n, "error":n_err},
             {"name":"redchi2", "value":redchi2, "error":None},
         ]
         
@@ -172,10 +198,10 @@ class DepositionTimeScan:
                   f"\033[1m{redchi2:.3e}\033[0m")
             print(f"The deposition rate is \033[1m{rate:.3f} +- " + 
                   f"{rate_err:.3f} nm/s\033[0m")
-            print(f"The ice's index of refraction is \033[1m{n2:.3f} +- " + 
-                  f"{n2_err:.3f}\033[0m")
+            print(f"The ice's index of refraction is \033[1m{n:.3f} +- " + 
+                  f"{n_err:.3f}\033[0m")
             print("The other fitted values are:")
-            for p in self.fit_parameters[:5]:
+            for p in self.fit_parameters[:4]:
                 print(p)
                 
     def find_thickness(self, dep_time, verbose=False):
@@ -217,42 +243,47 @@ class DepositionTimeScan:
         df = pd.DataFrame(self.fit_parameters)
         df.to_csv(path, index=False)
         
-    def plot_timescan(self, ax=None, figsize=(16/2.5,9/2.5), xlim=None,
-                      plot_fit=True, save_path=None):
-        """
-        Makes a plot of the timescan channel 2 data, as well as the fit if
-        desired.
-        
-        ax : (matplotlib.axes) The axis to plot on, if desired. Defaults to None
-             where a new axis will be created.
-        figsize : (tuple) The figuresize in inches. Defaults to (16/2.5, 9/2.5)
-        plot_fit : (boolean) whether or not to plot the fit. Defaults to True
-        save_path : (str) The path to save the figure if desired. Defaults to
-                    None.
-        xlim : (tuple or 2-item list) the x axis limits of the plot. Defaults to
-               None, and matplotlib will find them automatically.
-        """
-        plt.style.use('./au-uv.mplstyle')
-        # setup axis, if one isn't provided already
-        if ax is None:
-            fig, ax = plt.subplots(1, 1)
-            fig.set_size_inches(figsize[0], figsize[1])
-        
-        ax.plot(self.data['Time/s'], self.data['Ch2/volts'],
-                label="Data", color="black")
-        
-        # plot the fit, but only if desired and it exists
-        if plot_fit and ('fit' in self.data):
-            ax.plot(self.data['Time/s'], self.data['fit'],
-                    label="Fit", color="red")
-        
-        ax.set_xlabel("Time (seconds)")
-        ax.set_ylabel("Ch2 Signal (volts)")
-        ax.legend()
-        
-        if xlim:
-            ax.set_xlim(xlim[0], xlim[1])
-        if save_path:
-            plt.savefig(save_path, bbox_inches='tight')
-        
-        return ax
+def plot_timescan(dep, ax=None, figsize=(16/2.5,9/2.5), xlim=None,
+                  plot_fit=True, save_path=None, plot_smoothed=True):
+    """
+    Makes a plot of the timescan channel 2 data, as well as the fit if
+    desired.
+
+    ax : (matplotlib.axes) The axis to plot on, if desired. Defaults to None
+         where a new axis will be created.
+    dep : (DepositionTimeScan) The time scan to be plotted.
+    figsize : (tuple) The figuresize in inches. Defaults to (16/2.5, 9/2.5)
+    plot_fit : (boolean) whether or not to plot the fit. Defaults to True
+    save_path : (str) The path to save the figure if desired. Defaults to
+                None.
+    xlim : (tuple or 2-item list) the x axis limits of the plot. Defaults to
+           None, and matplotlib will find them automatically.
+    """
+    plt.style.use('./au-uv.mplstyle')
+    # setup axis, if one isn't provided already
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+        fig.set_size_inches(figsize[0], figsize[1])
+
+    ax.plot(dep.data['Time/s'], dep.data['Ch2/volts'],
+            label="Data", color="black")
+    
+    if plot_smoothed and ('smoothed Ch2' in dep.data):
+        ax.plot(dep.data['Time/s'], dep.data['smoothed Ch2'],
+                label="Smoothed Data", color="blue", linewidth=6, alpha=0.3)
+
+    # plot the fit, but only if desired and it exists
+    if plot_fit and ('fit' in dep.data):
+        ax.plot(dep.data['Time/s'], dep.data['fit'],
+                label="Fit", color="red")
+
+    ax.set_xlabel("Time (seconds)");
+    ax.set_ylabel("Ch2 Signal (volts)");
+    ax.legend();
+
+    if xlim:
+        ax.set_xlim(xlim[0], xlim[1])
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
+
+    return ax
