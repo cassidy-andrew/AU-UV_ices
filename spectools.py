@@ -91,97 +91,6 @@ def lighten_color(color, amount=0.5):
     c = colorsys.rgb_to_hls(*mc.to_rgb(c))
     return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
-
-class SingleScan:
-    """
-    Represents one scan
-    
-    Parameters belonging to the fully constructed object:
-        
-    bkgd : (pandas.DataFrame) The background scan
-    data : (pandas.DataFrame) The calibrated data
-    sample : (pandas.DataFrame) The sample scan
-    """
-    def __init__(self, bkgd_fname, sample_fname):
-        """
-        Parameters required to construct the object:
-        
-        bkgd_fname : (str) the path to the background file for this scan
-        sample_fname : (str) the path to the sample file for this scan
-        """
-        # get the raw data ready to go
-        self._setup_scan_files(bkgd_fname, sample_fname)
-        
-        # use the raw data to create the calibrated scan data
-        self._calibrate_scan()
-        
-    def _setup_scan_files(self, bkgd_fname, sample_fname):
-        """
-        Reads the raw data files and formats them correctly, adding necessary
-        columns and unit conversions.
-        
-        bkgd_fname : (str) the path to the background file for this scan
-        sample_fname : (str) the path to the sample file for this scan
-        """
-        column_names = ['Lambda', 'Keith/nA', 'Ch1/volts',
-                        'Ch2/volts', 'Ch3/volts', 'Z_Motor','Beam_current',
-                        'temperature', 'GC_Pres', 'Time', 'UBX_x', 'UBX_y']
-    
-        # handle the background
-        bkgd = pd.read_csv(bkgd_fname, header=[15], delimiter=r"\s+")
-        bkgd.columns = column_names
-        bkgd['nor_signal'] = ((180/bkgd['Beam_current']) * \
-                                  bkgd['Keith/nA'])
-        bkgd['wavelength'] = bkgd['Lambda']
-        bkgd['av_BkGd_signal'] = (bkgd['nor_signal'] + \
-                                      bkgd['nor_signal'])/2
-        
-        # handle the sample
-        if sample_fname == None:
-            # if there is no sample for this background, just set everything
-            # to zeros.
-            sample = bkgd.copy(deep=True)
-            # assign the correct column names
-            #sample.columns = column_names
-            sample['wavelength'] = sample['Lambda']
-            sample['nor_signal'] = np.zeros(len(sample['wavelength']))
-            sample['av_sample_signal'] = np.zeros(len(sample['wavelength']))
-        else:
-            # otherwise, do the same calculations as for the background
-            sample = pd.read_csv(sample_fname, header=[15], delimiter=r"\s+")
-            sample.columns = column_names
-            sample['nor_signal'] = ((180/sample['Beam_current']) * \
-                                    sample['Keith/nA'])
-            sample['wavelength'] = sample['Lambda']
-            sample['av_sample_signal'] = (sample['nor_signal'] + \
-                                        sample['nor_signal'])/2
-        
-        # assign the formatted scans to object parameters
-        self.bkgd = bkgd
-        self.sample = sample
-        
-    
-    def _calibrate_scan(self):
-        """
-        Calibrates the scan using the scan's background and sample.
-        """
-        # a place for the calibrated data to go
-        df = pd.DataFrame()
-        
-        if (self.sample['av_sample_signal'] == 0).all():
-            # if there was no sample signal, set everything to zero
-            df['absorbance'] = self.sample['av_sample_signal']
-        else:
-            # otherwise, calculate absorbance, 
-            # making sure not to take a log of -ve numbers
-            ratio1 = self.bkgd['av_BkGd_signal']/ \
-                     self.sample['av_sample_signal']
-            df['absorbance'] = np.log10(ratio1, where=((ratio1)>0)) 
-        
-        df['wavelength'] = self.bkgd['wavelength']
-        
-        self.data = df
-        
         
 class Spectrum:
     """
@@ -191,7 +100,8 @@ class Spectrum:
         
         baseline_p : (list) parameters from the fit of the rayleigh scattering
                      baseline. None until subtract_baseline() has been run.
-        bkgds : (list) a list of background files that make up the scans.
+        bkgd : (pandas.DataFrame) The averaged background data.
+        bkgd_files : (list) a list of background files that make up the scans.
         color : (str) the hex color used for plotting this spectrum.
         data : (pandas.DataFrame) the data belonging to this
                spectrum, averaged together from its corresponding
@@ -220,7 +130,8 @@ class Spectrum:
                 prior to calling `fit_peaks()`.
         peak_errors : (list) a list of the standard deviation peak errors. Is
                       None prior to calling `fit_peaks()`
-        samples : (list) a list of sample files that make up the scans.
+        sample : (pandas.DataFrame) The averaged sample data.
+        sample_files : (list) a list of sample files that make up the scans.
         scans : (list) a list of SingleScan objects that will be
                 averaged together to make this spectrum.
         visible : (boolean) whether the spectrum should appear in
@@ -235,9 +146,9 @@ class Spectrum:
         self.visible = True
         self.offset = 0.0
         self.color = "#000000"
-        self.scans = []
-        self.bkgds = []
-        self.samples = []
+        #self.scans = []
+        self.bkgd_files = []
+        self.sample_files = []
         self.data = None
         self.baseline_p = None
         self.peaks = None
@@ -246,43 +157,72 @@ class Spectrum:
         self.fit_results = None
         self._comps = None
         
+    def _setup_scan(self, fname):
+        """
+        Reads the raw data files and formats them correctly, adding necessary
+        columns and unit conversions.
+        
+        fname : (str) the path to the file for this scan
+        """
+        column_names = ['Lambda', 'Keith/nA', 'Ch1/volts',
+                        'Ch2/volts', 'Ch3/volts', 'Z_Motor','Beam_current',
+                        'temperature', 'GC_Pres', 'Time', 'UBX_x', 'UBX_y']
+    
+        # read the data
+        scan = pd.read_csv(fname, header=[15], delimiter=r"\s+")
+        scan.columns = column_names
+        # do some calculations
+        scan['nor_signal'] = ((180/scan['Beam_current']) * scan['Keith/nA'])
+        scan['wavelength'] = scan['Lambda']
+        scan['av_signal'] = (scan['nor_signal'] + scan['nor_signal'])/2
+        
+        return(scan)
+        
     def average_scans(self):
         """
         Averages the scans relating to this spectrum.
         """
         scans = []
         
-        # pair backgrounds and samples into SingleScan objects
-        for i in range(0, len(self.bkgds)):
-            # match backgrounds and spectra
-            this_bkgd = self.bkgds[i]
-            suffix = this_bkgd[-3:]
-            # look for samples with a matching suffix
-            samples = [s for s in self.samples if suffix in s]
-            # samples is now a list, but there should only be 1 or 0 items
-            if len(samples) == 0:
-                this_sample = None
-            else:
-                this_sample = samples[0]
-
-            # create scan objects
-            this_scan = SingleScan(this_bkgd, this_sample)
-            scans.append(this_scan)
-            
-        # average the SingleScan objects
-        # make a dataframe to put the averaged data in
-        data = pd.DataFrame()
-        # just copy the wavelength values from the first background
-        data['wavelength'] = scans[0].bkgd['wavelength']
-        # calculate the average absorbance
-        absorbances = []
-        for scan in scans:
-            absorbances.append(scan.data['absorbance'])
-        averaged = pd.concat(absorbances, axis=1).mean(axis=1)
-        data['absorbance'] = averaged
+        # handle the backgrounds
+        bkgd_dfs = []
+        for i in range(0, len(self.bkgd_files)):
+            this_bkgd_file = self.bkgd_files[i]
+            bkgd_dfs.append(self._setup_scan(this_bkgd_file))
+        # average the backgrounds together
+        self.bkgd = pd.concat(bkgd_dfs).reset_index().groupby("index").mean(numeric_only=True)
         
-        self.scans = scans
-        self.data = data
+        # handle the samples
+        sample_dfs = []
+        if len(self.sample_files) == 0:
+            # if there is no sample just set everything to zeros.
+            sample = self.bkgd.copy(deep=True)
+            sample['wavelength'] = sample['Lambda']
+            sample['nor_signal'] = np.zeros(len(sample['wavelength']))
+            sample['av_signal'] = np.zeros(len(sample['wavelength']))
+            sample_dfs.append(sample)
+        else:
+            for i in range(0, len(self.sample_files)):
+                this_sample_file = self.sample_files[i]
+                sample_dfs.append(self._setup_scan(this_sample_file))
+        # average the samples together
+        self.sample = pd.concat(sample_dfs).reset_index().groupby("index").mean(numeric_only=True)
+        
+        # a place for the calibrated data to go
+        df = pd.DataFrame()
+        
+        if (self.sample['av_signal'] == 0).all():
+            # if there was no sample signal, set everything to zero
+            df['absorbance'] = self.sample['av_signal']
+        else:
+            # otherwise, calculate absorbance, 
+            # making sure not to take a log of -ve numbers
+            ratio1 = self.bkgd['av_signal'] / self.sample['av_signal']
+            df['absorbance'] = np.log10(ratio1, where=((ratio1)>0)) 
+        
+        df['wavelength'] = self.bkgd['wavelength']
+        
+        self.data = df
     
     def change_name(self, new_name):
         """
@@ -298,7 +238,7 @@ class Spectrum:
         
         bkgd_fname : (str) the path to the background file being added
         """
-        self.bkgds.append(bkgd_fname)
+        self.bkgd_files.append(bkgd_fname)
         
     def add_sample(self, sample_fname):
         """
@@ -306,7 +246,7 @@ class Spectrum:
         
         sample_fname : (str) the path to the background file being added
         """
-        self.samples.append(sample_fname)
+        self.sample_files.append(sample_fname)
         
     def remove_bkgd(self, bkgd_name):
         """
@@ -352,16 +292,22 @@ class Spectrum:
         self.color = new_color
         
         
-    def export(self, path):
+    def export(self, path, fname=None):
         """
         Saves the spectrum object. Its data will be saved to a csv file.
         
         path : (str) the path where you want to save the file. This should be a
                directory.
         """
-        self.data.to_csv(path, index=False)
+        if fname is None:
+            fname = self.name.replace(" ", "") + ".csv"
         
-    
+        with open(path+fname, 'w') as f:
+            f.write("Name=" + self.name + "\n")
+            f.write("Color=" + self.color + "\n")
+            f.write("Offset=" + self.offset + "\n")
+            self.data.to_csv(f, index=False, header=True)
+        
     def subtract_baseline(self, lim=None, how="min"):
         """
         Performs a baseline subtraction on the spectrum. This is done just by
@@ -756,9 +702,9 @@ class StitchedSpectrum(Spectrum):
         self.color = spec1.color
         # these are combined from the two spectra
         self.name = spec1.name + "-" + spec2.name
-        self.samples = spec1.samples + spec2.samples
-        self.scans = spec1.scans + spec2.scans
-        self.bkgds = spec1.bkgds + spec2.bkgds
+        self.sample_files = spec1.sample_files + spec2.sample_files
+        #self.scans = spec1.scans + spec2.scans
+        self.bkgd_files = spec1.bkgd_files + spec2.bkgd_files
         # these get reset
         self.offset = 0
         self.visible = True
