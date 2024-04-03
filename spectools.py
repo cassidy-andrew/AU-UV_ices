@@ -2,6 +2,7 @@ import numpy as np
 from numpy import inf
 import pandas as pd
 
+import warnings
 from sys import float_info
 
 import matplotlib as mpl
@@ -10,6 +11,7 @@ from matplotlib.ticker import FormatStrFormatter
 
 import scipy.constants as constants
 from scipy.optimize import curve_fit
+
 
 
 def scattering(wl, m, k):
@@ -157,6 +159,12 @@ class Spectrum:
         self.fit_results = None
         self._comps = None
         
+        # GUI parameters
+        self.index = None
+        self.label = None
+        self.checkmark = None
+        self.editbutton = None
+        
     def _setup_scan(self, fname):
         """
         Reads the raw data files and formats them correctly, adding necessary
@@ -180,7 +188,11 @@ class Spectrum:
         
     def average_scans(self):
         """
-        Averages the scans relating to this spectrum.
+        Averages the scans relating to this spectrum. First all backgrounds are
+        averaged together. Then all samples are averaged together. Then the
+        absorbance is calculated, taking the base 10 log of the ratio of the
+        background and scan signal. The result is put in a pandas dataframe and
+        stored in the .data parameter.
         """
         scans = []
         
@@ -231,6 +243,14 @@ class Spectrum:
         new_name : (str) the new name for this spectrum
         """
         self.name = new_name
+        
+    def change_index(self, new_index):
+        """
+        Changes the index of this spectrum for use in the DUVET GUI
+        
+        new_index : (int) the new index for this spectrum
+        """
+        self.index = new_index
     
     def add_bkgd(self, bkgd_fname):
         """
@@ -305,7 +325,7 @@ class Spectrum:
         with open(path+fname, 'w') as f:
             f.write("Name=" + self.name + "\n")
             f.write("Color=" + self.color + "\n")
-            f.write("Offset=" + self.offset + "\n")
+            f.write("Offset=" + str(self.offset) + "\n")
             self.data.to_csv(f, index=False, header=True)
         
     def subtract_baseline(self, lim=None, how="min"):
@@ -437,9 +457,9 @@ class Spectrum:
             
         return y
         
-    def fit_peaks(self, verbose=False, guesses=None, ng_lower=1, ng_upper=7,
-                  do_scattering=False, fit_lim=(120, 340),
-                  custom_components=None):
+    def fit_peaks(self, verbose=False, guesses=None, ng=None,
+                  ng_lower=None, ng_upper=None, do_scattering=False,
+                  fit_lim=(120, 340), custom_components=None):
         """
         Finds and fits the peaks in the spectrum by fitting the spectrum with 
         some number of asymmetric Gaussian functions. The locations of the peaks
@@ -467,11 +487,12 @@ class Spectrum:
                  any custom components, you must include guesses for the
                  amplitudes of those components at the start of the list, before
                  your guesses for the baseline.
-        ng_lower : (int) The lower limit on the number of gaussians to try and
-                   fit with. Defaults to 1.
-        ng_upper : (int) The upper limit on the number of gaussians to try and
-                   fit with. Defaults to 7. Higher numbers will take longer and
-                   may be unstable.
+        ng : (tuple or int) The number of gaussians to use in the fit, or lower
+             and upper limits on how many gaussians to use in the fit.
+        ng_lower : (int) [Depreciated] The lower limit on the number of
+                   gaussians to try and fit with.
+        ng_upper : (int) [Depreciated] The upper limit on the number of
+                   gaussians to try and fit with.
         verbose : (boolean) If true, prints debug and progress statements.
                   Defaults to False.
         """
@@ -497,21 +518,51 @@ class Spectrum:
             self._comps = []
             self._do_comps = True
             for comp in custom_components:
-                self._comps.append(comp[(comp['wavelength'] > fit_lim[0]) &
-                                   (comp['wavelength'] < fit_lim[1])].copy())
+                # cut to the desired region
+                this_comp = comp[(comp['wavelength'] > fit_lim[0]) &
+                                 (comp['wavelength'] < fit_lim[1])].copy()
+                
+                # do we need to interpolate?
+                if len(this_comp['wavelength']) == len(fit_df['wavelength']):
+                    # no, continue as normal
+                    fit_comp = this_comp
+                    pass
+                else:
+                    # yes, we take the component to match the resolution of the
+                    # data.
+                    fit_comp = pd.DataFrame()
+                    fit_comp['wavelength'] = fit_df['wavelength'].copy()
+                    # values beyond the wavelength range will be 0, if any.
+                    fit_comp['absorbance'] = np.interp(x=fit_comp['wavelength'],
+                                                    xp=this_comp['wavelength'],
+                                                    fp=this_comp['absorbance'],
+                                                    left=0, right=0)
+                
+                # add the formatted component to the list of fitting components
+                self._comps.append(fit_comp)
             #ib = len(self._comps)
             self._n_comps = len(self._comps)
-            """if not guesses:
-                errors.append("You must provide your own guesses" +
-                              " if you are using custom components!!!! >:O")
-            if len(errors) > 0:
-                for error in errors:
-                    print(error)
-                return None"""
+            
         else:
             self._comps = None
             self._do_comps = False
             self._n_comps = 0
+            
+        if ng is not None:    
+            if type(ng) == int:
+                ng_lower = ng
+                ng_upper = ng+1
+            else:
+                ng_lower = ng[0]
+                ng_upper = ng[1]
+        elif (ng_lower is not None) or (ng_upper is not None):
+            warnings.warn("Defining the lower and upper limits through the "+
+                          "ng_lower and ng_upper parameters is depreciated and"+
+                          " will be removed in a future version. Use the ng "+
+                          "parameter instead. For example, instead of writing "+
+                          f"ng_lower={ng_lower}"+", " f"ng_upper={ng_upper}"+
+                          " you should write "+f"ng=({ng_lower}, {ng_upper})", 
+                         DeprecationWarning, stacklevel=2)
             
         # manage the guesses for the fitted parameters
         if guesses is None:
@@ -755,7 +806,8 @@ class StitchedSpectrum(Spectrum):
     
 def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
              plot_fit_components=True, figsize=(7,5), fig=None, ax1=None,
-             save_path=None, plot_residuals=True, res_lims=(-0.0075, 0.0075)):
+             save_path=None, plot_residuals=True, res_lims=(-0.0075, 0.0075),
+             do_top_axis=True):
     """
     Takes a single spectrum which has been fit using the `fit_peaks()` function,
     and plots the results of the fit, with absorbance on the y axis and
@@ -816,23 +868,24 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
                              [spec.offset+c for c in component['absorbance']],
                              color='xkcd:grey', alpha=.2)
             
-    # Create the second x-axis on which the energy in eV will be displayed
-    ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
-    ax2.set_xlabel('Wavelength (eV)')
+    if do_top_axis:
+        # Create the second x-axis on which the energy in eV will be displayed
+        ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
+        ax2.set_xlabel('Wavelength (eV)')
 
-    # Get ticks from ax1 (wavelengths)
-    wl_ticks = ax1.get_xticks()
-    wl_ticks = preventDivisionByZero(wl_ticks)
+        # Get ticks from ax1 (wavelengths)
+        wl_ticks = ax1.get_xticks()
+        wl_ticks = preventDivisionByZero(wl_ticks)
 
-    # Based on the ticks from ax1 (wavelengths), calculate the corresponding
-    # energies in eV
-    E_ticks = WLtoE(wl_ticks)
+        # Based on the ticks from ax1 (wavelengths), calculate the corresponding
+        # energies in eV
+        E_ticks = WLtoE(wl_ticks)
 
-    # Set the ticks for ax2 (Energy)
-    ax2.set_xticks(E_ticks)
+        # Set the ticks for ax2 (Energy)
+        ax2.set_xticks(E_ticks)
 
-    # Allow for two decimal places on ax2 (Energy)
-    ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        # Allow for two decimal places on ax2 (Energy)
+        ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
     ax1.set_ylabel("Absorbance")
     if plot_residuals:
@@ -851,6 +904,8 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
         axr.legend()
         if res_lims is not None:
             axr.set_ylim(res_lims[0], res_lims[1])
+    else:
+        axr = None
         
     #ax1.grid()
     ax1.legend()
@@ -866,7 +921,9 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
 
 def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
                     plot_peaks=False, plot_fit_components=False, figsize=(7,5),
-                    raw=False, fig=None, ax1=None, save_path=None):
+                    raw=False, fig=None, ax1=None, save_path=None,
+                    return_fig=False, do_top_axis=True, do_legend=True,
+                    do_titles=True):
     """
     Takes spectra and plots them, with absorbance on the y axis and
     wavelength in nanometers on the x axis. Also wavelength in eV on the
@@ -922,31 +979,37 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
                                  component['absorbance']+spec.offset,
                                  color='xkcd:grey', alpha=.2)
 
-            
-    # Create the second x-axis on which the energy in eV will be displayed
-    ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
-    ax2.set_xlabel('Wavelength (eV)')
+    if do_top_axis:
+        # Create the second x-axis on which the energy in eV will be displayed
+        ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
+        if do_titles:
+            ax2.set_xlabel('Wavelength (eV)')
 
-    # Get ticks from ax1 (wavelengths)
-    wl_ticks = ax1.get_xticks()
-    wl_ticks = preventDivisionByZero(wl_ticks)
+        # Get ticks from ax1 (wavelengths)
+        wl_ticks = ax1.get_xticks()
+        wl_ticks = preventDivisionByZero(wl_ticks)
 
-    # Based on the ticks from ax1 (wavelengths), calculate the corresponding
-    # energies in eV
-    E_ticks = WLtoE(wl_ticks)
+        # Based on the ticks from ax1 (wavelengths), calculate the corresponding
+        # energies in eV
+        E_ticks = WLtoE(wl_ticks)
 
-    # Set the ticks for ax2 (Energy)
-    ax2.set_xticks(E_ticks)
+        # Set the ticks for ax2 (Energy)
+        ax2.set_xticks(E_ticks)
 
-    # Allow for two decimal places on ax2 (Energy)
-    ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        # Allow for two decimal places on ax2 (Energy)
+        ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
-    ax1.set_ylabel("Absorbance")
-    ax1.set_xlabel("Wavelength (nm)")
+    if do_titles:
+        ax1.set_ylabel("Absorbance")
+        ax1.set_xlabel("Wavelength (nm)")
     #ax1.grid()
-    ax1.legend()
+    if do_legend:
+        ax1.legend()
     
     if save_path:
         plt.savefig(save_path, bbox_inches='tight')
 
-    return ax1
+    if return_fig:
+        return fig
+    else:
+        return ax1
