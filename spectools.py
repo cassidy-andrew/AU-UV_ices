@@ -8,6 +8,8 @@ from sys import float_info
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
+import matplotlib.ticker as ticker
+from matplotlib.ticker import AutoMinorLocator
 
 import scipy.constants as constants
 from scipy.optimize import curve_fit
@@ -16,7 +18,7 @@ from scipy.optimize import curve_fit
 
 def scattering(wl, m, k):
     """
-    The rayleigh scattering function, as outlined in equation 11 of 
+    The rayleigh scattering function, as outlined in equation 11 of
     Ioppolo et al. 2021: https://doi.org/10.1051/0004-6361/202039184
     """
     return k*np.log(1/(1-m*(wl**-4)))
@@ -123,6 +125,7 @@ class Spectrum:
                       parameters. `pcov` is the covariance matrix of those
                       parameters. `best_fit` are the absorbance values
                       calculated to fit the data.
+        linestyle : (str) the linestyle for matplotlib plotting.
         name : (str) the name of this spectrum, which will be shown
                in plot legends.
         offset : (float) by how much the spectrum should be offset
@@ -158,6 +161,7 @@ class Spectrum:
         self.fit_components = []
         self.fit_results = None
         self._comps = None
+        self.linestyle = '-'
         
         # GUI parameters
         self.index = None
@@ -219,23 +223,35 @@ class Spectrum:
                 sample_dfs.append(self._setup_scan(this_sample_file))
         # average the samples together
         self.sample = pd.concat(sample_dfs).reset_index().groupby("index").mean(numeric_only=True)
-        
+
         # a place for the calibrated data to go
         df = pd.DataFrame()
-        
+        df = df.astype('int32')
+
         if (self.sample['av_signal'] == 0).all():
             # if there was no sample signal, set everything to zero
             df['absorbance'] = self.sample['av_signal']
         else:
-            # otherwise, calculate absorbance, 
+            # otherwise, calculate absorbance,
             # making sure not to take a log of -ve numbers
             ratio1 = self.bkgd['av_signal'] / self.sample['av_signal']
-            df['absorbance'] = np.log10(ratio1, where=((ratio1)>0)) 
-        
+            #self._ratio1 = ratio1
+            #print(ratio1)
+            #logged = []
+            #for i in range(0, len(ratio1)):
+            #    if ratio1[i] <= 0:
+            #        ratio1[i] = 0.000000000001
+
+                #logged.append(np.log10(ratio1[i]))
+
+            df['absorbance'] = np.log10(ratio1, where=(np.array(ratio1)>0))
+            #print(logged)
+            #df['absorbance'] = logged
+
         df['wavelength'] = self.bkgd['wavelength']
-        
+
         self.data = df
-    
+
     def change_name(self, new_name):
         """
         Changes the name of this spectrum
@@ -243,6 +259,14 @@ class Spectrum:
         new_name : (str) the new name for this spectrum
         """
         self.name = new_name
+        
+    def change_linestyle(self, new_style):
+        """
+        Changes the name of this spectrum
+        
+        new_style : (str) the matplotlib linestyle for this spectrum
+        """
+        self.linestyle = new_style
         
     def change_index(self, new_index):
         """
@@ -733,6 +757,7 @@ class StitchedSpectrum(Spectrum):
         data : (pandas.DataFrame) the data belonging to this
                spectrum, averaged together from its corresponding
                scans.
+        linestyle : (str) the matplotlib linestyle for plotting.
         name : (str) the name of this spectrum, which will be shown
                in plot legends.
         samples (list)
@@ -759,6 +784,7 @@ class StitchedSpectrum(Spectrum):
         # these get reset
         self.offset = 0
         self.visible = True
+        self.linestyle = spec1.linestyle
         
     def _stich(self, spec1, spec2):
         """
@@ -807,7 +833,7 @@ class StitchedSpectrum(Spectrum):
 def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
              plot_fit_components=True, figsize=(7,5), fig=None, ax1=None,
              save_path=None, plot_residuals=True, res_lims=(-0.0075, 0.0075),
-             do_top_axis=True):
+             do_top_axis=True, legend_loc=None, legend_loc_r=1):
     """
     Takes a single spectrum which has been fit using the `fit_peaks()` function,
     and plots the results of the fit, with absorbance on the y axis and
@@ -831,7 +857,7 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
     
     # setup the axes
     if plot_residuals:
-        fig, ax = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1]},
+        fig, ax = plt.subplots(2, 1, gridspec_kw={'height_ratios': [3, 1.2]},
                                sharex=True)
         ax1 = ax[0]
         axr = ax[1]
@@ -847,7 +873,7 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
         
     # plot the data
     ax1.plot(spec.data['wavelength'], spec.data['absorbance']+spec.offset,
-             color=spec.color, label=spec.name)
+             color=spec.color, label=spec.name, linestyle=spec.linestyle)
     # calculate a color for the fit
     fit_color = lighten_color(spec.color, amount=1.2)
     # plot the fit
@@ -870,8 +896,12 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
             
     if do_top_axis:
         # Create the second x-axis on which the energy in eV will be displayed
+        #plt.tick_params(axis='x',which='both',bottom=True,top=False,
+        #                labelbottom=True)
         ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
-        ax2.set_xlabel('Wavelength (eV)')
+        ax1.xaxis.set_tick_params(top=False, which="both")#, labelbottom=True)
+        ax2.set_xticks([])
+        ax2.set_xlabel('Wavelength (eV)', labelpad=8)
 
         # Get ticks from ax1 (wavelengths)
         wl_ticks = ax1.get_xticks()
@@ -883,9 +913,10 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
 
         # Set the ticks for ax2 (Energy)
         ax2.set_xticks(E_ticks)
+        ax2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
         # Allow for two decimal places on ax2 (Energy)
-        ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        #ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
     ax1.set_ylabel("Absorbance")
     if plot_residuals:
@@ -901,14 +932,14 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
         else:
             rymax = spec.data['residuals'].max()*1.4
         axr.set_ylim(rymin, rymax)
-        axr.legend()
+        axr.legend(loc=legend_loc_r)
         if res_lims is not None:
             axr.set_ylim(res_lims[0], res_lims[1])
     else:
         axr = None
         
     #ax1.grid()
-    ax1.legend()
+    ax1.legend(loc=legend_loc)
     
     fig.tight_layout()
     fig.subplots_adjust(hspace=0.1)
@@ -923,7 +954,8 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
                     plot_peaks=False, plot_fit_components=False, figsize=(7,5),
                     raw=False, fig=None, ax1=None, save_path=None,
                     return_fig=False, do_top_axis=True, do_legend=True,
-                    do_titles=True):
+                    do_titles=True, legend_loc=None, do_top_xlabel=True,
+                    do_bottom_xlabel=True, do_ylabel=True):
     """
     Takes spectra and plots them, with absorbance on the y axis and
     wavelength in nanometers on the x axis. Also wavelength in eV on the
@@ -956,11 +988,13 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
             if raw:
                 ax1.plot(spec.data['wavelength'], 
                          spec.data['raw_absorbance']+spec.offset,
-                         color=spec.color, label=spec.name)
+                         color=spec.color, label=spec.name,
+                         linestyle=spec.linestyle)
             else:
                 ax1.plot(spec.data['wavelength'], 
                          spec.data['absorbance']+spec.offset,
-                         color=spec.color, label=spec.name)
+                         color=spec.color, label=spec.name,
+                         linestyle=spec.linestyle)
         if plot_fit:
             ax1.plot(spec.data['wavelength'],
                      spec.data['best_fit']+spec.offset,
@@ -982,8 +1016,12 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
     if do_top_axis:
         # Create the second x-axis on which the energy in eV will be displayed
         ax2 = ax1.secondary_xaxis('top', functions=(WLtoE, EtoWL))
+        ax1.xaxis.set_tick_params(top=False, which="both")
+        ax2.set_xticks([])
+        
         if do_titles:
-            ax2.set_xlabel('Wavelength (eV)')
+            if do_top_xlabel:
+                ax2.set_xlabel('Wavelength (eV)', labelpad=8)
 
         # Get ticks from ax1 (wavelengths)
         wl_ticks = ax1.get_xticks()
@@ -997,14 +1035,17 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
         ax2.set_xticks(E_ticks)
 
         # Allow for two decimal places on ax2 (Energy)
-        ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        #ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        ax2.xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
     if do_titles:
-        ax1.set_ylabel("Absorbance")
-        ax1.set_xlabel("Wavelength (nm)")
+        if do_ylabel:
+            ax1.set_ylabel("Absorbance")
+        if do_bottom_xlabel:
+            ax1.set_xlabel("Wavelength (nm)")
     #ax1.grid()
     if do_legend:
-        ax1.legend()
+        ax1.legend(loc=legend_loc)
     
     if save_path:
         plt.savefig(save_path, bbox_inches='tight')
