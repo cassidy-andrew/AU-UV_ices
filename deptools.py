@@ -5,37 +5,37 @@ from scipy.optimize import curve_fit
 from scipy.ndimage.filters import gaussian_filter
 
 
-def _sloped_depositon_curve(x, m, c, xc, w, A):
+def _sloped_depositon_curve(t, m, c, tc, w, A):
     """
     The function used to fit the deposition time scan. It is the linear
     combintation of a linear function and a sin function. The parameters are as
     follows:
     
-    x : (array-like) The x values of the function, in seconds.
+    t : (array-like) The x values of the function, in seconds.
     m : (float) The slope of the linear component.
     c : (float) The y-intercept of the linear component.
-    xc : (float) The x-shift on the sinusoidal component.
+    tc : (float) The x-shift on the sinusoidal component.
     w : (float) The 'wavelength' of the sinusoidal component. Remember that this
         is a time scan, so the units of this 'wavelength' are seconds.
     A : (float) The amplitude of the sinusoidal component.
     """
-    return (m*x+c)+A*np.sin(np.pi*(x-xc)/w)
+    return (m*t+c)+A*np.sin(np.pi*(t-tc)/w)
 
-def _sloped_depositon_curve_n(x, m, c, xc, w, n):
+def _sloped_depositon_curve_n(t, m, c, tc, w, n):
     """
     The function used to fit the deposition time scan. It is the linear
     combintation of a linear function and a sin function. The parameters are as
     follows:
     
-    x : (array-like) The x values of the function, in seconds.
+    t : (array-like) The x values of the function, in seconds.
     m : (float) The slope of the linear component.
     c : (float) The y-intercept of the linear component.
-    xc : (float) The x-shift on the sinusoidal component.
+    tc : (float) The x-shift on the sinusoidal component.
     w : (float) The 'wavelength' of the sinusoidal component. Remember that this
         is a time scan, so the units of this 'wavelength' are seconds.
     n : (float) The index of refraction of the ice.
     """
-    return (m*x+c)+(c*((n-1)/(n+1)))*np.sin(np.pi*(x-xc)/w)
+    return (m*t+c)+(c*((n-1)/(n+1)))*np.sin(np.pi*(t-tc)/w)
 
 
 class DepositionTimeScan:
@@ -50,10 +50,11 @@ class DepositionTimeScan:
     Parameters belonging to the fully constructed object:
     
     data : (pandas.DataFrame) The data of the timescan. 
-    dosing_rate : (dict) The calculated dosing rate after find_dosing_rate() is
-                  run. It is a dictionary with two keys: 'value' and 'error',
-                  containting the value and error of the dosing rate
-                  respectively. The units are in nanometers per second.
+    deposition_rate : (dict) The calculated deposition rate after
+                      find_deposition_rate() is run. It is a dictionary with two
+                      keys: 'value' and 'error', containting the value and error
+                      of the deposition rate respectively. The units are in
+                      nanometers per second.
     fit_parameters : (list) A list of all the parameters fit.
     redchi2 : (float) The reduced chi square of the fit.
     refractive_index : (dict) The calculated refractive index of the deposited
@@ -68,7 +69,7 @@ class DepositionTimeScan:
         # read the data
         self.data = self._read_data(fname)
         # initialize other parameters
-        self.dosing_rate = None
+        self.deposition_rate = None
         self.fit_parameters = None
         self.redchi2 = None
         self.refractive_index = None
@@ -86,10 +87,10 @@ class DepositionTimeScan:
         
         return df
 
-    def find_dosing_rate(self, guesses=None, t_start=0, t_end=np.inf,
-                         theta_radians=12, verbose=False, do_smoothing=True):
+    def find_deposition_rate(self, guesses=None, t_start=0, t_end=np.inf,
+                         theta_degrees=22, verbose=False, do_smoothing=True):
         """
-        Determine the refractive index of the ice and the dosing rate.
+        Determine the refractive index of the ice and the deposition rate.
         
         do_smoothing : (boolean) whether or not to apply gaussian smoothing to
                        the data before fitting. Defaults to True.
@@ -107,8 +108,8 @@ class DepositionTimeScan:
         t_start : (float) The start time of the deposition, in seconds after the
                   timescan began. If None, assumed to be the start of the
                   timescan.
-        theta_radians : (float) The angle in radians between the substrate and
-                        the incident beam. Defaults to 12.
+        theta_degrees : (float) The angle in degrees between the substrate and
+                        the incident beam. Defaults to 22.
         verbose : (boolean) Whether or not to print the fitted parameters in
                   addition to the regular output. Good for debugging.
         """
@@ -116,7 +117,7 @@ class DepositionTimeScan:
         if guesses is None:
             guesses = [{'lower':-np.inf, 'guess':3e-6, 'upper':np.inf}, # m
                        {'lower':-np.inf, 'guess':0, 'upper':np.inf}, # c
-                       {'lower':-np.inf, 'guess':200, 'upper':np.inf}, # xc
+                       {'lower':-np.inf, 'guess':200, 'upper':np.inf}, # tc
                        {'lower':0, 'guess':300, 'upper':np.inf}, # w
                        {'lower':1, 'guess':1.2, 'upper':4.1} # n
                         ]
@@ -153,16 +154,16 @@ class DepositionTimeScan:
         perr = np.sqrt(np.diag(pcov))
         
         # extract fit parameters
-        m, c, xc, w, n = popt[:5]
-        m_err, c_err, xc_err, w_err, n_err = perr[:5]
+        m, c, tc, w, n = popt[:5]
+        m_err, c_err, tc_err, w_err, n_err = perr[:5]
         self.fit_parameters = [{'name':'m', 'value':m, 'error':m_err},
                                {'name':'c', 'value':c, 'error':c_err},
-                               {'name':'xc', 'value':xc, 'error':xc_err},
+                               {'name':'tc', 'value':tc, 'error':tc_err},
                                {'name':'w', 'value':w, 'error':w_err},
                                {'name':'n', 'value':n, 'error':n_err}]
         
         # get the fitted line
-        y= _sloped_depositon_curve_n(fit_df['Time/s'], m, c, xc, w, n)
+        y= _sloped_depositon_curve_n(fit_df['Time/s'], m, c, tc, w, n)
         fit_df['fit'] = y
         
         # get the reduced chi square
@@ -174,13 +175,22 @@ class DepositionTimeScan:
         #n2_err = c_err*2+A_err*2
         self.refractive_index = {'value':n, 'error':n_err}
         
-        theta = np.radians(theta_radians)
-        theta2 = np.arcsin(theta/n)
+        theta = np.radians(theta_degrees)
+        # apply snell's law
+        # we assume the vacuum is a perfect vacuum
+        n_vacuum = 1
+        theta2 = np.arcsin(n_vacuum*np.sin(theta)/n)
+        
+        # see equation 8 of Ioppolo et al. (2021) A&A 646, A172.
+        # https://doi.org/10.1051/0004-6361/202039184
+        # for this. But instead of getting the thickness directly using the full
+        # equation, we skip the N term and divide by the period. This gives us
+        # the deposition rate (number of pattern repititions N=deptime/period).
         d=632.8/(2*n*np.cos(theta2))
-        d_err=n_err
+        d_err=n_err/n
         rate=d/(2*w)
-        rate_err = d_err+w_err/w
-        self.dosing_rate = {'value':rate, 'error':rate_err}
+        rate_err = np.sqrt((d_err/d)**2 + (w_err/w)**2)
+        self.deposition_rate = {'value':rate, 'error':rate_err}
         
         # add the best fit back
         if 'fit' in self.data:
@@ -188,7 +198,7 @@ class DepositionTimeScan:
         self.data = self.data.merge(fit_df, how='left')
         
         self.fit_parameters += [
-            {"name":"dosing rate (nm/s)", "value":rate, "error":rate_err},
+            {"name":"deposition rate (nm/s)", "value":rate, "error":rate_err},
             {"name":"refractive index", "value":n, "error":n_err},
             {"name":"redchi2", "value":redchi2, "error":None},
         ]
@@ -202,7 +212,9 @@ class DepositionTimeScan:
                   f"{n_err:.3f}\033[0m")
             print("The other fitted values are:")
             for p in self.fit_parameters[:4]:
-                print(p)
+                print(f"'{p['name']}' : "+
+                      f"{p['value']:.3f} "+
+                      f"+- {p['error']:.3f}")
                 
     def find_thickness(self, dep_time, verbose=False):
         """
@@ -211,8 +223,8 @@ class DepositionTimeScan:
         
         dep_time : (float) the time in seconds for deposition of the ice.
         """
-        t = self.dosing_rate['value'] * dep_time
-        t_err = t*(self.dosing_rate['error']/self.dosing_rate['value'])
+        t = self.deposition_rate['value'] * dep_time
+        t_err = t*(self.deposition_rate['error']/self.deposition_rate['value'])
         if verbose:
             print(f"The ice deposited for {dep_time} seconds will be " + 
                   f"\033[1m{t:.3f} +- {t_err:.3f} nm \033[0mthick.")
@@ -225,8 +237,8 @@ class DepositionTimeScan:
         
         thickness: (float) the thickness of the desired ice in nanometers.
         """
-        t = thickness / self.dosing_rate['value']
-        t_err = t*(self.dosing_rate['error']/self.dosing_rate['value'])
+        t = thickness / self.deposition_rate['value']
+        t_err = t*(self.deposition_rate['error']/self.deposition_rate['value'])
         if verbose:
             print(f"The ice deposited to {thickness} nm will take " +
                   f"\033[1m{t:.3f} +- {t_err:.3f} seconds\033[0m.")
