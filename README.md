@@ -1,6 +1,1416 @@
-# AU-UV_ices
-For scripts to analyse data from the AU-UV ices end station at the ASTRID2 synchrotron.
+```python
+# keep things reproducable by setting the random seed.
+import random
+random.seed(31415)
+```
 
-## Usage
+# DUVET
+**D**anish **UV** **E**nd-station **T**ool
 
-See `example.ipynb` for usage examples.
+This tool is designed to help you manage data obtained at the AU-UV endstation of the ASTRID2 synchrotron at Aarhus Univeristy, in Denmark.
+Its current main functionality is to read the data files produced by the endstation, calculate absorbances, and produce plots of absorbance.
+It can also fit the absorbance data with gaussian functions as a first step in your data analysis.
+
+This document provides usage examples. To being using the tools, you must have `spectools.py` in your working directory, and import it as follows:
+
+
+```python
+import spectools
+#help(spectools)
+```
+
+You can run `help(spectools)` to see a full summary of the classes and methods. 
+
+## Example: Reading Data
+
+To read data, you need to know the paths to your relevant samples and backgrounds. You can have as many samples and backgrounds as you want, and they will be averaged together. For this example, I have two. 
+
+
+```python
+path = "./raw_data/SergioIoppolo-November2023/20231101/"
+
+bkgd_short1 = path + "R73773.d01"
+bkgd_short2 = path + "R73773.d02"
+sample_short1 = path + "R73780.d01"
+sample_short2 = path + "R73780.d02"
+
+# build the spectrum object
+spec1 = spectools.Spectrum()
+spec1.change_name("R73780")
+# add backgrounds
+spec1.add_bkgd(bkgd_short1)
+spec1.add_bkgd(bkgd_short2)
+# add samples
+spec1.add_sample(sample_short1)
+spec1.add_sample(sample_short2)
+# give it a color (is black by default)
+spec1.change_color("blue")
+# average the scans together
+spec1.average_scans()
+
+# make a plot of the data
+spectools.plot_absorbance([spec1], figsize=(7, 5),
+                      xlim=(120, 340), ylim=(-0.02, 0.7),
+                      save_path="./misc_figures/one_spectrum.svg");
+```
+
+
+    
+![png](README_files/README_5_0.png)
+    
+
+
+By running `help` on the `Spectrum` object you can see all its methods:
+
+
+```python
+help(spec1)
+```
+
+    Help on Spectrum in module spectools object:
+    
+    class Spectrum(builtins.object)
+     |  Spectrum(debug=False)
+     |
+     |  Represents a spectrum, so the average of one or more scans
+     |
+     |  Parameters belonging to the fully constructed object:
+     |
+     |      baseline_p : (list) parameters from the fit of the rayleigh scattering
+     |                   baseline. None until subtract_baseline() has been run.
+     |      bkgd : (pandas.DataFrame) The averaged background data.
+     |      bkgd_files : (list) a list of background files that make up the scans.
+     |      color : (str) the hex color used for plotting this spectrum.
+     |      data : (pandas.DataFrame) the data belonging to this
+     |             spectrum, averaged together from its corresponding
+     |             scans.
+     |      fit_components : (list) a list of dictionaries which make up the fit
+     |                       components after `fit_peaks()` is called. Each
+     |                       dictionary has the following components: parameters,
+     |                       and absorbance. The `parameters` are the three values
+     |                       which describe the gaussian: amplitude, center, and
+     |                       standard deviation. The `absorbance` has the y values
+     |                       of the gaussian corresponding to the `data` parameter's
+     |                       wavelength values.
+     |      fit_results : (dict) A dictionary of the best fit results after
+     |                    `fit_peaks()` is called. It consists of the following
+     |                    components: redchi2, p, pcov, best_fit. `redchi2` is the
+     |                    reduced chi square value of the fit. `p` is the fit
+     |                    parameters. `pcov` is the covariance matrix of those
+     |                    parameters. `best_fit` are the absorbance values
+     |                    calculated to fit the data.
+     |      linestyle : (str) the linestyle for matplotlib plotting.
+     |      name : (str) the name of this spectrum, which will be shown
+     |             in plot legends.
+     |      offset : (float) by how much the spectrum should be offset
+     |               in the plot_absorbance() plot, in absorbance units.
+     |               Defaults to 0.0.
+     |      peaks : (list) a list of the peak positions in the spectrum. Is None
+     |              prior to calling `fit_peaks()`.
+     |      peak_errors : (list) a list of the standard deviation peak errors. Is
+     |                    None prior to calling `fit_peaks()`
+     |      sample : (pandas.DataFrame) The averaged sample data.
+     |      sample_files : (list) a list of sample files that make up the scans.
+     |      scans : (list) a list of SingleScan objects that will be
+     |              averaged together to make this spectrum.
+     |      visible : (boolean) whether the spectrum should appear in
+     |                the plot generated by plot_absorbance() or not.
+     |                Defaults to True.
+     |
+     |  Methods defined here:
+     |
+     |  __init__(self, debug=False)
+     |
+     |  add_bkgd(self, bkgd_fname)
+     |      Adds a background file to this spectrum's list of backgrounds
+     |
+     |      bkgd_fname : (str) the path to the background file being added
+     |
+     |  add_sample(self, sample_fname)
+     |      Adds a sample file to this spectrum's list of samples
+     |
+     |      sample_fname : (str) the path to the background file being added
+     |
+     |  average_scans(self)
+     |      Averages the scans relating to this spectrum. First all backgrounds are
+     |      averaged together. Then all samples are averaged together. Then the
+     |      absorbance is calculated, taking the base 10 log of the ratio of the
+     |      background and scan signal. The result is put in a pandas dataframe and
+     |      stored in the .data parameter.
+     |
+     |  change_color(self, new_color)
+     |      Changes the color used for plotting this spectrum
+     |
+     |  change_index(self, new_index)
+     |      Changes the index of this spectrum for use in the DUVET GUI
+     |
+     |      new_index : (int) the new index for this spectrum
+     |
+     |  change_linestyle(self, new_style)
+     |      Changes the name of this spectrum
+     |
+     |      new_style : (str) the matplotlib linestyle for this spectrum
+     |
+     |  change_name(self, new_name)
+     |      Changes the name of this spectrum
+     |
+     |      new_name : (str) the new name for this spectrum
+     |
+     |  change_offset(self, new_offset)
+     |      Gives the spectrum an offset value. When plotted in the
+     |      plot_absorbance function, the offset value will simply be
+     |      added to the spectrum's absorbance values. This allows the
+     |      user to vertically shift the spectrum if needed.
+     |
+     |      offset : (float) the offset for the spectrum, in absorbance
+     |               units
+     |
+     |  export(self, path, fname=None)
+     |      Saves the spectrum object. Its data will be saved to a csv file.
+     |
+     |      path : (str) the path where you want to save the file. This should be a
+     |             directory.
+     |
+     |  fit_peaks(self, verbose=False, guesses=None, ng=None, ng_lower=None, ng_upper=None, do_scattering=False, fit_lim=(120, 340), custom_components=None)
+     |      Finds and fits the peaks in the spectrum by fitting the spectrum with
+     |      some number of asymmetric Gaussian functions. The locations of the peaks
+     |      as well as the fitted spectrum are returned, but also added to a peaks
+     |      and fit parameter of the object. The best fit is saved as a column in
+     |      the spectrum's `data` DataFrame parameter.
+     |
+     |      Parameters:
+     |
+     |      do_scattering : (boolean) Whether or not to fit using the rayleigh
+     |                    scattering function as a part of the fit.
+     |      fit_lim_low : (float) the lower limit on the wavelength range used in
+     |                    fitting. Defults to 120.
+     |      guesses: (list) a list of dictionaries containing the guesses to your
+     |               fit. The dictionaries must be of the form: {'lower':, 'guess':,
+     |               'upper':} where 'guess' is your guess for the value of a fit
+     |               parameter, and 'lower' and 'upper' are lower and upper limits
+     |               respectively. Guesses for gaussian fit parameters must be in
+     |               groups of three; a, c, and s, where a is the amplitude of the
+     |               gaussian, c is the center wavelength, and s is the standard
+     |               deviation. If you have `do_baseline` to True, you should
+     |               include an additional two parameters *at the start* of p0.
+     |               These parameters are m and k, where m controls the steepness of
+     |               the scattering curve, and k controls the amplitude. If you have
+     |               any custom components, you must include guesses for the
+     |               amplitudes of those components at the start of the list, before
+     |               your guesses for the baseline.
+     |      ng : (tuple or int) The number of gaussians to use in the fit, or lower
+     |           and upper limits on how many gaussians to use in the fit.
+     |      ng_lower : (int) [Depreciated] The lower limit on the number of
+     |                 gaussians to try and fit with.
+     |      ng_upper : (int) [Depreciated] The upper limit on the number of
+     |                 gaussians to try and fit with.
+     |      verbose : (boolean) If true, prints debug and progress statements.
+     |                Defaults to False.
+     |
+     |  flip_visibility(self)
+     |      Changes the visibility of the spectrum when plotting. If
+     |      the self.visible parameter is false, the plot_absorbance
+     |      function will skip plotting this spectrum.
+     |
+     |  remove_bkgd(self, bkgd_fname)
+     |      Removes a background from this spectrum's list of backgrounds
+     |
+     |      bkgd_name : (str) the name of the background being removed
+     |
+     |  remove_sample(self, sample_fname)
+     |      Removes a sample from this spectrum's list of samples
+     |
+     |      sample_name : (str) the name of the spectrum being removed
+     |
+     |  subtract_baseline(self, lim=None, how='min')
+     |      Performs a baseline subtraction on the spectrum. This is done just by
+     |      shifting all values such that some chosen value is zero. There are two
+     |      methods, determined by the how parameter.
+     |
+     |      lim : (tuple or None) the limits on where the zero point is searched
+     |            for. Defaults to None.
+     |      how : (str) How to determine the zero point. Acceptable values are
+     |            "min", and "right". When "min", the function will find the minimum
+     |            absorbance value within the wavelength range set by lim, and shift
+     |            the data such that it is zero. When "right", the rightmost
+     |            value will be shifted such that it is zero.
+     |
+     |  ----------------------------------------------------------------------
+     |  Data descriptors defined here:
+     |
+     |  __dict__
+     |      dictionary for instance variables
+     |
+     |  __weakref__
+     |      list of weak references to the object
+    
+
+
+`Spectrum` objects have several attributes. Below are the attributes of the one we just constructed.
+
+
+```python
+spec1.name
+```
+
+
+
+
+    'R73780'
+
+
+
+
+```python
+spec1.color
+```
+
+
+
+
+    'blue'
+
+
+
+
+```python
+# these are the calibrated data which are used for plotting and fitting
+spec1.data
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>absorbance</th>
+      <th>wavelength</th>
+    </tr>
+    <tr>
+      <th>index</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>-0.149512</td>
+      <td>110.0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>-0.169499</td>
+      <td>111.0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>-0.112865</td>
+      <td>112.0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>-0.218492</td>
+      <td>113.0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>-23.447676</td>
+      <td>114.0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>106</th>
+      <td>0.013420</td>
+      <td>216.0</td>
+    </tr>
+    <tr>
+      <th>107</th>
+      <td>0.012746</td>
+      <td>217.0</td>
+    </tr>
+    <tr>
+      <th>108</th>
+      <td>0.013698</td>
+      <td>218.0</td>
+    </tr>
+    <tr>
+      <th>109</th>
+      <td>0.012702</td>
+      <td>219.0</td>
+    </tr>
+    <tr>
+      <th>110</th>
+      <td>0.012059</td>
+      <td>220.0</td>
+    </tr>
+  </tbody>
+</table>
+<p>111 rows × 2 columns</p>
+</div>
+
+
+
+
+```python
+# this is a value which can control a shift in absorbance of the data for
+# plotting. More details on offsets are below
+spec1.offset
+```
+
+
+
+
+    0.0
+
+
+
+
+```python
+# this controls if this spectrum is visible in plotting or not. This is not so
+# useful when working in jupyter notebook or other code interfaces, but very
+# useful in a GUI where you can use checkboxes to control what is plotted.
+spec1.visible
+```
+
+
+
+
+    True
+
+
+
+
+```python
+# a list of the background files associated with this Spectrum
+spec1.bkgd_files
+```
+
+
+
+
+    ['./raw_data/SergioIoppolo-November2023/20231101/R73773.d01',
+     './raw_data/SergioIoppolo-November2023/20231101/R73773.d02']
+
+
+
+
+```python
+# a list of the sample files associated with this Spectrum
+spec1.sample_files
+```
+
+
+
+
+    ['./raw_data/SergioIoppolo-November2023/20231101/R73780.d01',
+     './raw_data/SergioIoppolo-November2023/20231101/R73780.d02']
+
+
+
+## Example: Plotting Data
+
+Above, we plotted one spectrum in blue. But the `plot_absorbance` function is designed for plotting several spectra if we want to. In this example, we build a second `Spectrum` object and plot its data alongside the one we made previously. Note that `plot_absorbance` takes a list of `Spectrum` objects to plot. This list can be as long as you like.
+
+
+```python
+bkgd_long1 = path + "R73775.d01"
+bkgd_long2 = path + "R73775.d02"
+sample_long1 = path + "R73781.d01"
+sample_long2 = path + "R73781.d02"
+
+# build long spectrum
+spec2 = spectools.Spectrum()
+spec2.change_name("R73781")
+spec2.add_bkgd(bkgd_long1)
+spec2.add_bkgd(bkgd_long2)
+spec2.add_sample(sample_long1)
+spec2.add_sample(sample_long2)
+spec2.change_color("red")
+spec2.average_scans()
+
+spectools.plot_absorbance([spec1, spec2], figsize=(7, 5),
+                      xlim=(120, 340), ylim=(-0.02, 0.7),
+                      save_path="./misc_figures/two_spectrums.svg");
+```
+
+
+    
+![png](README_files/README_17_0.png)
+    
+
+
+## Example: Shifting Spectrums
+
+The spectra are not perfectly aligned. This happens normally with the endstation, and 
+
+
+```python
+spec2.change_offset(0.1)
+
+spectools.plot_absorbance([spec1, spec2], figsize=(7, 5),
+                      xlim=(120, 340), ylim=(-0.02, 0.7),
+                      save_path="./misc_figures/shift_example.svg");
+```
+
+
+    
+![png](README_files/README_19_0.png)
+    
+
+
+
+```python
+spec2.change_offset(0.0)
+
+spectools.plot_absorbance([spec1, spec2], figsize=(7, 5),
+                      xlim=(120, 340), ylim=(-0.02, 0.7),
+                      save_path="./misc_figures/shift_example_2.svg");
+```
+
+
+    
+![png](README_files/README_20_0.png)
+    
+
+
+## Example: Stitching Spectra
+
+
+```python
+stitched = spectools.StitchedSpectrum(spec1, spec2)
+
+spectools.plot_absorbance([stitched], figsize=(7, 5),
+                      xlim=(120, 340), ylim=(-0.02, 0.7),
+                      save_path="./misc_figures/stitched.svg");
+```
+
+
+    
+![png](README_files/README_22_0.png)
+    
+
+
+
+```python
+stitched.name
+```
+
+
+
+
+    'R73780-R73781'
+
+
+
+
+```python
+stitched.visible
+```
+
+
+
+
+    True
+
+
+
+
+```python
+stitched.color
+```
+
+
+
+
+    'blue'
+
+
+
+
+```python
+stitched.offset
+```
+
+
+
+
+    0
+
+
+
+
+```python
+stitched.sample_files
+```
+
+
+
+
+    ['./raw_data/SergioIoppolo-November2023/20231101/R73780.d01',
+     './raw_data/SergioIoppolo-November2023/20231101/R73780.d02',
+     './raw_data/SergioIoppolo-November2023/20231101/R73781.d01',
+     './raw_data/SergioIoppolo-November2023/20231101/R73781.d02']
+
+
+
+
+```python
+stitched.bkgd_files
+```
+
+
+
+
+    ['./raw_data/SergioIoppolo-November2023/20231101/R73773.d01',
+     './raw_data/SergioIoppolo-November2023/20231101/R73773.d02',
+     './raw_data/SergioIoppolo-November2023/20231101/R73775.d01',
+     './raw_data/SergioIoppolo-November2023/20231101/R73775.d02']
+
+
+
+## Example: Changing Names
+
+
+```python
+stitched.change_name("Propane as deposited at 8K")
+
+spectools.plot_absorbance([stitched], figsize=(7, 5),
+                      xlim=(120, 340), ylim=(-0.02, 0.7),
+                      save_path="./misc_figures/name_change.svg");
+```
+
+
+    
+![png](README_files/README_30_0.png)
+    
+
+
+## Example: Changing Colors
+
+
+```python
+stitched.change_color("green")
+
+spectools.plot_absorbance([stitched], figsize=(7, 5),
+                      xlim=(120, 340), ylim=(-0.02, 0.7),
+                      save_path="./misc_figures/color_change.svg");
+```
+
+
+    
+![png](README_files/README_32_0.png)
+    
+
+
+## Example: Simple Baseline Subtraction
+
+For the baseline subtraction, the minimum value is found in some wavelenght range passed to the function. The entire absorbance data are then shifted such that the minimum is at zero.
+
+
+```python
+stitched.subtract_baseline(lim=(120, 340))
+
+spectools.plot_absorbance([stitched], figsize=(7, 5),
+                      xlim=(120, 340), ylim=(-0.02, 0.7),
+                      save_path="./misc_figures/baseline_subtract.svg");
+```
+
+
+    
+![png](README_files/README_34_0.png)
+    
+
+
+## Example: Fitting with gaussians
+
+You can fit with any arbitrary number of gaussians. If you provide your own guesses, you can only fit up to the number of functions you provide guesses for. Otherwise, you can fit as many gaussians as you want. However, the program will choose the fit with the best reduced chi square, which tends to prefer smaller numbers of free parameters.
+
+
+```python
+import spectools
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import random
+
+# keep things reproducable
+random.seed(31415)
+# define colors for plotting
+colors = ["#dcdcdc", "#2f4f4f", "#a52a2a", "#191970", "#006400", "#bdb76b", "#9acd32",
+"#66cdaa", "#ff0000", "#ff8c00", "#ffd700", "#c71585", "#0000cd", "#00ff00",
+"#00fa9a", "#00bfff", "#ff00ff", "#dda0dd", "#7b68ee", "#ffa07a"]
+
+def build_spectra(path, bkgd_short1, bkgd_short2, bkgd_long1, bkgd_long2,
+                  sample_short1, sample_short2, sample_long1, sample_long2,
+                  color="#000001", name=None):
+    """
+    Builds the spectra as appropriate for this experiment
+    """
+    # build short spectrum
+    spec1 = spectools.Spectrum()
+    spec1.change_name(sample_short1[-9:-4])
+    spec1.add_bkgd(bkgd_short1)
+    spec1.add_bkgd(bkgd_short2)
+    spec1.add_sample(sample_short1)
+    spec1.add_sample(sample_short2)
+    spec1.change_color(color)
+    spec1.change_offset(0.0)
+    spec1.average_scans()
+
+    # build long spectrum
+    spec2 = spectools.Spectrum()
+    spec2.change_name(sample_long1[-9:-4])
+    spec2.add_bkgd(bkgd_long1)
+    spec2.add_bkgd(bkgd_long2)
+    spec2.add_sample(sample_long1)
+    spec2.add_sample(sample_long2)
+    spec2.change_color(color)
+    spec2.change_offset(0.0)
+    spec2.average_scans()
+
+    stiched = spectools.StitchedSpectrum(spec1, spec2)
+    if name:
+        stiched.change_name(name)
+    return stiched
+
+path = "./raw_data/SergioIoppolo-November2023/20231101/"
+
+bkgd_short1 = path + "R73773.d01"
+bkgd_short2 = path + "R73773.d02"
+bkgd_long1 = path + "R73775.d01"
+bkgd_long2 = path + "R73775.d02"
+
+sample_short1 = path + "R73808.d01"
+sample_short2 = path + "R73808.d02"
+sample_long1 = path + "R73809.d01"
+sample_long2 = path + "R73809.d02"
+
+spec = build_spectra(path, bkgd_short1, bkgd_short2, bkgd_long1, bkgd_long2,
+                        sample_short1, sample_short2, sample_long1, sample_long2,
+                        color=colors[11], name="200K Propane + 50s 1keV e-")
+
+
+# fix the end of the spectrum to 0
+i = len(spec.data['absorbance'])
+spec.change_offset(-1*spec.data['absorbance'][i-1])
+```
+
+
+```python
+guesses = [{'lower':0, 'guess':4, 'upper':5},   # amplitude
+           {'lower':0, 'guess':135, 'upper':340},   # center
+           {'lower':0, 'guess':20, 'upper':340},   # standard deviation
+           
+           {'lower':0, 'guess':3, 'upper':5},   # amplitude
+           {'lower':0, 'guess':185, 'upper':340},   # center
+           {'lower':0, 'guess':20, 'upper':340},   # standard deviation
+           
+           {'lower':0, 'guess':2, 'upper':5},   # amplitude
+           {'lower':225, 'guess':240, 'upper':250},   # center
+           {'lower':0, 'guess':20, 'upper':340},   # standard deviation
+           
+           {'lower':0, 'guess':0.4, 'upper':5},   # amplitude
+           {'lower':274, 'guess':276, 'upper':279},   # center
+           {'lower':0, 'guess':20, 'upper':100},   # standard deviation
+           
+           {'lower':0, 'guess':0.4, 'upper':5},   # amplitude
+           {'lower':296, 'guess':298, 'upper':300},   # center
+           {'lower':0, 'guess':20, 'upper':100},   # standard deviation
+           
+           {'lower':0, 'guess':0.1, 'upper':5},   # amplitude
+           {'lower':324, 'guess':326, 'upper':328},   # center
+           {'lower':0, 'guess':10, 'upper':100},   # standard deviation
+          ]
+
+spec.fit_peaks(verbose=True, ng=(1, 7), guesses=guesses, fit_lim=(120, 340))
+spectools.plot_fit(spec, plot_peaks=True, xlim=(120, 340),
+               ylim=(0, spec.data[spec.data['wavelength']>120]['absorbance'].max()*1.1),
+               plot_fit_components=True, save_path="./misc_figures/fit.svg")
+```
+
+    Attempting fit with 1 gaussians
+    success! reduced chi2: 990.00
+    Attempting fit with 2 gaussians
+    success! reduced chi2: 1.74
+    Attempting fit with 3 gaussians
+    success! reduced chi2: 1.27
+    Attempting fit with 4 gaussians
+
+
+    success! reduced chi2: 1.06
+    Attempting fit with 5 gaussians
+
+
+    success! reduced chi2: 0.85
+    Attempting fit with 6 gaussians
+
+
+    success! reduced chi2: 0.76
+    The best fit was achieved with 4 gaussians and a reduced chi2 of 1.06
+
+
+
+
+
+    (<Axes: ylabel='Absorbance'>, <Axes: xlabel='Wavelength (nm)'>)
+
+
+
+
+    
+![png](README_files/README_37_5.png)
+    
+
+
+
+```python
+spec.data
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>absorbance</th>
+      <th>wavelength</th>
+      <th>best_fit</th>
+      <th>residuals</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.036513</td>
+      <td>110.0</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>-0.002350</td>
+      <td>111.0</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>0.022638</td>
+      <td>112.0</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0.014045</td>
+      <td>113.0</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0.096445</td>
+      <td>114.0</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>226</th>
+      <td>0.030056</td>
+      <td>336.0</td>
+      <td>0.031236</td>
+      <td>-0.001180</td>
+    </tr>
+    <tr>
+      <th>227</th>
+      <td>0.030845</td>
+      <td>337.0</td>
+      <td>0.031093</td>
+      <td>-0.000247</td>
+    </tr>
+    <tr>
+      <th>228</th>
+      <td>0.029956</td>
+      <td>338.0</td>
+      <td>0.030957</td>
+      <td>-0.001001</td>
+    </tr>
+    <tr>
+      <th>229</th>
+      <td>0.029882</td>
+      <td>339.0</td>
+      <td>0.030829</td>
+      <td>-0.000947</td>
+    </tr>
+    <tr>
+      <th>230</th>
+      <td>0.029187</td>
+      <td>340.0</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+<p>231 rows × 4 columns</p>
+</div>
+
+
+
+
+```python
+spec.peaks
+```
+
+
+
+
+    [{'peak': 133.0365914318834, 'peak_error': 0.3162520931327323},
+     {'peak': 181.92274668251002, 'peak_error': 0.593020446781789},
+     {'peak': 238.69488868436466, 'peak_error': 0.7145382983595306},
+     {'peak': 278.9999999999978, 'peak_error': 2.564391130499879}]
+
+
+
+
+```python
+spec.fit_results
+```
+
+
+
+
+    {'reduced_chi_square': 1.060316126837487,
+     'n_gaussians': 4,
+     'n_custom_components': 0,
+     'fitted_scattering': False,
+     'custom_component_parameters': [],
+     'scattering_parameters': [],
+     'gaussian_parameters': [{'value': 2.4791907030213327,
+       'error': 0.12700882919975434,
+       'parameter': 'amplitude'},
+      {'value': 133.0365914318834,
+       'error': 0.3162520931327323,
+       'parameter': 'center'},
+      {'value': 16.88541514047318,
+       'error': 0.36941277212116685,
+       'parameter': 'std'},
+      {'value': 3.514274699142536,
+       'error': 0.17335209789108327,
+       'parameter': 'amplitude'},
+      {'value': 181.92274668251002,
+       'error': 0.593020446781789,
+       'parameter': 'center'},
+      {'value': 26.96098585589842,
+       'error': 1.2486058303939565,
+       'parameter': 'std'},
+      {'value': 0.846418107987344,
+       'error': 0.13127340051310774,
+       'parameter': 'amplitude'},
+      {'value': 238.69488868436466,
+       'error': 0.7145382983595306,
+       'parameter': 'center'},
+      {'value': 16.857305525361213,
+       'error': 0.9143705140678469,
+       'parameter': 'std'},
+      {'value': 1.1211216249641536,
+       'error': 0.09344193090811419,
+       'parameter': 'amplitude'},
+      {'value': 278.9999999999978,
+       'error': 2.564391130499879,
+       'parameter': 'center'},
+      {'value': 28.16371168915631,
+       'error': 1.4624150079309801,
+       'parameter': 'std'}],
+     'p': array([  2.4791907 , 133.03659143,  16.88541514,   3.5142747 ,
+            181.92274668,  26.96098586,   0.84641811, 238.69488868,
+             16.85730553,   1.12112162, 279.        ,  28.16371169]),
+     'pcov': array([[ 1.61312427e-02,  3.60483914e-02,  4.47552429e-02,
+             -2.14807596e-02,  6.83801523e-02, -1.52647933e-01,
+              1.10876072e-02, -5.60663344e-02,  7.43550937e-02,
+             -4.08569124e-03,  1.10405843e-01, -5.20168605e-02],
+            [ 3.60483914e-02,  1.00015386e-01,  9.07838651e-02,
+             -5.06929653e-02,  1.56992443e-01, -3.63329184e-01,
+              2.66653939e-02, -1.34579470e-01,  1.79029786e-01,
+             -9.86914629e-03,  2.66684412e-01, -1.25819371e-01],
+            [ 4.47552429e-02,  9.07838651e-02,  1.36465796e-01,
+             -5.62832088e-02,  2.00467907e-01, -3.92135148e-01,
+              2.64703444e-02, -1.39765470e-01,  1.73323896e-01,
+             -9.24927057e-03,  2.49906934e-01, -1.17943029e-01],
+            [-2.14807596e-02, -5.06929653e-02, -5.62832088e-02,
+              3.00509498e-02, -8.44684921e-02,  2.15661544e-01,
+             -1.68112466e-02,  8.17114034e-02, -1.16087235e-01,
+              6.47043260e-03, -1.74846417e-01,  8.14273754e-02],
+            [ 6.83801523e-02,  1.56992443e-01,  2.00467907e-01,
+             -8.44684921e-02,  3.51673250e-01, -5.89112456e-01,
+              3.38212925e-02, -1.99053496e-01,  2.00091281e-01,
+             -1.01956056e-02,  2.75464516e-01, -1.37239557e-01],
+            [-1.52647933e-01, -3.63329184e-01, -3.92135148e-01,
+              2.15661544e-01, -5.89112456e-01,  1.55901652e+00,
+             -1.23125716e-01,  5.91695304e-01, -8.49619326e-01,
+              4.79185560e-02, -1.29503430e+00,  6.06660984e-01],
+            [ 1.10876072e-02,  2.66653939e-02,  2.64703444e-02,
+             -1.68112466e-02,  3.38212925e-02, -1.23125716e-01,
+              1.72327057e-02, -1.11311465e-02,  1.16360454e-01,
+             -1.10147243e-02,  3.00918824e-01, -1.59514048e-01],
+            [-5.60663344e-02, -1.34579470e-01, -1.39765470e-01,
+              8.17114034e-02, -1.99053496e-01,  5.91695304e-01,
+             -1.11311465e-02,  5.10564980e-01, -1.16305175e-01,
+             -1.99509245e-02,  5.65868119e-01, -3.50032874e-01],
+            [ 7.43550937e-02,  1.79029786e-01,  1.73323896e-01,
+             -1.16087235e-01,  2.00091281e-01, -8.49619326e-01,
+              1.16360454e-01, -1.16305175e-01,  8.36073437e-01,
+             -7.12690549e-02,  1.94218265e+00, -9.83710408e-01],
+            [-4.08569124e-03, -9.86914629e-03, -9.24927057e-03,
+              6.47043260e-03, -1.01956056e-02,  4.79185560e-02,
+             -1.10147243e-02, -1.99509245e-02, -7.12690549e-02,
+              8.73139445e-03, -2.36727836e-01,  1.32597401e-01],
+            [ 1.10405843e-01,  2.66684412e-01,  2.49906934e-01,
+             -1.74846417e-01,  2.75464516e-01, -1.29503430e+00,
+              3.00918824e-01,  5.65868119e-01,  1.94218265e+00,
+             -2.36727836e-01,  6.57610187e+00, -3.58753109e+00],
+            [-5.20168605e-02, -1.25819371e-01, -1.17943029e-01,
+              8.14273754e-02, -1.37239557e-01,  6.06660984e-01,
+             -1.59514048e-01, -3.50032874e-01, -9.83710408e-01,
+              1.32597401e-01, -3.58753109e+00,  2.13865766e+00]])}
+
+
+
+
+```python
+spec.fit_components
+```
+
+
+
+
+    [{'parameters': [{'value': 2.4791907030213327,
+        'error': 0.12700882919975434,
+        'parameter': 'amplitude'},
+       {'value': 133.0365914318834,
+        'error': 0.3162520931327323,
+        'parameter': 'center'},
+       {'value': 16.88541514047318,
+        'error': 0.36941277212116685,
+        'parameter': 'std'}],
+      'wavelength': 0      110.0
+      1      111.0
+      2      112.0
+      3      113.0
+      4      114.0
+             ...  
+      226    336.0
+      227    337.0
+      228    338.0
+      229    339.0
+      230    340.0
+      Name: wavelength, Length: 231, dtype: float64,
+      'absorbance': 0      0.052283
+      1      0.054183
+      2      0.056144
+      3      0.058157
+      4      0.060212
+               ...   
+      226    0.029187
+      227    0.029187
+      228    0.029187
+      229    0.029187
+      230    0.029187
+      Name: wavelength, Length: 231, dtype: float64},
+     {'parameters': [{'value': 3.514274699142536,
+        'error': 0.17335209789108327,
+        'parameter': 'amplitude'},
+       {'value': 181.92274668251002,
+        'error': 0.593020446781789,
+        'parameter': 'center'},
+       {'value': 26.96098585589842,
+        'error': 1.2486058303939565,
+        'parameter': 'std'}],
+      'wavelength': 0      110.0
+      1      111.0
+      2      112.0
+      3      113.0
+      4      114.0
+             ...  
+      226    336.0
+      227    337.0
+      228    338.0
+      229    339.0
+      230    340.0
+      Name: wavelength, Length: 231, dtype: float64,
+      'absorbance': 0      0.030669
+      1      0.030822
+      2      0.030988
+      3      0.031169
+      4      0.031364
+               ...   
+      226    0.029187
+      227    0.029187
+      228    0.029187
+      229    0.029187
+      230    0.029187
+      Name: wavelength, Length: 231, dtype: float64},
+     {'parameters': [{'value': 0.846418107987344,
+        'error': 0.13127340051310774,
+        'parameter': 'amplitude'},
+       {'value': 238.69488868436466,
+        'error': 0.7145382983595306,
+        'parameter': 'center'},
+       {'value': 16.857305525361213,
+        'error': 0.9143705140678469,
+        'parameter': 'std'}],
+      'wavelength': 0      110.0
+      1      111.0
+      2      112.0
+      3      113.0
+      4      114.0
+             ...  
+      226    336.0
+      227    337.0
+      228    338.0
+      229    339.0
+      230    340.0
+      Name: wavelength, Length: 231, dtype: float64,
+      'absorbance': 0      0.029187
+      1      0.029187
+      2      0.029187
+      3      0.029187
+      4      0.029187
+               ...   
+      226    0.029187
+      227    0.029187
+      228    0.029187
+      229    0.029187
+      230    0.029187
+      Name: wavelength, Length: 231, dtype: float64},
+     {'parameters': [{'value': 1.1211216249641536,
+        'error': 0.09344193090811419,
+        'parameter': 'amplitude'},
+       {'value': 278.9999999999978,
+        'error': 2.564391130499879,
+        'parameter': 'center'},
+       {'value': 28.16371168915631,
+        'error': 1.4624150079309801,
+        'parameter': 'std'}],
+      'wavelength': 0      110.0
+      1      111.0
+      2      112.0
+      3      113.0
+      4      114.0
+             ...  
+      226    336.0
+      227    337.0
+      228    338.0
+      229    339.0
+      230    340.0
+      Name: wavelength, Length: 231, dtype: float64,
+      'absorbance': 0      0.029187
+      1      0.029187
+      2      0.029187
+      3      0.029187
+      4      0.029187
+               ...   
+      226    0.031236
+      227    0.031093
+      228    0.030957
+      229    0.030829
+      230    0.030709
+      Name: wavelength, Length: 231, dtype: float64}]
+
+
+
+## Example: Fitting with whatever you want
+
+
+```python
+
+```
+
+## Difference in Plotting Functions
+
+
+```python
+
+```
+
+## Details on the stitching algorithm
+
+
+```python
+
+```
+
+# Deposition Time Scans
+
+Spectra are not the only data taken at the UV endstation. It is also necessary to monitor the deposition of an ice with the deposition time scans. These can then be fit, and optics principles can be used to determine the dosing rate and index of refraction of the ice. This is done using `deptools.py`, for deposition tools.
+
+
+```python
+import deptools
+```
+
+`deptools` has only one class: `DepositionTimeScan`. It is initialized by giving it the data file of some deposition time scan. The data can then be plotted with `plot_timescan()`
+
+
+```python
+# create the DepositionTimeScan object
+path = "./raw_data/SergioIoppolo-November2023/20231101/T73776.dat"
+dep = deptools.DepositionTimeScan(path)
+
+# plot it
+deptools.plot_timescan(dep, save_path="./misc_figures/deposition_fit.svg")
+```
+
+
+
+
+    <Axes: xlabel='Time (seconds)', ylabel='Ch2 Signal (volts)'>
+
+
+
+
+    
+![png](README_files/README_51_1.png)
+    
+
+
+Finding the dosing rate is then (in principle) very easy. All you need to do is run `find_dowing_rate()` and give the function a few parameters, all of which are optional for the function itself, but likely necessary to get a good fit.
+
+The first of these is `guesses` which contains the guesses for the fitted parameters. It is structured the same way as the guesses for spectrum fitting. It should be a list where each item in the list is a dictionary containing a lower and upper limit on the parameter, and a guess. There are five parameters that are fit every time. These parameters are called `m`, `c`, `xc`, `w`, and `n`. The function being fit with these parameters is shown below:
+
+$$
+f\left(x\right) = mx + c + \left(c\frac{n-1}{n+1}\right)\sin\left(\frac{x-x_c}{w}\right)
+$$
+
+The function is the combination of a line and a sine wave. Parameters `m` and `c` describe the slope and y-intercept of the line component respectively. Parameter `n` describes the index of refraction of the deposited ice, parameter `xc` describes the x-shift $x_c$, and parameter `w` describes the 'wavelength' of the sine wave (note that the wavelength in this function has units of time). Note that the expression $\left(c\frac{n-1}{n+1}\right)$ is a constant that describes the amplitude of the sine wave. The function is not fit directly to the raw data, but rather to gaussian smoothed data. This helps avoid broken fits when the time range is small.
+
+The next important parameters are `t_start` and `t_end` which are the start and end times of the deposition in seconds. As seen in the example file above, the entire file does not represent the deposition. In the example, the deposition starts at roughly 1020 seconds and ends at roughly 1700 seconds. Trying to use the above function to fit any of the data outside that range will either break or give a nonsense result, so these parameters are very important and should not be omitted.
+
+The next parameter is `theta_degrees` which describes in degrees the angle of incidence between the laser and the substrate. By default this is 22 and should not be changed unless the physical setup of the chamber has been changed.
+
+Finally, there is the parameter `verbose`, which can be true or false. If true, the function will print extra statements with the values of the fitted parameters.
+
+
+
+```python
+# importing numpy so we can set the limits on the parameters to infinity
+import numpy as np
+
+# setup our guesses. These are the same as the default guesses if none are provided
+guesses = [{'lower':-np.inf, 'guess':3e-6, 'upper':np.inf}, # m
+           {'lower':-np.inf, 'guess':0, 'upper':np.inf}, # c
+           {'lower':-np.inf, 'guess':200, 'upper':np.inf}, # xc
+           {'lower':0, 'guess':300, 'upper':np.inf}, # w
+           {'lower':1, 'guess':1.2, 'upper':4.1} # n
+            ]
+
+# fit the data and get the dosing rate
+dep.find_deposition_rate(guesses=guesses, t_start=1020, t_end=1700, verbose=True)
+deptools.plot_timescan(dep, save_path="./misc_figures/deposition_fit.svg")
+```
+
+    The fit suceeded with a reduced chi square of [1m9.551e-05[0m
+    The deposition rate is [1m0.586 +- 0.001 nm/s[0m
+    The ice's index of refraction is [1m1.108 +- 0.000[0m
+    The other fitted values are:
+    'm' : 0.000 +- 0.000
+    'c' : 0.175 +- 0.000
+    'tc' : 505.946 +- 0.674
+    'w' : 258.601 +- 0.213
+
+
+
+
+
+    <Axes: xlabel='Time (seconds)', ylabel='Ch2 Signal (volts)'>
+
+
+
+
+    
+![png](README_files/README_53_2.png)
+    
+
+
+Now that you have the deposition rate, you can easily find out how much ice was deposited over some given time. This is just multiplying the rate by the deposition time, but there is a built in function to do this for you and handle the associated error more conveniently than by hand. This function is `find_thickness` and takes two parameters. The first is `dep_time`, the deposition time in seconds, and the second is `verbose`, whether or not to print extra statements. The function returns the deposited ice thickness in nanometers as well as its error.
+
+
+```python
+thickness, error = dep.find_thickness(dep_time=680, verbose=True)
+```
+
+    The ice deposited for 680 seconds will be [1m398.747 +- 0.561 nm [0mthick.
+
+
+That is a very thick ice. In our experiments, we only wanted an ice of around 10 nm thick. The timescan above was taken just in order to measure the deposition rate, not actually do the deposition. When we deposited the ice we experimented on, we only deposited for 20 seconds.
+
+
+```python
+thickness, error = dep.find_thickness(dep_time=20, verbose=True)
+```
+
+    The ice deposited for 20 seconds will be [1m11.728 +- 0.017 nm [0mthick.
+
+
+This gave roughly the desired thickness, as we can see here. But why not just fit the deposition scan of the ice we actually used? A deposition time of only 20 seconds is far too short to generate a fittable sine curve like the one above. Further, the user might not yet know how long they want to deposit for, only how thick of an ice they want to eventually have. The deposition rate must be found first. This is also why the program does not automatically calculate the thickness of the deposited ice when you run `find_deposition_rate()`.
+
+But what about that user who knows what thickness of ice they want, but not how long to deposit for? `deptools` can also calculate that in much the same way as finding the thickness:
+
+
+```python
+time, error = dep.find_deposition_time(thickness=10, verbose=True)
+```
+
+    The ice deposited to 10 nm will take [1m17.053 +- 0.024 seconds[0m.
+
+
+Finally, what about exporting all of these parameters? That is easily done with the `export` function, which will save the fitted parameters to a csv file at a specified path:
+
+
+```python
+dep.export("./misc_figures/deposition_fit.csv")
+```
+
+if we now read that csv file we will see:
+
+
+```python
+import pandas as pd
+
+df = pd.read_csv("./misc_figures/deposition_fit.csv")
+df
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>name</th>
+      <th>value</th>
+      <th>error</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>m</td>
+      <td>0.000003</td>
+      <td>6.056960e-08</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>c</td>
+      <td>0.174932</td>
+      <td>8.114540e-05</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>tc</td>
+      <td>505.945931</td>
+      <td>6.737161e-01</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>w</td>
+      <td>258.601084</td>
+      <td>2.134565e-01</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>n</td>
+      <td>1.108467</td>
+      <td>1.723485e-04</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>deposition rate (nm/s)</td>
+      <td>0.586392</td>
+      <td>8.254277e-04</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>refractive index</td>
+      <td>1.108467</td>
+      <td>1.723485e-04</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>redchi2</td>
+      <td>0.000096</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+
+
+
+```python
+
+```
+
+
+```python
+
+```
