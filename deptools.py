@@ -134,11 +134,11 @@ class DepositionTimeScan:
 
         # smooth if needed, and apply time limits
         if do_smoothing:
-            # smooth
-            self.data['smoothed Ch2'] = gaussian_filter(self.data['Ch2/volts'], sigma=7)
             # apply time limits
             fit_df = self.data[(self.data['Time/s'] > t_start) & 
                            (self.data['Time/s'] < t_end)].copy()
+            # smooth
+            fit_df['smoothed Ch2'] = gaussian_filter(fit_df['Ch2/volts'], sigma=7, mode='nearest')
             # we fit to this
             fit_y = fit_df['smoothed Ch2']
         else:
