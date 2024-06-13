@@ -1,9 +1,3 @@
-```python
-# keep things reproducable by setting the random seed.
-import random
-random.seed(31415)
-```
-
 # DUVET
 **D**anish **UV** **E**nd-station **T**ool
 
@@ -24,6 +18,13 @@ You can run `help(spectools)` to see a full summary of the classes and methods.
 ## Example: Reading Data
 
 To read data, you need to know the paths to your relevant samples and backgrounds. You can have as many samples and backgrounds as you want, and they will be averaged together. For this example, I have two. 
+
+
+```python
+# keep things reproducable by setting the random seed.
+import random
+random.seed(31415)
+```
 
 
 ```python
