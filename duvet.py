@@ -11,6 +11,9 @@ from matplotlib.backends.backend_qt5agg import (
 )
 matplotlib.use('QtAgg')
 plt.style.use('./au-uv.mplstyle')
+plt.autoscale(False)
+
+from pyqt_color_picker import ColorPickerDialog
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -26,7 +29,8 @@ from PyQt5.QtWidgets import (
     QWidget,
     QFileDialog,
     QDoubleSpinBox,
-    QTabWidget
+    QTabWidget,
+    QDialog
 )
 from PyQt5.QtGui import (
     QPalette,
@@ -38,6 +42,17 @@ from PyQt5.QtCore import *
 from PyQt5.Qt import (
     QRect
 )
+
+def excepthook(exc_type, exc_value, exc_tb):
+    """
+    Catch errors
+    """
+    tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    print("error caught!:")
+    print("error message:\n", tb)
+    #QtWidgets.QApplication.quit()
+    # or QtWidgets.QApplication.exit(0)
+ 
 
 class SpecMplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None):
@@ -193,8 +208,10 @@ class spectrumDisplayTab():
 
         self.sc = SpecMplCanvas(self)
         self.toolbar = NavigationToolbar(self.sc)
-        #self.sc.axes[0].set_ylim((0, 1))
-        #self.sc.axes[0].set_xlim((110, 340))
+        self.xlims = [100, 700]
+        self.ylims = [-0.1, 1.1]
+        self.sc.axes[0].set_ylim(self.ylims)
+        self.sc.axes[0].set_xlim(self.xlims)
 
         self.plotLayout.addWidget(self.toolbar)
         self.plotLayout.addWidget(self.sc)
@@ -212,6 +229,7 @@ class spectrumDisplayTab():
 
         # display list of spectra
         self.speclist = QListWidget()
+        self.speclist.setMinimumWidth(300)
         self.listLayout.addWidget(self.speclist)
         
         # ---------------------------
@@ -254,6 +272,7 @@ class spectrumDisplayTab():
         # configure the layout of the new item in the list
         item_layout = QHBoxLayout()
         item_layout.addWidget(guiSpec.slCheckBox)
+        item_layout.addWidget(guiSpec.slColorCycleButton)
         item_layout.addWidget(guiSpec.slEditbutton)
         # put the layout into the item widget of the guiSpectrum
         guiSpec.slItemWidget.setLayout(item_layout)
@@ -267,24 +286,18 @@ class spectrumDisplayTab():
         for guiSpec in self.all_spectra:
             plot_data.append(guiSpec.spec)
 
-        # if the figure is empty, don't assign limits
-        #contained_artists = self.sc.fig.get_children()
-        #print(contained_artists)
-        if self.added_spectrum:
-            ylims = self.sc.axes[0].get_ylim()
-            xlims = self.sc.axes[0].get_xlim()
-            
+        self.xlims = self.sc.axes[0].get_xlim()
+        self.ylims = self.sc.axes[0].get_ylim()
+
         self.sc.axes[0].cla()
         self.sc.axes[1].cla()
-        #self.sc.fig, self.sc.axes = spectools.plot_absorbance(plot_data,
-        #                                              return_fig_and_ax=True)
+
         spectools.plot_absorbance(plot_data, ax1=self.sc.axes[0])
-        if self.added_spectrum:
-            self.sc.axes[0].set_ylim(ylims)
-            self.sc.axes[0].set_xlim(xlims)
+
+        self.sc.axes[0].set_ylim(self.ylims)
+        self.sc.axes[0].set_xlim(self.xlims)
         self.sc.draw()
-        
-         
+
     def clear_plot(self):
         print('clear plot is to be implemented')
 
@@ -317,6 +330,8 @@ class guiSpectrum():
         self.slCheckBox = QCheckBox(self.spec.name)
         self.slCheckBox.setChecked(True)
         self.slCheckBox.stateChanged.connect(self.flip_visibility)
+        self.slColorCycleButton = QPushButton("cycle color")
+        self.slColorCycleButton.clicked.connect(self.cycle_color)
         self.slEditbutton = QPushButton("edit")
         
         # create the edit window widgets
@@ -325,10 +340,16 @@ class guiSpectrum():
         self.ewNameLineEdit.editingFinished.connect(
             lambda: self.update_name(self.ewNameLineEdit.text()))
 
-        self.ewColorLineEdit = QLineEdit()
-        self.ewColorLineEdit.setText(self.spec.color)
-        self.ewColorLineEdit.editingFinished.connect(
-            lambda: self.update_color(self.ewColorLineEdit.text()))
+        #self.ewColorLineEdit = QLineEdit()
+        #self.ewColorLineEdit.setText(self.spec.color)
+        #self.ewColorLineEdit.editingFinished.connect(
+        #    lambda: self.update_color(self.ewColorLineEdit.text()))
+        self.ewColorLabel = QLabel(self.spec.color)
+        self.ewColorButton = QPushButton("choose color")
+        self.ewColorButton.clicked.connect(self.update_color)
+        self.ewColorLayout = QHBoxLayout()
+        self.ewColorLayout.addWidget(self.ewColorLabel)
+        self.ewColorLayout.addWidget(self.ewColorButton)
 
         self.ewOffsetLineEdit = QDoubleSpinBox()
         self.ewOffsetLineEdit.setRange(-20.0, 20.0)
@@ -342,6 +363,14 @@ class guiSpectrum():
         self.ewLSLineEdit.setText(self.spec.linestyle)
         self.ewLSLineEdit.editingFinished.connect(
             lambda: self.update_linestyle(self.ewLSLineEdit.text()))
+
+        self.ewLWidthLineEdit = QDoubleSpinBox()
+        self.ewLWidthLineEdit.setRange(0.1, 20.0)
+        self.ewLWidthLineEdit.setDecimals(1)
+        self.ewLWidthLineEdit.setSingleStep(1.0)
+        self.ewLWidthLineEdit.setValue(self.spec.linewidth)
+        self.ewLWidthLineEdit.valueChanged.connect(
+            lambda: self.update_linewidth(self.ewLWidthLineEdit.value()))
 
         self.ewBkgdList = QListWidget()
         self.ewBkgdAddButton = QPushButton("Add Files")
@@ -378,7 +407,7 @@ class guiSpectrum():
         if len(self.spec.bkgd_files) > 0:
             self.spec.average_scans()
             self.parentWindow.update_plot()
-            self.added_spectrum = True
+            self.parentWindow.added_spectrum = True
 
         # update list check box
         self.slCheckBox.setText(self.spec.name)
@@ -442,16 +471,35 @@ class guiSpectrum():
             # update list to current samples
             self.refreshSampleList()
 
-    def update_color(self, color):
+    def update_color(self):
         """
         """
+        color = None
+        dialog = ColorPickerDialog()
+        reply = dialog.exec()
+        if reply == QDialog.Accepted:
+            color = dialog.getColor().name()
         self.spec.change_color(color)
-        self.isOK(hide=False)
+        self.ewColorLabel.setText(self.spec.color)
+        self.isOK(hide=False) 
+
+    def cycle_color(self):
+        """
+        """
+        self.spec.cycle_color()
+        self.ewColorLabel.setText(self.spec.color)
+        self.isOK(hide=False) 
 
     def update_linestyle(self, linestyle):
         """
         """
         self.spec.change_linestyle(linestyle)
+        self.isOK(hide=False)
+
+    def update_linewidth(self, linewidth):
+        """
+        """
+        self.spec.change_linewidth(linewidth)
         self.isOK(hide=False)
 
     def update_offset(self, offset):
@@ -484,9 +532,11 @@ class EditSpecWindow(QWidget):
         outerLayout = QVBoxLayout()
         pagelayout = QFormLayout()
         pagelayout.addRow("Spectrum Name:", self.guiSpec.ewNameLineEdit)
-        pagelayout.addRow("Spectrum Color:", self.guiSpec.ewColorLineEdit)
+        #pagelayout.addRow("Spectrum Color:", self.guiSpec.ewColorLineEdit)
+        pagelayout.addRow("Spectrum Color:", self.guiSpec.ewColorLayout)
         pagelayout.addRow("Spectrum Offset:", self.guiSpec.ewOffsetLineEdit)
         pagelayout.addRow("Spectrum Line Style:", self.guiSpec.ewLSLineEdit)
+        pagelayout.addRow("Spectrum Line Width:", self.guiSpec.ewLWidthLineEdit)
         bkgdListLayout = QVBoxLayout()
         bkgdButtonLayout = QHBoxLayout()
         bkgdButtonLayout.addWidget(self.guiSpec.ewBkgdAddButton)
@@ -521,8 +571,8 @@ class EditSpecWindow(QWidget):
         self.show()
 
 
-
 if __name__ == "__main__":
+    sys.excepthook = excepthook
     app = QApplication(sys.argv)
     window = MainWindow()
     window.show()

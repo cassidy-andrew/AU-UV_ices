@@ -106,10 +106,15 @@ class Spectrum:
                      baseline. None until subtract_baseline() has been run.
         bkgd : (pandas.DataFrame) The averaged background data.
         bkgd_files : (list) a list of background files that make up the scans.
+        cindex : (int) the index of the current position in the color cycle for
+                 color cycling.
         color : (str) the hex color used for plotting this spectrum.
         data : (pandas.DataFrame) the data belonging to this
                spectrum, averaged together from its corresponding
                scans.
+        debug : (boolean) whether or not to run the functions of this Specturm
+                in debug mode, where additional information is printed to the
+                console as attributes are changed.
         fit_components : (list) a list of dictionaries which make up the fit
                          components after `fit_peaks()` is called. Each 
                          dictionary has the following components: parameters,
@@ -126,6 +131,7 @@ class Spectrum:
                       parameters. `best_fit` are the absorbance values
                       calculated to fit the data.
         linestyle : (str) the linestyle for matplotlib plotting.
+        linewidth: (int) the line width for matplotlib plotting.
         name : (str) the name of this spectrum, which will be shown
                in plot legends.
         offset : (float) by how much the spectrum should be offset
@@ -151,7 +157,13 @@ class Spectrum:
         self.name = ""
         self.visible = True
         self.offset = 0.0
-        self.color = "#000000"
+        #self.color = "#000000"
+        # give default color
+        self.lenccycle = 10 # length of the color cycle
+        self.cmap = plt.cm.rainbow(np.linspace(0, 1, self.lenccycle))
+        self.cindex = np.random.randint(0, self.lenccycle)
+        self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
+        print(self.color)
         #self.scans = []
         self.bkgd_files = []
         self.sample_files = []
@@ -163,13 +175,13 @@ class Spectrum:
         self.fit_results = None
         self._comps = None
         self.linestyle = '-'
-        self.linethickness = 1
+        self.linewidth = 1
         
         # GUI parameters
-        self.index = None
-        self.label = None
-        self.checkmark = None
-        self.editbutton = None
+        #self.index = None
+        #self.label = None
+        #self.checkmark = None
+        #self.editbutton = None
         
     def _setup_scan(self, fname):
         """
@@ -267,7 +279,7 @@ class Spectrum:
         
     def change_linestyle(self, new_style):
         """
-        Changes the name of this spectrum
+        Changes the linestyle of this spectrum
         
         new_style : (str) the matplotlib linestyle for this spectrum
         """
@@ -276,6 +288,19 @@ class Spectrum:
         if self.debug:
             print(f'{self.name} linestyle changed from {old_style} '+
                   f'to {self.linestyle}')
+
+    def change_linewidth(self, new_width):
+        """
+        Changes the line width of this spectrum
+        
+        new_linewidth : (int) the matplotlib line width for this
+                            spectrum
+        """
+        old_width = self.linewidth
+        self.linewidth = new_width
+        if self.debug:
+            print(f'{self.name} linewidth changed from {old_width} '+
+                  f'to {self.linewidth}')
         
     def change_index(self, new_index):
         """
@@ -359,6 +384,19 @@ class Spectrum:
         """
         old_color = self.color
         self.color = new_color
+        if self.debug:
+            print(f'{self.name} changed color from {old_color} to {self.color}')
+
+    def cycle_color(self):
+        """
+        Changes the color based on a color cycle
+        """
+        old_color = self.color
+        if self.cindex == self.lenccycle-1:
+            self.cindex = 0
+        else:
+            self.cindex += 1
+        self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
         if self.debug:
             print(f'{self.name} changed color from {old_color} to {self.color}')
         
@@ -755,11 +793,13 @@ class Spectrum:
                                         'absorbance':this_ab})
         # handle the scattering
         if self._do_scattering:
-            self.fit_components.append({'parameters':S,
-                                        'wavelength':self.data['wavelength'],
-                                        'absorbance':scattering(self.data['wavelength'],
-                                                                S[0]['value'],
-                                                                S[1]['value'])})
+            self.fit_components.append({
+                'parameters':S,
+                'wavelength':self.data['wavelength'],
+                'absorbance':scattering(self.data['wavelength'],
+                                        S[0]['value'],
+                                        S[1]['value'])
+            })
         # handle the gaussians
         ps = [G[i*3:(i+1)*3] for i in range((len(G)+3-1)//3)]
         for params in ps:
@@ -771,6 +811,36 @@ class Spectrum:
             self.fit_components.append({'parameters':params,
                                         'wavelength':self.data['wavelength'],
                                         'absorbance':this_gaussian-self.offset})
+
+        def export(self, path=None):
+            """
+            Export the data and attributes
+            """
+            if path == None:
+                path = f"./{self.name}.txt"
+            with open(path, "w") as f:
+                f.write("#----------------------------------------------------")
+                f.write("# Object Attributes")
+                f.write("#----------------------------------------------------")
+                f.write(f"name={self.name}")
+                f.write(f"debug={self.debug}")
+                f.write(f"offset={self.offset}")
+                f.write(f"visible={self.visible}")
+                f.write(f"color={self.color}")
+                f.write(f"cindex={self.cindex}")
+                f.write(f"linestyle={self.linestyle}")
+                f.write(f"linewidth={self.linewidth}")
+                f.write(f"bkgd_files={self.bkgd_files}")
+                f.write(f"sample_files={self.sample_files}")
+                f.write(f"baseline_p={self.baseline_p}")
+                f.write(f"peaks={self.peaks}")
+                f.write(f"peak_errors={self.peak_erros}")
+                f.write(f"fit_results={self.fit_results}")
+                f.write("\n")
+                f.write("#----------------------------------------------------")
+                f.write("# Spectroscopic Data")
+                f.write("#----------------------------------------------------")
+            
         
 
 class StitchedSpectrum(Spectrum):
@@ -900,12 +970,14 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
         
     # plot the data
     ax1.plot(spec.data['wavelength'], spec.data['absorbance']+spec.offset,
-             color=spec.color, label=spec.name, linestyle=spec.linestyle)
+             color=spec.color, label=spec.name, linestyle=spec.linestyle, 
+             linewidth=spec.linethickness)
     # calculate a color for the fit
     fit_color = lighten_color(spec.color, amount=1.2)
     # plot the fit
     ax1.plot(spec.data['wavelength'], spec.data['best_fit']+spec.offset,
-             color=fit_color, linestyle='--', label=spec.name+" Best Fit")
+             color=fit_color, linestyle='--', label=spec.name+" Best Fit",
+             linewidth=spec.linethickness)
     # plot the peaks as vertical lines if desired
     if plot_peaks:
         for peak in spec.peaks:
@@ -1017,12 +1089,12 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
                 ax1.plot(spec.data['wavelength'], 
                          spec.data['raw_absorbance']+spec.offset,
                          color=spec.color, label=spec.name,
-                         linestyle=spec.linestyle)
+                         linestyle=spec.linestyle, linewidth=spec.linewidth)
             else:
                 ax1.plot(spec.data['wavelength'], 
                          spec.data['absorbance']+spec.offset,
                          color=spec.color, label=spec.name,
-                         linestyle=spec.linestyle)
+                         linestyle=spec.linestyle, linewidth=spec.linewidth)
         if plot_fit:
             ax1.plot(spec.data['wavelength'],
                      spec.data['best_fit']+spec.offset,
@@ -1071,7 +1143,6 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
             ax1.set_ylabel("Absorbance (a.u.)")
         if do_bottom_xlabel:
             ax1.set_xlabel("Wavelength (nm)")
-    #ax1.grid()
     if do_legend:
         ax1.legend(loc=legend_loc)
     
