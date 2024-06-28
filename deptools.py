@@ -256,7 +256,8 @@ class DepositionTimeScan:
         df.to_csv(path, index=False)
         
 def plot_timescan(dep, ax=None, figsize=(16/2.5,9/2.5), xlim=None,
-                  plot_fit=True, save_path=None, plot_smoothed=True):
+                  plot_fit=True, save_path=None, plot_smoothed=True,
+                  return_fig_and_ax=False):
     """
     Makes a plot of the timescan channel 2 data, as well as the fit if
     desired.
@@ -298,4 +299,8 @@ def plot_timescan(dep, ax=None, figsize=(16/2.5,9/2.5), xlim=None,
     if save_path:
         plt.savefig(save_path, bbox_inches='tight')
 
-    return ax
+    if return_fig_and_ax:
+        return fig, ax
+    else:
+        return ax
+

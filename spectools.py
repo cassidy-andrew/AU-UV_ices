@@ -163,7 +163,7 @@ class Spectrum:
         self.cmap = plt.cm.rainbow(np.linspace(0, 1, self.lenccycle))
         self.cindex = np.random.randint(0, self.lenccycle)
         self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
-        print(self.color)
+        #print(self.color)
         #self.scans = []
         self.bkgd_files = []
         self.sample_files = []
