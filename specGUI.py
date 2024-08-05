@@ -219,135 +219,9 @@ class guiSpectrum():
         self.spec.change_name(proposed_name)
         self.guiBkgds = []
         self.guiSamples = []
-        # -----------------------------------
-        # create widgets in the spectrum list
-        # -----------------------------------
-        
-        
-        # The details button
-        #self.slDetailsButton = QPushButton("details")
-        #self.slDetailsButton.clicked.connect(self.show_details)
-
-        # -----------------------------------
-        # create widgets in the edit window
-        # -----------------------------------
-        
-        # Name edit
-        self.ewNameLineEdit = QLineEdit()
-        self.ewNameLineEdit.setText(self.spec.name)
-        self.ewNameLineEdit.editingFinished.connect(
-            lambda: self.update_name(self.ewNameLineEdit.text()))
-
-        # color picker
-        self.ewColorLabel = QLabel(self.spec.color)
-        self.ewColorButton = QPushButton("choose color")
-        self.ewColorButton.clicked.connect(self.update_color)
-        self.ewColorLayout = QHBoxLayout()
-        self.ewColorLayout.addWidget(self.ewColorLabel)
-        self.ewColorLayout.addWidget(self.ewColorButton)
-
-        # offset
-        self.ewOffsetLineEdit = QDoubleSpinBox()
-        self.ewOffsetLineEdit.setRange(-20.0, 20.0)
-        self.ewOffsetLineEdit.setDecimals(4)
-        self.ewOffsetLineEdit.setSingleStep(0.001)
-        self.ewOffsetLineEdit.setValue(self.spec.offset)
-        self.ewOffsetLineEdit.valueChanged.connect(
-            lambda: self.update_offset(self.ewOffsetLineEdit.value()))
-
-        # linestyle
-        self.ewLSComboBox = QComboBox()
-        self.ewLSComboBox.addItem("solid")
-        self.ewLSComboBox.addItem("dotted")
-        self.ewLSComboBox.addItem("dashed")
-        self.ewLSComboBox.addItem("dashdot")
-        self.ewLSComboBox.currentTextChanged.connect(self.update_linestyle)
-
-        # linewidth
-        self.ewLWidthLineEdit = QDoubleSpinBox()
-        self.ewLWidthLineEdit.setRange(0.1, 20.0)
-        self.ewLWidthLineEdit.setDecimals(1)
-        self.ewLWidthLineEdit.setSingleStep(1.0)
-        self.ewLWidthLineEdit.setValue(self.spec.linewidth)
-        self.ewLWidthLineEdit.valueChanged.connect(
-            lambda: self.update_linewidth(self.ewLWidthLineEdit.value()))
-
-        # plot axis control
-        self.ewXaxisControl = QComboBox()
-        self.ewXaxisControl.addItem("Lambda")
-        self.ewXaxisControl.addItem("Keith/nA")
-        self.ewXaxisControl.addItem("Ch1/volts")
-        self.ewXaxisControl.addItem("Ch2/volts")
-        self.ewXaxisControl.addItem("Ch3/volts")
-        self.ewXaxisControl.addItem("Z_Motor")
-        self.ewXaxisControl.addItem("Beam_current")
-        self.ewXaxisControl.addItem("temperature")
-        self.ewXaxisControl.addItem("GC_Pres")
-        self.ewXaxisControl.addItem("Time")
-        self.ewXaxisControl.addItem("UBX_x")
-        self.ewXaxisControl.addItem("UBX_y")
-        self.ewXaxisControl.addItem("nor_signal")
-        self.ewXaxisControl.addItem("wavelength")
-        self.ewXaxisControl.addItem("av_signal")
-        #self.ewXaxisControl.setCurrentIndex(self.ewXaxisControl.items.keys().index('Lambda'))
-        
-        self.ewYaxisControl = QComboBox()
-        self.ewYaxisControl.addItem("Lambda")
-        self.ewYaxisControl.addItem("Keith/nA")
-        self.ewYaxisControl.addItem("Ch1/volts")
-        self.ewYaxisControl.addItem("Ch2/volts")
-        self.ewYaxisControl.addItem("Ch3/volts")
-        self.ewYaxisControl.addItem("Z_Motor")
-        self.ewYaxisControl.addItem("Beam_current")
-        self.ewYaxisControl.addItem("temperature")
-        self.ewYaxisControl.addItem("GC_Pres")
-        self.ewYaxisControl.addItem("Time")
-        self.ewYaxisControl.addItem("UBX_x")
-        self.ewYaxisControl.addItem("UBX_y")
-        self.ewYaxisControl.addItem("nor_signal")
-        self.ewYaxisControl.addItem("wavelength")
-        self.ewYaxisControl.addItem("av_signal")
-        self.ewYaxisControl.setCurrentIndex(1)
-
-        # background files
-        self.ewBkgdList = QListWidget()
-        self.ewBkgdAddButton = QPushButton("Add Files")
-        self.ewBkgdAddButton.clicked.connect(lambda: self.getFiles('bkgd'))
-        self.ewBkgdRmButton = QPushButton("Remove Selected Files")
-        self.ewBkgdRmButton.clicked.connect(
-            lambda: self.removeFiles(self.ewBkgdList.selectedItems(), 'bkgd'))
-
-        # sample files
-        self.ewSampleList = QListWidget()
-        self.ewSampleAddButton = QPushButton("Add Files")
-        self.ewSampleAddButton.clicked.connect(lambda: self.getFiles('sample'))
-        self.ewSampleRmButton = QPushButton("Remove Selected Files")
-        self.ewSampleRmButton.clicked.connect(
-            lambda: self.removeFiles(self.ewSampleList.selectedItems(),
-                                     'sample'))
-
-        # apply and ok buttons
-        self.ewApplyButton = QPushButton("Apply")
-        self.ewApplyButton.clicked.connect(lambda: self.isOK(hide=False, recalculate=True))
-        self.ewOKButton = QPushButton("OK")
-        self.ewOKButton.clicked.connect(lambda: self.isOK(hide=True, recalculate=True))
-        self.ewChangelogButton = QPushButton("View Changelog")
-
-        # create the changelog window and assign the button showing it
-        self.clogwindow = ChangelogWindow(self)
-        self.ewChangelogButton.clicked.connect(self.clogwindow.show_changelog_window)
 
         # create the edit window and assign the button to showing it
         self.editwindow = EditSpecWindow(self)
-        #self.slEditButton.clicked.connect(self.editwindow.show)
-        self.ewXaxisControl.currentTextChanged.connect(
-            lambda:self.editwindow.update_plot(xaxis=self.ewXaxisControl.currentText(),
-                                               yaxis=self.ewYaxisControl.currentText(),
-                                               keep_axlims=False))
-        self.ewYaxisControl.currentTextChanged.connect(
-            lambda:self.editwindow.update_plot(xaxis=self.ewXaxisControl.currentText(),
-                                               yaxis=self.ewYaxisControl.currentText(),
-                                               keep_axlims=False))
 
     def isOK(self, hide, recalculate=False, reupdate_plot=True):
         """
@@ -391,30 +265,31 @@ class guiSpectrum():
                 self.guiSamples.append(this_guiSample)
             # update list to current bkgds
             self.refreshSampleList()
-        self.editwindow.update_plot(xaxis=self.ewXaxisControl.currentText(),
-                                    yaxis=self.ewYaxisControl.currentText(),
-                                    keep_axlims=False)
+        self.editwindow.update_plot(
+            xaxis=self.editwindow.xaxisControl.currentText(),
+            yaxis=self.editwindow.yaxisControl.currentText(),
+            keep_axlims=False)
 
     def refreshBkgdList(self):
         """
         Refresh the displayed background list
         """
-        self.ewBkgdList.clear()
+        self.editwindow.bkgdList.clear()
         for guiBkgd in self.guiBkgds:
             guiBkgd.make_list_item()
-            self.ewBkgdList.addItem(guiBkgd.sclItem)
-            self.ewBkgdList.setItemWidget(guiBkgd.sclItem,
+            self.editwindow.bkgdList.addItem(guiBkgd.sclItem)
+            self.editwindow.bkgdList.setItemWidget(guiBkgd.sclItem,
                                           guiBkgd.sclItemWidget)
 
     def refreshSampleList(self):
         """
         Refresh the displayed sample list
         """
-        self.ewSampleList.clear()
+        self.editwindow.sampleList.clear()
         for guiSample in self.guiSamples:
             guiSample.make_list_item()
-            self.ewSampleList.addItem(guiSample.sclItem)
-            self.ewSampleList.setItemWidget(guiSample.sclItem,
+            self.editwindow.sampleList.addItem(guiSample.sclItem)
+            self.editwindow.sampleList.setItemWidget(guiSample.sclItem,
                                             guiSample.sclItemWidget)
 
     def removeFiles(self, items, dtype=None):
@@ -449,7 +324,7 @@ class guiSpectrum():
         if reply == QDialog.Accepted:
             color = dialog.getColor().name()
         self.spec.change_color(color)
-        self.ewColorLabel.setText(self.spec.color)
+        self.editwindow.colorLabel.setText(self.spec.color)
         self.isOK(hide=False) 
 
     def cycle_color(self):
@@ -457,7 +332,7 @@ class guiSpectrum():
         Change the color of the spectrum from a pre-set cycle
         """
         self.spec.cycle_color()
-        self.ewColorLabel.setText(self.spec.color)
+        self.editwindow.colorLabel.setText(self.spec.color)
         self.isOK(hide=False) 
 
     def update_linestyle(self, linestyle):
@@ -569,8 +444,8 @@ class guiScan():
         self.scan.flip_visibility()
         # update plot
         self.parentSpectrum.editwindow.update_plot(
-            xaxis=self.parentSpectrum.ewXaxisControl.currentText(),
-            yaxis=self.parentSpectrum.ewYaxisControl.currentText(),
+            xaxis=self.parentSpectrum.editwindow.xaxisControl.currentText(),
+            yaxis=self.parentSpectrum.editwindow.yaxisControl.currentText(),
             keep_axlims=True)
 
     def cycle_color(self):
@@ -579,8 +454,8 @@ class guiScan():
         """
         self.scan.cycle_color()
         self.parentSpectrum.editwindow.update_plot(
-            xaxis=self.parentSpectrum.ewXaxisControl.currentText(),
-            yaxis=self.parentSpectrum.ewYaxisControl.currentText(),
+            xaxis=self.parentSpectrum.editwindow.xaxisControl.currentText(),
+            yaxis=self.parentSpectrum.editwindow.yaxisControl.currentText(),
             keep_axlims=True)
         #self.isOK(hide=False) 
 
@@ -605,15 +480,15 @@ class ScrollLabel(QScrollArea):
 class ChangelogWindow(QWidget):
     def __init__(self, guispec):
         super().__init__()
-        self.guispec = guispec
-        self.setWindowTitle(f"Spectrum {self.guispec.spec.name} Changelog")
+        self.guiSpec = guispec
+        self.setWindowTitle(f"Spectrum {self.guiSpec.spec.name} Changelog")
 
         self.label = ScrollLabel(self)
-        self.label.setText(self.guispec.spec.changelog)
+        self.label.setText(self.guiSpec.spec.changelog)
         self.label.setGeometry(0, 0, 1000, 600)
 
     def show_changelog_window(self):
-        self.label.setText(self.guispec.spec.changelog)
+        self.label.setText(self.guiSpec.spec.changelog)
         self.show()
 
 
@@ -627,72 +502,200 @@ class EditSpecWindow(QWidget):
         self.setWindowTitle(f'Edit Spectrum: {self.guiSpec.spec.name}')
         self.eOuterLayout = QVBoxLayout()
         self.eTopLayout = QHBoxLayout()
-        self.eParamsLayout = QFormLayout()
-        self.ePlotLayout = QVBoxLayout()
-        self.eScansLayout = QFormLayout()
+        self.paramsLayout = QFormLayout()
+        self.plotLayout = QVBoxLayout()
+        self.scansLayout = QFormLayout()
+
+        # -----------------------------------
+        # create widgets in the edit window
+        # -----------------------------------
+        
+        # Name edit
+        self.nameLineEdit = QLineEdit()
+        self.nameLineEdit.setText(self.guiSpec.spec.name)
+        self.nameLineEdit.editingFinished.connect(
+            lambda: self.guiSpec.update_name(self.nameLineEdit.text()))
+
+        # color picker
+        self.colorLabel = QLabel(self.guiSpec.spec.color)
+        self.colorButton = QPushButton("choose color")
+        self.colorButton.clicked.connect(self.guiSpec.update_color)
+        self.colorLayout = QHBoxLayout()
+        self.colorLayout.addWidget(self.colorLabel)
+        self.colorLayout.addWidget(self.colorButton)
+
+        # offset
+        self.ewOffsetLineEdit = QDoubleSpinBox()
+        self.ewOffsetLineEdit.setRange(-20.0, 20.0)
+        self.ewOffsetLineEdit.setDecimals(4)
+        self.ewOffsetLineEdit.setSingleStep(0.001)
+        self.ewOffsetLineEdit.setValue(self.guiSpec.spec.offset)
+        self.ewOffsetLineEdit.valueChanged.connect(
+            lambda: self.guiSpec.update_offset(self.ewOffsetLineEdit.value()))
+
+        # linestyle
+        self.ewLSComboBox = QComboBox()
+        self.ewLSComboBox.addItem("solid")
+        self.ewLSComboBox.addItem("dotted")
+        self.ewLSComboBox.addItem("dashed")
+        self.ewLSComboBox.addItem("dashdot")
+        self.ewLSComboBox.currentTextChanged.connect(
+            self.guiSpec.update_linestyle)
+
+        # linewidth
+        self.linewidthLineEdit = QDoubleSpinBox()
+        self.linewidthLineEdit.setRange(0.1, 20.0)
+        self.linewidthLineEdit.setDecimals(1)
+        self.linewidthLineEdit.setSingleStep(1.0)
+        self.linewidthLineEdit.setValue(self.guiSpec.spec.linewidth)
+        self.linewidthLineEdit.valueChanged.connect(
+            lambda: self.guiSpec.update_linewidth(
+                self.linewidthLineEdit.value()))
+
+        # plot axis control
+        self.xaxisControl = QComboBox()
+        self.xaxisControl.addItem("Lambda")
+        self.xaxisControl.addItem("Keith/nA")
+        self.xaxisControl.addItem("Ch1/volts")
+        self.xaxisControl.addItem("Ch2/volts")
+        self.xaxisControl.addItem("Ch3/volts")
+        self.xaxisControl.addItem("Z_Motor")
+        self.xaxisControl.addItem("Beam_current")
+        self.xaxisControl.addItem("temperature")
+        self.xaxisControl.addItem("GC_Pres")
+        self.xaxisControl.addItem("Time")
+        self.xaxisControl.addItem("UBX_x")
+        self.xaxisControl.addItem("UBX_y")
+        self.xaxisControl.addItem("nor_signal")
+        self.xaxisControl.addItem("wavelength")
+        self.xaxisControl.addItem("av_signal")
+        
+        self.yaxisControl = QComboBox()
+        self.yaxisControl.addItem("Lambda")
+        self.yaxisControl.addItem("Keith/nA")
+        self.yaxisControl.addItem("Ch1/volts")
+        self.yaxisControl.addItem("Ch2/volts")
+        self.yaxisControl.addItem("Ch3/volts")
+        self.yaxisControl.addItem("Z_Motor")
+        self.yaxisControl.addItem("Beam_current")
+        self.yaxisControl.addItem("temperature")
+        self.yaxisControl.addItem("GC_Pres")
+        self.yaxisControl.addItem("Time")
+        self.yaxisControl.addItem("UBX_x")
+        self.yaxisControl.addItem("UBX_y")
+        self.yaxisControl.addItem("nor_signal")
+        self.yaxisControl.addItem("wavelength")
+        self.yaxisControl.addItem("av_signal")
+        self.yaxisControl.setCurrentIndex(1)
+
+        # background files
+        self.bkgdList = QListWidget()
+        self.bkgdAddButton = QPushButton("Add Files")
+        self.bkgdAddButton.clicked.connect(
+            lambda: self.guiSpec.getFiles('bkgd'))
+        self.bkgdRmButton = QPushButton("Remove Selected Files")
+        self.bkgdRmButton.clicked.connect(
+            lambda: self.guiSpec.removeFiles(self.bkgdList.selectedItems(),
+                                             'bkgd'))
+
+        # sample files
+        self.sampleList = QListWidget()
+        self.sampleAddButton = QPushButton("Add Files")
+        self.sampleAddButton.clicked.connect(
+            lambda: self.guiSpec.getFiles('sample'))
+        self.sampleRmButton = QPushButton("Remove Selected Files")
+        self.sampleRmButton.clicked.connect(
+            lambda: self.guiSpec.removeFiles(self.sampleList.selectedItems(),
+                                     'sample'))
+
+        # apply and ok buttons
+        self.applyButton = QPushButton("Apply")
+        self.applyButton.clicked.connect(
+            lambda: self.guiSpec.isOK(hide=False, recalculate=True))
+        self.okButton = QPushButton("OK")
+        self.okButton.clicked.connect(
+            lambda: self.guiSpec.isOK(hide=True, recalculate=True))
+        self.changelogButton = QPushButton("View Changelog")
+
+        # create the changelog window and assign the button showing it
+        self.clogwindow = ChangelogWindow(self.guiSpec)
+        self.changelogButton.clicked.connect(
+            self.clogwindow.show_changelog_window)
+
+        #self.slEditButton.clicked.connect(self.editwindow.show)
+        self.xaxisControl.currentTextChanged.connect(
+            lambda:self.update_plot(
+                xaxis=self.xaxisControl.currentText(),
+                yaxis=self.yaxisControl.currentText(),
+                keep_axlims=False))
+        self.yaxisControl.currentTextChanged.connect(
+            lambda:self.update_plot(
+                xaxis=self.xaxisControl.currentText(),
+                yaxis=self.yaxisControl.currentText(),
+                keep_axlims=False))
         
         # regular edit options
-        self.eParamsLayout.addRow("Spectrum Name:", self.guiSpec.ewNameLineEdit)
-        self.eParamsLayout.addRow("Spectrum Color:", self.guiSpec.ewColorLayout)
-        self.eParamsLayout.addRow("Spectrum Offset:", self.guiSpec.ewOffsetLineEdit)
-        self.eParamsLayout.addRow("Spectrum Line Style:", self.guiSpec.ewLSComboBox)
-        self.eParamsLayout.addRow("Spectrum Line Width:", self.guiSpec.ewLWidthLineEdit)
+        self.paramsLayout.addRow("Spectrum Name:", self.nameLineEdit)
+        self.paramsLayout.addRow("Spectrum Color:", self.colorLayout)
+        self.paramsLayout.addRow("Spectrum Offset:", self.ewOffsetLineEdit)
+        self.paramsLayout.addRow("Spectrum Line Style:", self.ewLSComboBox)
+        self.paramsLayout.addRow("Spectrum Line Width:", self.linewidthLineEdit)
 
         # plot axis controls
-        self.eScansLayout.addRow("Plot x-axis:", self.guiSpec.ewXaxisControl)
-        self.eScansLayout.addRow("Plot y-axis:", self.guiSpec.ewYaxisControl)
+        self.scansLayout.addRow("Plot x-axis:", self.xaxisControl)
+        self.scansLayout.addRow("Plot y-axis:", self.yaxisControl)
         
         # Background spectrum list
-        self.eBkgdListLayout = QVBoxLayout()
-        self.eBkgdButtonLayout = QHBoxLayout()
-        self.eBkgdButtonLayout.addWidget(self.guiSpec.ewBkgdAddButton)
-        self.eBkgdButtonLayout.addWidget(self.guiSpec.ewBkgdRmButton)
-        self.eBkgdListLayout.addLayout(self.eBkgdButtonLayout)
-        self.eBkgdListLayout.addWidget(self.guiSpec.ewBkgdList)
-        self.eScansLayout.addRow("Background Files:", self.eBkgdListLayout)
+        self.bkgdListLayout = QVBoxLayout()
+        self.bkgdButtonLayout = QHBoxLayout()
+        self.bkgdButtonLayout.addWidget(self.bkgdAddButton)
+        self.bkgdButtonLayout.addWidget(self.bkgdRmButton)
+        self.bkgdListLayout.addLayout(self.bkgdButtonLayout)
+        self.bkgdListLayout.addWidget(self.bkgdList)
+        self.scansLayout.addRow("Background Files:", self.bkgdListLayout)
         
         # Sample spectrum list
-        self.eSampleListLayout = QVBoxLayout()
-        self.eSampleButtonLayout = QHBoxLayout()
-        self.eSampleButtonLayout.addWidget(self.guiSpec.ewSampleAddButton)
-        self.eSampleButtonLayout.addWidget(self.guiSpec.ewSampleRmButton)
-        self.eSampleListLayout.addLayout(self.eSampleButtonLayout)
-        self.eSampleListLayout.addWidget(self.guiSpec.ewSampleList)
-        self.eScansLayout.addRow("Sample Files:", self.eSampleListLayout)
+        self.sampleListLayout = QVBoxLayout()
+        self.sampleButtonLayout = QHBoxLayout()
+        self.sampleButtonLayout.addWidget(self.sampleAddButton)
+        self.sampleButtonLayout.addWidget(self.sampleRmButton)
+        self.sampleListLayout.addLayout(self.sampleButtonLayout)
+        self.sampleListLayout.addWidget(self.sampleList)
+        self.scansLayout.addRow("Sample Files:", self.sampleListLayout)
 
         # buttons for OK and Apply
-        self.eApplyLayout = QHBoxLayout()
-        self.eApplyLayout.addWidget(self.guiSpec.ewOKButton)
-        self.eApplyLayout.addWidget(self.guiSpec.ewChangelogButton)
-        self.eApplyLayout.addWidget(self.guiSpec.ewApplyButton)
+        self.applyLayout = QHBoxLayout()
+        self.applyLayout.addWidget(self.okButton)
+        self.applyLayout.addWidget(self.changelogButton)
+        self.applyLayout.addWidget(self.applyButton)
 
         # title
-        self.ePlotLabel = QLabel("Spectrum Components Plot", self)
-        #self.ePlotLabel.setSizePolicy(QSizePolicy.Expanding,
+        self.plotLabel = QLabel("Spectrum Components Plot", self)
+        #self.plotLabel.setSizePolicy(QSizePolicy.Expanding,
         #                              QSizePolicy.Expanding)
-        self.ePlotLabel.setAlignment(Qt.AlignCenter)
-        self.ePlotLabel.setFont(QFont('Arial', 30))
+        self.plotLabel.setAlignment(Qt.AlignCenter)
+        self.plotLabel.setFont(QFont('Arial', 30))
 
         # the plot
-        self.esc = ScanMplCanvas(self)
-        self.esc.setMinimumWidth(800)
-        self.esc.setMinimumHeight(600)
-        self.etoolbar = NavigationToolbar(self.esc)
+        self.compCanvas = ScanMplCanvas(self)
+        self.compCanvas.setMinimumWidth(800)
+        self.compCanvas.setMinimumHeight(600)
+        self.etoolbar = NavigationToolbar(self.compCanvas)
         self.exlims = [100, 700]
         self.eylims = [-0.1, 1.1]
-        self.esc.axes.set_ylim(self.eylims)
-        self.esc.axes.set_xlim(self.exlims)
+        self.compCanvas.axes.set_ylim(self.eylims)
+        self.compCanvas.axes.set_xlim(self.exlims)
 
-        self.ePlotLayout.addWidget(self.ePlotLabel)
-        self.ePlotLayout.addWidget(self.etoolbar)
-        self.ePlotLayout.addWidget(self.esc)
+        self.plotLayout.addWidget(self.plotLabel)
+        self.plotLayout.addWidget(self.etoolbar)
+        self.plotLayout.addWidget(self.compCanvas)
 
         # set the layout to the window
-        self.eTopLayout.addLayout(self.eParamsLayout)
-        self.eTopLayout.addLayout(self.ePlotLayout)
-        self.eTopLayout.addLayout(self.eScansLayout)
-        self.eOuterLayout.addLayout(self.eTopLayout) #self.eParamsLayout)
-        self.eOuterLayout.addLayout(self.eApplyLayout)
+        self.eTopLayout.addLayout(self.paramsLayout)
+        self.eTopLayout.addLayout(self.plotLayout)
+        self.eTopLayout.addLayout(self.scansLayout)
+        self.eOuterLayout.addLayout(self.eTopLayout) #self.paramsLayout)
+        self.eOuterLayout.addLayout(self.applyLayout)
         self.holderwidget = QWidget()
         self.eOuterLayout.addWidget(self.holderwidget)
         self.setLayout(self.eOuterLayout)
@@ -703,23 +706,27 @@ class EditSpecWindow(QWidget):
         """
         all_guiScans = self.guiSpec.guiBkgds + self.guiSpec.guiSamples
         plot_data = []
-        
+
+        # get the data we want to plot
+        # visibility check is donw within the spectools.plot_scans function
+        # so we don't have to worry about it here
         for guiScan in all_guiScans:
             if guiScan.scan.data is not None:
                 plot_data.append(guiScan.scan)
 
+        # get our current axis limits to revert back if desired
         if keep_axlims:
-            self.xlims = self.esc.axes.get_xlim()
-            self.ylims = self.esc.axes.get_ylim()
+            self.xlims = self.compCanvas.axes.get_xlim()
+            self.ylims = self.compCanvas.axes.get_ylim()
 
-        self.esc.axes.cla()
-
-        spectools.plot_scans(plot_data, xaxis, yaxis, ax=self.esc.axes)
-
+        # redraw
+        self.compCanvas.axes.cla()
+        spectools.plot_scans(plot_data, xaxis, yaxis, ax=self.compCanvas.axes,
+                             fig=self.compCanvas.fig)
         if keep_axlims:
-            self.esc.axes.set_ylim(self.ylims)
-            self.esc.axes.set_xlim(self.xlims)
-        self.esc.draw()
+            self.compCanvas.axes.set_ylim(self.ylims)
+            self.compCanvas.axes.set_xlim(self.xlims)
+        self.compCanvas.draw()
 
     def show_edit_window(self):
         """

@@ -1123,6 +1123,8 @@ def plot_scans(scans, xaxis, yaxis, xlim=None, ylim=None, figsize=(8, 4.5),
     if save_path:
         plt.savefig(save_path, bbox_inches='tight')
 
+    fig.tight_layout()
+
     if return_fig_and_ax:
         return fig, ax
     else:
