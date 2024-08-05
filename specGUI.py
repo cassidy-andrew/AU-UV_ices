@@ -36,7 +36,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import (
     QPalette,
-    QColor
+    QColor,
+    QFont
 )
 
 from PyQt5.QtCore import *
@@ -51,6 +52,13 @@ class SpecMplCanvas(FigureCanvasQTAgg):
         self.fig, self.axes = spectools.plot_absorbance([],
             return_fig_and_ax=True)
         super(SpecMplCanvas, self).__init__(self.fig)
+
+
+class ScanMplCanvas(FigureCanvasQTAgg):
+    def __init__(self, parent=None):
+        self.fig, self.axes = spectools.plot_scans([], "Lambda", "Keith/nA",
+            return_fig_and_ax=True)
+        super(ScanMplCanvas, self).__init__(self.fig)
 
 
 class spectrumDisplayTab():
@@ -143,18 +151,6 @@ class spectrumDisplayTab():
         guiSpec = guiSpectrum(item_index, self, self.debug)
         self.all_spectra.append(guiSpec)
         self.refresh_spectrum_list()
-        """# configure the layout of the new item in the list
-        item_layout = QHBoxLayout()
-        item_layout.addWidget(guiSpec.slCheckBox)
-        item_layout.addWidget(guiSpec.slColorCycleButton)
-        item_layout.addWidget(guiSpec.slEditButton)
-        #item_layout.addWidget(guiSpec.slDetailsButton)
-        # put the layout into the item widget of the guiSpectrum
-        guiSpec.slItemWidget.setLayout(item_layout)
-        guiSpec.slItem.setSizeHint(guiSpec.slItemWidget.sizeHint())
-        # put the item widget of the guiSpectrum into the list
-        self.speclist.addItem(guiSpec.slItem)
-        self.speclist.setItemWidget(guiSpec.slItem, guiSpec.slItemWidget)"""
 
     def refresh_spectrum_list(self):
         self.speclist.clear()
@@ -168,7 +164,6 @@ class spectrumDisplayTab():
         Re draw the spectrum plot
         """
         plot_data = []
-        print(self.all_spectra)
         for guiSpec in self.all_spectra:
             if guiSpec.spec.data is not None:
                 plot_data.append(guiSpec.spec)
@@ -220,7 +215,7 @@ class guiSpectrum():
         for spec in self.parentWindow.all_spectra:
             if spec.spec.name == proposed_name:
                 proposed_name += " again"
-        self.uniqueID = "Spectrum ID: "+ datetime.now().strftime("%d%m%Y%H%M%S")
+        self.uniqueID = "Spectrum ID: "+ datetime.now().strftime("%d%H%M%S%f")
         self.spec.change_name(proposed_name)
         self.guiBkgds = []
         self.guiSamples = []
@@ -267,10 +262,6 @@ class guiSpectrum():
         self.ewLSComboBox.addItem("dashed")
         self.ewLSComboBox.addItem("dashdot")
         self.ewLSComboBox.currentTextChanged.connect(self.update_linestyle)
-        """self.ewLSLineEdit = QLineEdit()
-        self.ewLSLineEdit.setText(self.spec.linestyle)
-        self.ewLSLineEdit.editingFinished.connect(
-            lambda: self.update_linestyle(self.ewLSLineEdit.text()))"""
 
         # linewidth
         self.ewLWidthLineEdit = QDoubleSpinBox()
@@ -280,6 +271,43 @@ class guiSpectrum():
         self.ewLWidthLineEdit.setValue(self.spec.linewidth)
         self.ewLWidthLineEdit.valueChanged.connect(
             lambda: self.update_linewidth(self.ewLWidthLineEdit.value()))
+
+        # plot axis control
+        self.ewXaxisControl = QComboBox()
+        self.ewXaxisControl.addItem("Lambda")
+        self.ewXaxisControl.addItem("Keith/nA")
+        self.ewXaxisControl.addItem("Ch1/volts")
+        self.ewXaxisControl.addItem("Ch2/volts")
+        self.ewXaxisControl.addItem("Ch3/volts")
+        self.ewXaxisControl.addItem("Z_Motor")
+        self.ewXaxisControl.addItem("Beam_current")
+        self.ewXaxisControl.addItem("temperature")
+        self.ewXaxisControl.addItem("GC_Pres")
+        self.ewXaxisControl.addItem("Time")
+        self.ewXaxisControl.addItem("UBX_x")
+        self.ewXaxisControl.addItem("UBX_y")
+        self.ewXaxisControl.addItem("nor_signal")
+        self.ewXaxisControl.addItem("wavelength")
+        self.ewXaxisControl.addItem("av_signal")
+        #self.ewXaxisControl.setCurrentIndex(self.ewXaxisControl.items.keys().index('Lambda'))
+        
+        self.ewYaxisControl = QComboBox()
+        self.ewYaxisControl.addItem("Lambda")
+        self.ewYaxisControl.addItem("Keith/nA")
+        self.ewYaxisControl.addItem("Ch1/volts")
+        self.ewYaxisControl.addItem("Ch2/volts")
+        self.ewYaxisControl.addItem("Ch3/volts")
+        self.ewYaxisControl.addItem("Z_Motor")
+        self.ewYaxisControl.addItem("Beam_current")
+        self.ewYaxisControl.addItem("temperature")
+        self.ewYaxisControl.addItem("GC_Pres")
+        self.ewYaxisControl.addItem("Time")
+        self.ewYaxisControl.addItem("UBX_x")
+        self.ewYaxisControl.addItem("UBX_y")
+        self.ewYaxisControl.addItem("nor_signal")
+        self.ewYaxisControl.addItem("wavelength")
+        self.ewYaxisControl.addItem("av_signal")
+        self.ewYaxisControl.setCurrentIndex(1)
 
         # background files
         self.ewBkgdList = QListWidget()
@@ -311,9 +339,17 @@ class guiSpectrum():
 
         # create the edit window and assign the button to showing it
         self.editwindow = EditSpecWindow(self)
-        #self.slEditButton.clicked.connect(self.editwindow.show)        
+        #self.slEditButton.clicked.connect(self.editwindow.show)
+        self.ewXaxisControl.currentTextChanged.connect(
+            lambda:self.editwindow.update_plot(xaxis=self.ewXaxisControl.currentText(),
+                                               yaxis=self.ewYaxisControl.currentText(),
+                                               keep_axlims=False))
+        self.ewYaxisControl.currentTextChanged.connect(
+            lambda:self.editwindow.update_plot(xaxis=self.ewXaxisControl.currentText(),
+                                               yaxis=self.ewYaxisControl.currentText(),
+                                               keep_axlims=False))
 
-    def isOK(self, hide, recalculate=False):
+    def isOK(self, hide, recalculate=False, reupdate_plot=True):
         """
         The user is done editing, now perform actions to finish up behind the
         scenes.
@@ -322,7 +358,8 @@ class guiSpectrum():
         if len(self.spec.bkgds) > 0:
             if recalculate:
                 self.spec.average_scans()
-            self.parentWindow.update_plot()
+            if reupdate_plot:
+                self.parentWindow.update_plot()
             self.parentWindow.added_spectrum = True
 
         # update list check box
@@ -354,6 +391,9 @@ class guiSpectrum():
                 self.guiSamples.append(this_guiSample)
             # update list to current bkgds
             self.refreshSampleList()
+        self.editwindow.update_plot(xaxis=self.ewXaxisControl.currentText(),
+                                    yaxis=self.ewYaxisControl.currentText(),
+                                    keep_axlims=False)
 
     def refreshBkgdList(self):
         """
@@ -528,13 +568,20 @@ class guiScan():
         # change the spectools Spectrum
         self.scan.flip_visibility()
         # update plot
-        #self.parentSpectrum.editwindow.update_plot()
+        self.parentSpectrum.editwindow.update_plot(
+            xaxis=self.parentSpectrum.ewXaxisControl.currentText(),
+            yaxis=self.parentSpectrum.ewYaxisControl.currentText(),
+            keep_axlims=True)
 
     def cycle_color(self):
         """
         Change the color of the spectrum from a pre-set cycle
         """
         self.scan.cycle_color()
+        self.parentSpectrum.editwindow.update_plot(
+            xaxis=self.parentSpectrum.ewXaxisControl.currentText(),
+            yaxis=self.parentSpectrum.ewYaxisControl.currentText(),
+            keep_axlims=True)
         #self.isOK(hide=False) 
 
 class ScrollLabel(QScrollArea):
@@ -590,6 +637,10 @@ class EditSpecWindow(QWidget):
         self.eParamsLayout.addRow("Spectrum Offset:", self.guiSpec.ewOffsetLineEdit)
         self.eParamsLayout.addRow("Spectrum Line Style:", self.guiSpec.ewLSComboBox)
         self.eParamsLayout.addRow("Spectrum Line Width:", self.guiSpec.ewLWidthLineEdit)
+
+        # plot axis controls
+        self.eScansLayout.addRow("Plot x-axis:", self.guiSpec.ewXaxisControl)
+        self.eScansLayout.addRow("Plot y-axis:", self.guiSpec.ewYaxisControl)
         
         # Background spectrum list
         self.eBkgdListLayout = QVBoxLayout()
@@ -615,16 +666,24 @@ class EditSpecWindow(QWidget):
         self.eApplyLayout.addWidget(self.guiSpec.ewChangelogButton)
         self.eApplyLayout.addWidget(self.guiSpec.ewApplyButton)
 
+        # title
+        self.ePlotLabel = QLabel("Spectrum Components Plot", self)
+        #self.ePlotLabel.setSizePolicy(QSizePolicy.Expanding,
+        #                              QSizePolicy.Expanding)
+        self.ePlotLabel.setAlignment(Qt.AlignCenter)
+        self.ePlotLabel.setFont(QFont('Arial', 30))
+
         # the plot
-        self.esc = SpecMplCanvas(self)
+        self.esc = ScanMplCanvas(self)
         self.esc.setMinimumWidth(800)
         self.esc.setMinimumHeight(600)
         self.etoolbar = NavigationToolbar(self.esc)
         self.exlims = [100, 700]
         self.eylims = [-0.1, 1.1]
-        self.esc.axes[0].set_ylim(self.eylims)
-        self.esc.axes[0].set_xlim(self.exlims)
+        self.esc.axes.set_ylim(self.eylims)
+        self.esc.axes.set_xlim(self.exlims)
 
+        self.ePlotLayout.addWidget(self.ePlotLabel)
         self.ePlotLayout.addWidget(self.etoolbar)
         self.ePlotLayout.addWidget(self.esc)
 
@@ -637,6 +696,30 @@ class EditSpecWindow(QWidget):
         self.holderwidget = QWidget()
         self.eOuterLayout.addWidget(self.holderwidget)
         self.setLayout(self.eOuterLayout)
+
+    def update_plot(self, xaxis, yaxis, keep_axlims=True):
+        """
+        Re-draw the scan plot
+        """
+        all_guiScans = self.guiSpec.guiBkgds + self.guiSpec.guiSamples
+        plot_data = []
+        
+        for guiScan in all_guiScans:
+            if guiScan.scan.data is not None:
+                plot_data.append(guiScan.scan)
+
+        if keep_axlims:
+            self.xlims = self.esc.axes.get_xlim()
+            self.ylims = self.esc.axes.get_ylim()
+
+        self.esc.axes.cla()
+
+        spectools.plot_scans(plot_data, xaxis, yaxis, ax=self.esc.axes)
+
+        if keep_axlims:
+            self.esc.axes.set_ylim(self.ylims)
+            self.esc.axes.set_xlim(self.xlims)
+        self.esc.draw()
 
     def show_edit_window(self):
         """

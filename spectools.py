@@ -102,17 +102,18 @@ class SingleScan:
     """
     def __init__(self, fname, df=None, debug=False):
         self.debug = debug
-        self.name = fname
+        self.name = fname[fname.rfind("/")+1:]
         self.fname = fname
         if df is None:
-            self.df = self._setup_scan(fname)
+            self.data = self._setup_scan(fname)
         else:
-            self.df = df
+            self.data = df
         # initialize color
         self.lenccycle = 10
         self.cmap = plt.cm.rainbow(np.linspace(0, 1, self.lenccycle))
         self.cindex = np.random.randint(0, self.lenccycle)
         self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
+        self.visible = True
 
     def _setup_scan(self, fname):
         """
@@ -145,8 +146,14 @@ class SingleScan:
         else:
             self.cindex += 1
         self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
-        if self.debug:
-            print(f'{self.name} changed color from {old_color} to {self.color}')
+
+    def flip_visibility(self):
+        """
+        Changes the visibility of the scan when plotting. If 
+        the self.visible parameter is false, the plot_absorbance
+        function will skip plotting this spectrum.
+        """
+        self.visible = not self.visible
 
         
 class Spectrum:
@@ -221,7 +228,7 @@ class Spectrum:
         self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
         # plotting parameters (alliteration yay)
         self.linestyle = 'solid'
-        self.linewidth = 1
+        self.linewidth = 2
         self.visible = True
         self.offset = 0.0
         # data parameters
@@ -266,7 +273,7 @@ class Spectrum:
         # handle the backgrounds
         bkgd_dfs = []
         for bkgd in self.bkgds:
-            bkgd_dfs.append(bkgd.df)
+            bkgd_dfs.append(bkgd.data)
         # average the backgrounds together
         self.bkgd = pd.concat(bkgd_dfs).reset_index().groupby("index").mean(numeric_only=True)
 
@@ -285,7 +292,7 @@ class Spectrum:
             self.samples.append(SingleScan("none", df=sample_df))
         else:
             for sample in self.samples:
-                sample_dfs.append(sample.df)
+                sample_dfs.append(sample.data)
         # average the samples together
         self.sample = pd.concat(sample_dfs).reset_index().groupby("index").mean(numeric_only=True)
 
@@ -916,6 +923,8 @@ class StitchedSpectrum(Spectrum):
         self.offset = 0
         self.visible = True
         self.linestyle = spec1.linestyle
+        self.changelog = ""
+        self.debug = spec1.debug
         
     def _stich(self, spec1, spec2):
         """
@@ -1082,6 +1091,42 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
 
     return ax1, axr
 
+
+def plot_scans(scans, xaxis, yaxis, xlim=None, ylim=None, figsize=(8, 4.5),
+               save_path=None, return_fig_and_ax=False, do_legend=True,
+               do_titles=True, ax=None, fig=None):
+    """
+    Takes any number of scans and plots whatever is relevant.
+    """
+    plt.style.use('./au-uv.mplstyle')
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+        fig.set_size_inches(figsize[0], figsize[1])
+        
+    if xlim:
+        ax.set_xlim(xlim)
+    if ylim:
+        ax.set_ylim(ylim)
+
+    for scan in scans:
+        if scan.visible:
+            ax.plot(scan.data[xaxis], scan.data[yaxis], color=scan.color,
+                    label=scan.name, linewidth=2)
+
+    if do_titles:
+        ax.set_ylabel(yaxis)
+        ax.set_xlabel(xaxis)
+    if do_legend:
+        ax.legend()
+    
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight')
+
+    if return_fig_and_ax:
+        return fig, ax
+    else:
+        return None
 
 def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
                     plot_peaks=False, plot_fit_components=False, figsize=(7,5),
