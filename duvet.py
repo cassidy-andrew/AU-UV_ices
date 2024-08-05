@@ -26,6 +26,7 @@ the DUVET main display.
 import sys
 import specGUI
 import depGUI
+import traceback
 
 from PyQt5 import QtGui
 
@@ -76,7 +77,7 @@ class MainWindow(QWidget):
         self.specTab.setLayout(self.SDT.outerLayout)
 
         # ---------------------------------------------------------------------
-        # Setup deposition fitting tab
+        # Setup timescan tab
         # ---------------------------------------------------------------------
 
         self.DFT = depGUI.depositionFittingTab()
@@ -87,7 +88,7 @@ class MainWindow(QWidget):
 
         # add the individual tabs to the tabs widget
         self.tabs.addTab(self.specTab, "Spectrum Display")
-        self.tabs.addTab(self.depTab, "Deposition Fitting")
+        self.tabs.addTab(self.depTab, "Timescan")
 
         # Set the window's main layout
         self.layout.addWidget(self.tabs)

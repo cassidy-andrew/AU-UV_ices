@@ -1,5 +1,6 @@
 import sys
 import spectools
+from datetime import datetime
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -29,7 +30,9 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QDoubleSpinBox,
     QTabWidget,
-    QDialog
+    QDialog,
+    QScrollArea,
+    QComboBox
 )
 from PyQt5.QtGui import (
     QPalette,
@@ -61,6 +64,7 @@ class spectrumDisplayTab():
         self.plotLayout = QVBoxLayout()
         # Create a layout for the spectrum list
         self.listLayout = QVBoxLayout()
+        self.listButtonsLayout = QHBoxLayout()
         # Create a layout for the buttons
         self.bottomLayout = QHBoxLayout()
 
@@ -69,6 +73,8 @@ class spectrumDisplayTab():
         # ---------------------------
 
         self.sc = SpecMplCanvas(self)
+        self.sc.setMinimumWidth(800)
+        self.sc.setMinimumHeight(600)
         self.toolbar = NavigationToolbar(self.sc)
         self.xlims = [100, 700]
         self.ylims = [-0.1, 1.1]
@@ -84,14 +90,23 @@ class spectrumDisplayTab():
         # ---------------------------
         # a place to store our spectra
         self.all_spectra = []
-        # button for adding spectra
-        self.add_spec_btn = QPushButton("Add Spectrum")
-        self.listLayout.addWidget(self.add_spec_btn)
-        self.add_spec_btn.pressed.connect(lambda: self.add_spectrum(self.debug))
 
         # display list of spectra
         self.speclist = QListWidget()
-        self.speclist.setMinimumWidth(300)
+        self.speclist.setMinimumWidth(400)
+
+    
+        # button for adding spectra
+        self.add_spec_btn = QPushButton("Add Spectrum")
+        self.listButtonsLayout.addWidget(self.add_spec_btn)
+        self.add_spec_btn.pressed.connect(self.add_spectrum)
+
+        self.remove_spec_btn = QPushButton("Remove Highlighted Spectra")
+        self.remove_spec_btn.pressed.connect(lambda: self.remove_spectra(
+            self.speclist.selectedItems()))
+        self.listButtonsLayout.addWidget(self.remove_spec_btn)
+
+        self.listLayout.addLayout(self.listButtonsLayout)
         self.listLayout.addWidget(self.speclist)
         
         # ---------------------------
@@ -100,10 +115,6 @@ class spectrumDisplayTab():
         self.eb_clear = QPushButton("Clear Plot")
         self.eb_clear.pressed.connect(self.clear_plot)
         self.bottomLayout.addWidget(self.eb_clear)
-
-        self.eb_remove = QPushButton("Remove Selected Data")
-        self.eb_remove.pressed.connect(self.remove_data)
-        self.bottomLayout.addWidget(self.eb_remove)
         
         self.eb_sdata = QPushButton("Export Selected Data")
         self.eb_sdata.pressed.connect(self.export_sdata)
@@ -122,34 +133,45 @@ class spectrumDisplayTab():
         self.topLayout.addLayout(self.plotLayout)
         self.topLayout.addLayout(self.listLayout)
 
-    def add_spectrum(self, debug):
+    def add_spectrum(self):
         """
         Makes a new guiSpectrum object and adds it to the list of spectra to be
         displayed in the spectrum list.
         """
         # make the guiSpectrum object
         item_index = len(self.all_spectra)
-        guiSpec = guiSpectrum(item_index, self, debug)
+        guiSpec = guiSpectrum(item_index, self, self.debug)
         self.all_spectra.append(guiSpec)
-        # configure the layout of the new item in the list
+        self.refresh_spectrum_list()
+        """# configure the layout of the new item in the list
         item_layout = QHBoxLayout()
         item_layout.addWidget(guiSpec.slCheckBox)
         item_layout.addWidget(guiSpec.slColorCycleButton)
-        item_layout.addWidget(guiSpec.slEditbutton)
+        item_layout.addWidget(guiSpec.slEditButton)
+        #item_layout.addWidget(guiSpec.slDetailsButton)
         # put the layout into the item widget of the guiSpectrum
         guiSpec.slItemWidget.setLayout(item_layout)
         guiSpec.slItem.setSizeHint(guiSpec.slItemWidget.sizeHint())
         # put the item widget of the guiSpectrum into the list
         self.speclist.addItem(guiSpec.slItem)
-        self.speclist.setItemWidget(guiSpec.slItem, guiSpec.slItemWidget)
+        self.speclist.setItemWidget(guiSpec.slItem, guiSpec.slItemWidget)"""
+
+    def refresh_spectrum_list(self):
+        self.speclist.clear()
+        for guiSpec in self.all_spectra:
+            guiSpec.make_list_item()
+            self.speclist.addItem(guiSpec.slItem)
+            self.speclist.setItemWidget(guiSpec.slItem, guiSpec.slItemWidget)
 
     def update_plot(self):
         """
         Re draw the spectrum plot
         """
         plot_data = []
+        print(self.all_spectra)
         for guiSpec in self.all_spectra:
-            plot_data.append(guiSpec.spec)
+            if guiSpec.spec.data is not None:
+                plot_data.append(guiSpec.spec)
 
         self.xlims = self.sc.axes[0].get_xlim()
         self.ylims = self.sc.axes[0].get_ylim()
@@ -172,8 +194,13 @@ class spectrumDisplayTab():
     def export_adata(self):
         print('export data is to be implemented')
 
-    def remove_data(self):
-        print('remove data is to be implemented')
+    def remove_spectra(self, items):
+        for item in items:
+            for guiSpec in self.all_spectra:
+                if guiSpec.uniqueID == item.toolTip():
+                    self.all_spectra.remove(guiSpec)
+        self.refresh_spectrum_list()
+        self.update_plot()
     
 
 class guiSpectrum():
@@ -186,23 +213,25 @@ class guiSpectrum():
     """
     def __init__(self, index, parentWindow, debug):
         self.parentWindow = parentWindow
+        self.debug = debug
         # create the spectools Spectrum, give it a basic name
         self.spec = spectools.Spectrum(debug=debug)
-        self.spec.change_name(f"Spectrum {index}")
+        proposed_name = f"Spectrum {index}"
+        for spec in self.parentWindow.all_spectra:
+            if spec.spec.name == proposed_name:
+                proposed_name += " again"
+        self.uniqueID = "Spectrum ID: "+ datetime.now().strftime("%d%m%Y%H%M%S")
+        self.spec.change_name(proposed_name)
+        self.guiBkgds = []
+        self.guiSamples = []
         # -----------------------------------
         # create widgets in the spectrum list
         # -----------------------------------
-        self.slItem = QListWidgetItem()
-        self.slItemWidget = QWidget()
-        # the name and visibility check box
-        self.slCheckBox = QCheckBox(self.spec.name)
-        self.slCheckBox.setChecked(True)
-        self.slCheckBox.stateChanged.connect(self.flip_visibility)
-        # the color cycler
-        self.slColorCycleButton = QPushButton("cycle color")
-        self.slColorCycleButton.clicked.connect(self.cycle_color)
-        # The edit window and button
-        self.slEditbutton = QPushButton("edit")
+        
+        
+        # The details button
+        #self.slDetailsButton = QPushButton("details")
+        #self.slDetailsButton.clicked.connect(self.show_details)
 
         # -----------------------------------
         # create widgets in the edit window
@@ -232,10 +261,16 @@ class guiSpectrum():
             lambda: self.update_offset(self.ewOffsetLineEdit.value()))
 
         # linestyle
-        self.ewLSLineEdit = QLineEdit()
+        self.ewLSComboBox = QComboBox()
+        self.ewLSComboBox.addItem("solid")
+        self.ewLSComboBox.addItem("dotted")
+        self.ewLSComboBox.addItem("dashed")
+        self.ewLSComboBox.addItem("dashdot")
+        self.ewLSComboBox.currentTextChanged.connect(self.update_linestyle)
+        """self.ewLSLineEdit = QLineEdit()
         self.ewLSLineEdit.setText(self.spec.linestyle)
         self.ewLSLineEdit.editingFinished.connect(
-            lambda: self.update_linestyle(self.ewLSLineEdit.text()))
+            lambda: self.update_linestyle(self.ewLSLineEdit.text()))"""
 
         # linewidth
         self.ewLWidthLineEdit = QDoubleSpinBox()
@@ -265,30 +300,35 @@ class guiSpectrum():
 
         # apply and ok buttons
         self.ewApplyButton = QPushButton("Apply")
-        self.ewApplyButton.clicked.connect(lambda: self.isOK(hide=False))
+        self.ewApplyButton.clicked.connect(lambda: self.isOK(hide=False, recalculate=True))
         self.ewOKButton = QPushButton("OK")
-        self.ewOKButton.clicked.connect(lambda: self.isOK(hide=True))
+        self.ewOKButton.clicked.connect(lambda: self.isOK(hide=True, recalculate=True))
+        self.ewChangelogButton = QPushButton("View Changelog")
+
+        # create the changelog window and assign the button showing it
+        self.clogwindow = ChangelogWindow(self)
+        self.ewChangelogButton.clicked.connect(self.clogwindow.show_changelog_window)
 
         # create the edit window and assign the button to showing it
         self.editwindow = EditSpecWindow(self)
-        self.slEditbutton.clicked.connect(self.editwindow.show)
-        
+        #self.slEditButton.clicked.connect(self.editwindow.show)        
 
-    def isOK(self, hide):
+    def isOK(self, hide, recalculate=False):
         """
         The user is done editing, now perform actions to finish up behind the
         scenes.
         """
         # update plot
-        if len(self.spec.bkgd_files) > 0:
-            self.spec.average_scans()
+        if len(self.spec.bkgds) > 0:
+            if recalculate:
+                self.spec.average_scans()
             self.parentWindow.update_plot()
             self.parentWindow.added_spectrum = True
 
         # update list check box
         self.slCheckBox.setText(self.spec.name)
         # update edit window name
-        self.editwindow.setWindowTitle(f'Edit {self.spec.name}')
+        self.editwindow.setWindowTitle(f'Edit Spectrum: {self.spec.name}')
         # hide the edit window
         if hide == True:
             self.editwindow.hide()
@@ -298,19 +338,20 @@ class guiSpectrum():
         Choose a file, a background or a sample
         """
         fnames = QFileDialog.getOpenFileNames()
-        print(fnames)
         if len(fnames[0]) > 0 and dtype == 'bkgd':
             # add each file
             for fname in fnames[0]:
-               self.spec.add_bkgd(fname)
-
+                this_bkgd = self.spec.add_bkgd(fname)
+                this_guiBkgd = guiScan(self, this_bkgd, self.debug)
+                self.guiBkgds.append(this_guiBkgd)
             # update list to current bkgds
             self.refreshBkgdList()
         elif len(fnames[0]) > 0 and dtype == 'sample':
             # add each file
             for fname in fnames[0]:
-               self.spec.add_sample(fname)
-
+                this_sample = self.spec.add_sample(fname)
+                this_guiSample = guiScan(self, this_sample, self.debug)
+                self.guiSamples.append(this_guiSample)
             # update list to current bkgds
             self.refreshSampleList()
 
@@ -319,22 +360,22 @@ class guiSpectrum():
         Refresh the displayed background list
         """
         self.ewBkgdList.clear()
-        for fname in self.spec.bkgd_files:
-            this_item = QListWidgetItem()
-            this_item.setToolTip(fname)
-            this_item.setText(fname[fname.rfind("/")+1:])
-            self.ewBkgdList.addItem(this_item)
+        for guiBkgd in self.guiBkgds:
+            guiBkgd.make_list_item()
+            self.ewBkgdList.addItem(guiBkgd.sclItem)
+            self.ewBkgdList.setItemWidget(guiBkgd.sclItem,
+                                          guiBkgd.sclItemWidget)
 
     def refreshSampleList(self):
         """
         Refresh the displayed sample list
         """
         self.ewSampleList.clear()
-        for fname in self.spec.sample_files:
-            this_item = QListWidgetItem()
-            this_item.setToolTip(fname)
-            this_item.setText(fname[fname.rfind("/")+1:])
-            self.ewSampleList.addItem(this_item)
+        for guiSample in self.guiSamples:
+            guiSample.make_list_item()
+            self.ewSampleList.addItem(guiSample.sclItem)
+            self.ewSampleList.setItemWidget(guiSample.sclItem,
+                                            guiSample.sclItemWidget)
 
     def removeFiles(self, items, dtype=None):
         """
@@ -343,12 +384,17 @@ class guiSpectrum():
         if dtype == 'bkgd':
             for item in items:
                 self.spec.remove_bkgd(item.toolTip())
-
+                for guiBkgd in self.guiBkgds:
+                    if guiBkgd.scan.fname == item.toolTip():
+                        self.guiBkgds.remove(guiBkgd)
             # update list to current bkgds
             self.refreshBkgdList()
         elif dtype == 'sample':
             for item in items:
                 self.spec.remove_sample(item.toolTip())
+                for guiSample in self.guiSamples:
+                    if guiSample.scan.fname == item.toolTip():
+                        self.guiSamples.remove(guiSample)
 
             # update list to current samples
             self.refreshSampleList()
@@ -401,6 +447,10 @@ class guiSpectrum():
         """
         # update Spectrum
         self.spec.change_name(name)
+        # update list check box
+        self.slCheckBox.setText(self.spec.name)
+        # update edit window name
+        self.editwindow.setWindowTitle(f'Edit Spectrum: {self.spec.name}')
         self.isOK(hide=False)
 
     def flip_visibility(self):
@@ -410,7 +460,114 @@ class guiSpectrum():
         # change the spectools Spectrum
         self.spec.flip_visibility()
         # update plot
-        self.parentWindow.update_plot()
+        self.isOK(hide=False) #self.parentWindow.update_plot()
+
+    def make_list_item(self):
+        """
+        """
+        # the name and visibility check box
+        self.slCheckBox = QCheckBox(self.spec.name)
+        self.slCheckBox.setChecked(True)
+        self.slCheckBox.stateChanged.connect(self.flip_visibility)
+        # the color cycler
+        self.slColorCycleButton = QPushButton("cycle color")
+        self.slColorCycleButton.clicked.connect(self.cycle_color)
+        # The edit window and button
+        self.slEditButton = QPushButton("edit")
+        self.slEditButton.clicked.connect(self.editwindow.show) 
+        self.item_layout = QHBoxLayout()
+        self.item_layout.addWidget(self.slCheckBox)
+        self.item_layout.addWidget(self.slColorCycleButton)
+        self.item_layout.addWidget(self.slEditButton)
+        self.slItem = QListWidgetItem()
+        self.slItemWidget = QWidget()
+        #self.sclItem = QListWidgetItem()
+        #self.sclItemWidget = QWidget()
+        self.slItem.setToolTip(self.uniqueID)
+        self.slItemWidget.setLayout(self.item_layout)
+        self.slItem.setSizeHint(self.slItemWidget.sizeHint())
+
+class guiScan():
+    """
+    A class to hold the functions and attributes needed to display a SingleScan
+    object.
+    """
+    def __init__(self, parentSpectrum, scan, debug):
+        self.parentSpectrum = parentSpectrum
+        self.scan = scan
+        self.listName = scan.fname[scan.fname.rfind("/")+1:]
+
+        #self.sclItem = QListWidgetItem()
+        #self.sclItemWidget = QWidget()
+        
+        # the name and visibility check box
+        self.sclCheckBox = QCheckBox(self.listName)
+        self.sclCheckBox.setChecked(True)
+        self.sclCheckBox.stateChanged.connect(self.flip_visibility)
+
+        # the color cycler
+        self.sclColorCycleButton = QPushButton("cycle color")
+        self.sclColorCycleButton.clicked.connect(self.cycle_color)
+
+    def make_list_item(self):
+        """
+        """
+        self.item_layout = QHBoxLayout()
+        self.item_layout.addWidget(self.sclCheckBox)
+        self.item_layout.addWidget(self.sclColorCycleButton)
+        self.sclItem = QListWidgetItem()
+        self.sclItemWidget = QWidget()
+        self.sclItem.setToolTip(self.scan.fname)
+        self.sclItemWidget.setLayout(self.item_layout)
+        self.sclItem.setSizeHint(self.sclItemWidget.sizeHint())
+
+    def flip_visibility(self):
+        """
+        Change the visibility of the spectrum in plotting
+        """
+        # change the spectools Spectrum
+        self.scan.flip_visibility()
+        # update plot
+        #self.parentSpectrum.editwindow.update_plot()
+
+    def cycle_color(self):
+        """
+        Change the color of the spectrum from a pre-set cycle
+        """
+        self.scan.cycle_color()
+        #self.isOK(hide=False) 
+
+class ScrollLabel(QScrollArea):
+    def __init__(self, *args, **kwargs):
+        QScrollArea.__init__(self, *args, **kwargs)
+        self.setWidgetResizable(True)
+        content = QWidget(self)
+        self.setWidget(content)
+        self.layout = QVBoxLayout(content)
+        self.label = QLabel(content)
+        self.label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.label.setWordWrap(True)
+        #self.label.setMinimumWidth(600)
+        #self.label.setMinimumHeight(400)
+        self.layout.addWidget(self.label)
+
+    def setText(self, text):
+        self.label.setText(text)
+
+
+class ChangelogWindow(QWidget):
+    def __init__(self, guispec):
+        super().__init__()
+        self.guispec = guispec
+        self.setWindowTitle(f"Spectrum {self.guispec.spec.name} Changelog")
+
+        self.label = ScrollLabel(self)
+        self.label.setText(self.guispec.spec.changelog)
+        self.label.setGeometry(0, 0, 1000, 600)
+
+    def show_changelog_window(self):
+        self.label.setText(self.guispec.spec.changelog)
+        self.show()
 
 
 class EditSpecWindow(QWidget):
@@ -420,46 +577,66 @@ class EditSpecWindow(QWidget):
         self.guiSpec = guiSpec
         
         # configure window basics
-        self.setWindowTitle(f'Edit Spectrum {self.guiSpec.spec.name}')
-        outerLayout = QVBoxLayout()
-        pagelayout = QFormLayout()
+        self.setWindowTitle(f'Edit Spectrum: {self.guiSpec.spec.name}')
+        self.eOuterLayout = QVBoxLayout()
+        self.eTopLayout = QHBoxLayout()
+        self.eParamsLayout = QFormLayout()
+        self.ePlotLayout = QVBoxLayout()
+        self.eScansLayout = QFormLayout()
         
         # regular edit options
-        pagelayout.addRow("Spectrum Name:", self.guiSpec.ewNameLineEdit)
-        pagelayout.addRow("Spectrum Color:", self.guiSpec.ewColorLayout)
-        pagelayout.addRow("Spectrum Offset:", self.guiSpec.ewOffsetLineEdit)
-        pagelayout.addRow("Spectrum Line Style:", self.guiSpec.ewLSLineEdit)
-        pagelayout.addRow("Spectrum Line Width:", self.guiSpec.ewLWidthLineEdit)
+        self.eParamsLayout.addRow("Spectrum Name:", self.guiSpec.ewNameLineEdit)
+        self.eParamsLayout.addRow("Spectrum Color:", self.guiSpec.ewColorLayout)
+        self.eParamsLayout.addRow("Spectrum Offset:", self.guiSpec.ewOffsetLineEdit)
+        self.eParamsLayout.addRow("Spectrum Line Style:", self.guiSpec.ewLSComboBox)
+        self.eParamsLayout.addRow("Spectrum Line Width:", self.guiSpec.ewLWidthLineEdit)
         
         # Background spectrum list
-        bkgdListLayout = QVBoxLayout()
-        bkgdButtonLayout = QHBoxLayout()
-        bkgdButtonLayout.addWidget(self.guiSpec.ewBkgdAddButton)
-        bkgdButtonLayout.addWidget(self.guiSpec.ewBkgdRmButton)
-        bkgdListLayout.addLayout(bkgdButtonLayout)
-        bkgdListLayout.addWidget(self.guiSpec.ewBkgdList)
-        pagelayout.addRow("Background Files:", bkgdListLayout)
+        self.eBkgdListLayout = QVBoxLayout()
+        self.eBkgdButtonLayout = QHBoxLayout()
+        self.eBkgdButtonLayout.addWidget(self.guiSpec.ewBkgdAddButton)
+        self.eBkgdButtonLayout.addWidget(self.guiSpec.ewBkgdRmButton)
+        self.eBkgdListLayout.addLayout(self.eBkgdButtonLayout)
+        self.eBkgdListLayout.addWidget(self.guiSpec.ewBkgdList)
+        self.eScansLayout.addRow("Background Files:", self.eBkgdListLayout)
         
         # Sample spectrum list
-        sampleListLayout = QVBoxLayout()
-        sampleButtonLayout = QHBoxLayout()
-        sampleButtonLayout.addWidget(self.guiSpec.ewSampleAddButton)
-        sampleButtonLayout.addWidget(self.guiSpec.ewSampleRmButton)
-        sampleListLayout.addLayout(sampleButtonLayout)
-        sampleListLayout.addWidget(self.guiSpec.ewSampleList)
-        pagelayout.addRow("Sample Files:", sampleListLayout)
+        self.eSampleListLayout = QVBoxLayout()
+        self.eSampleButtonLayout = QHBoxLayout()
+        self.eSampleButtonLayout.addWidget(self.guiSpec.ewSampleAddButton)
+        self.eSampleButtonLayout.addWidget(self.guiSpec.ewSampleRmButton)
+        self.eSampleListLayout.addLayout(self.eSampleButtonLayout)
+        self.eSampleListLayout.addWidget(self.guiSpec.ewSampleList)
+        self.eScansLayout.addRow("Sample Files:", self.eSampleListLayout)
 
         # buttons for OK and Apply
-        applyLayout = QHBoxLayout()
-        applyLayout.addWidget(self.guiSpec.ewOKButton)
-        applyLayout.addWidget(self.guiSpec.ewApplyButton)
+        self.eApplyLayout = QHBoxLayout()
+        self.eApplyLayout.addWidget(self.guiSpec.ewOKButton)
+        self.eApplyLayout.addWidget(self.guiSpec.ewChangelogButton)
+        self.eApplyLayout.addWidget(self.guiSpec.ewApplyButton)
+
+        # the plot
+        self.esc = SpecMplCanvas(self)
+        self.esc.setMinimumWidth(800)
+        self.esc.setMinimumHeight(600)
+        self.etoolbar = NavigationToolbar(self.esc)
+        self.exlims = [100, 700]
+        self.eylims = [-0.1, 1.1]
+        self.esc.axes[0].set_ylim(self.eylims)
+        self.esc.axes[0].set_xlim(self.exlims)
+
+        self.ePlotLayout.addWidget(self.etoolbar)
+        self.ePlotLayout.addWidget(self.esc)
 
         # set the layout to the window
-        outerLayout.addLayout(pagelayout)
-        outerLayout.addLayout(applyLayout)
+        self.eTopLayout.addLayout(self.eParamsLayout)
+        self.eTopLayout.addLayout(self.ePlotLayout)
+        self.eTopLayout.addLayout(self.eScansLayout)
+        self.eOuterLayout.addLayout(self.eTopLayout) #self.eParamsLayout)
+        self.eOuterLayout.addLayout(self.eApplyLayout)
         self.holderwidget = QWidget()
-        outerLayout.addWidget(self.holderwidget)
-        self.setLayout(outerLayout)
+        self.eOuterLayout.addWidget(self.holderwidget)
+        self.setLayout(self.eOuterLayout)
 
     def show_edit_window(self):
         """

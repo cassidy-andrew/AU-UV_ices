@@ -1,6 +1,7 @@
 import numpy as np
 from numpy import inf
 import pandas as pd
+from datetime import datetime
 
 import warnings
 from sys import float_info
@@ -95,6 +96,58 @@ def lighten_color(color, amount=0.5):
     c = colorsys.rgb_to_hls(*mc.to_rgb(c))
     return colorsys.hls_to_rgb(c[0], 1 - amount * (1 - c[1]), c[2])
 
+class SingleScan:
+    """
+    Represents a single scan.
+    """
+    def __init__(self, fname, df=None, debug=False):
+        self.debug = debug
+        self.name = fname
+        self.fname = fname
+        if df is None:
+            self.df = self._setup_scan(fname)
+        else:
+            self.df = df
+        # initialize color
+        self.lenccycle = 10
+        self.cmap = plt.cm.rainbow(np.linspace(0, 1, self.lenccycle))
+        self.cindex = np.random.randint(0, self.lenccycle)
+        self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
+
+    def _setup_scan(self, fname):
+        """
+        Reads the raw data files and formats them correctly, adding necessary
+        columns and unit conversions.
+        
+        fname : (str) the path to the file for this scan
+        """
+        column_names = ['Lambda', 'Keith/nA', 'Ch1/volts',
+                        'Ch2/volts', 'Ch3/volts', 'Z_Motor','Beam_current',
+                        'temperature', 'GC_Pres', 'Time', 'UBX_x', 'UBX_y']
+    
+        # read the data
+        scan = pd.read_csv(fname, header=[15], delimiter=r"\s+")
+        scan.columns = column_names
+        # do some calculations
+        scan['nor_signal'] = ((180/scan['Beam_current']) * scan['Keith/nA'])
+        scan['wavelength'] = scan['Lambda']
+        scan['av_signal'] = (scan['nor_signal'] + scan['nor_signal'])/2
+        
+        return(scan)
+
+    def cycle_color(self):
+        """
+        Changes the color based on a color cycle
+        """
+        old_color = self.color
+        if self.cindex == self.lenccycle-1:
+            self.cindex = 0
+        else:
+            self.cindex += 1
+        self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
+        if self.debug:
+            print(f'{self.name} changed color from {old_color} to {self.color}')
+
         
 class Spectrum:
     """
@@ -106,6 +159,10 @@ class Spectrum:
                      baseline. None until subtract_baseline() has been run.
         bkgd : (pandas.DataFrame) The averaged background data.
         bkgd_files : (list) a list of background files that make up the scans.
+        changelog : (str) a string which contains the history of the data. Every
+                    time a function is called, a line is written to describe
+                    what happened and at what time. This is then added to the
+                    header of a file during export.
         cindex : (int) the index of the current position in the color cycle for
                  color cycling.
         color : (str) the hex color used for plotting this spectrum.
@@ -154,55 +211,46 @@ class Spectrum:
         """
         # declare parameters
         self.debug=debug
+        self.changelog = ""
         self.name = ""
-        self.visible = True
-        self.offset = 0.0
-        #self.color = "#000000"
+        self.oldname = ""
         # give default color
         self.lenccycle = 10 # length of the color cycle
         self.cmap = plt.cm.rainbow(np.linspace(0, 1, self.lenccycle))
         self.cindex = np.random.randint(0, self.lenccycle)
         self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
-        #print(self.color)
-        #self.scans = []
-        self.bkgd_files = []
-        self.sample_files = []
+        # plotting parameters (alliteration yay)
+        self.linestyle = 'solid'
+        self.linewidth = 1
+        self.visible = True
+        self.offset = 0.0
+        # data parameters
+        #self.bkgd_files = []
+        self.bkgds = []
+        #self.sample_files = []
+        self.samples = []
         self.data = None
+        # fitting parameters
         self.baseline_p = None
         self.peaks = None
         self.peak_errors = None
         self.fit_components = []
         self.fit_results = None
         self._comps = None
-        self.linestyle = '-'
-        self.linewidth = 1
-        
-        # GUI parameters
-        #self.index = None
-        #self.label = None
-        #self.checkmark = None
-        #self.editbutton = None
-        
-    def _setup_scan(self, fname):
+
+        self._log(f"initialized to default parameters and debug={self.debug}")
+
+    def _log(self, message):
         """
-        Reads the raw data files and formats them correctly, adding necessary
-        columns and unit conversions.
-        
-        fname : (str) the path to the file for this scan
+        Log a change to the object. Write the message to the changelog, and
+        print the message to the terminal if debug is true.
         """
-        column_names = ['Lambda', 'Keith/nA', 'Ch1/volts',
-                        'Ch2/volts', 'Ch3/volts', 'Z_Motor','Beam_current',
-                        'temperature', 'GC_Pres', 'Time', 'UBX_x', 'UBX_y']
-    
-        # read the data
-        scan = pd.read_csv(fname, header=[15], delimiter=r"\s+")
-        scan.columns = column_names
-        # do some calculations
-        scan['nor_signal'] = ((180/scan['Beam_current']) * scan['Keith/nA'])
-        scan['wavelength'] = scan['Lambda']
-        scan['av_signal'] = (scan['nor_signal'] + scan['nor_signal'])/2
-        
-        return(scan)
+        now = datetime.now()
+        current_time = now.strftime("%d-%m-%Y %H:%M:%S")
+        self.changelog += current_time + " " + message + "\n"
+        if self.debug:
+            # printed message specifies which spectrum we are dealing with
+            print(current_time + " Spectrum " + self.oldname + " " + message)
         
     def average_scans(self):
         """
@@ -213,30 +261,35 @@ class Spectrum:
         stored in the .data parameter.
         """
         scans = []
+        self._log("began scan averaging")
         
         # handle the backgrounds
         bkgd_dfs = []
-        for i in range(0, len(self.bkgd_files)):
-            this_bkgd_file = self.bkgd_files[i]
-            bkgd_dfs.append(self._setup_scan(this_bkgd_file))
+        for bkgd in self.bkgds:
+            bkgd_dfs.append(bkgd.df)
         # average the backgrounds together
         self.bkgd = pd.concat(bkgd_dfs).reset_index().groupby("index").mean(numeric_only=True)
+
+        self._log("finished background processing")
         
         # handle the samples
         sample_dfs = []
-        if len(self.sample_files) == 0:
+        #self.samples = []
+        if len(self.samples) == 0:
             # if there is no sample just set everything to zeros.
-            sample = self.bkgd.copy(deep=True)
-            sample['wavelength'] = sample['Lambda']
-            sample['nor_signal'] = np.zeros(len(sample['wavelength']))
-            sample['av_signal'] = np.zeros(len(sample['wavelength']))
-            sample_dfs.append(sample)
+            sample_df = self.bkgd.copy(deep=True)
+            sample_df['wavelength'] = sample_df['Lambda']
+            sample_df['nor_signal'] = np.zeros(len(sample_df['wavelength']))
+            sample_df['av_signal'] = np.zeros(len(sample_df['wavelength']))
+            sample_dfs.append(sample_df)
+            self.samples.append(SingleScan("none", df=sample_df))
         else:
-            for i in range(0, len(self.sample_files)):
-                this_sample_file = self.sample_files[i]
-                sample_dfs.append(self._setup_scan(this_sample_file))
+            for sample in self.samples:
+                sample_dfs.append(sample.df)
         # average the samples together
         self.sample = pd.concat(sample_dfs).reset_index().groupby("index").mean(numeric_only=True)
+
+        self._log("finished sample processing")
 
         # a place for the calibrated data to go
         df = pd.DataFrame()
@@ -249,22 +302,13 @@ class Spectrum:
             # otherwise, calculate absorbance,
             # making sure not to take a log of -ve numbers
             ratio1 = self.bkgd['av_signal'] / self.sample['av_signal']
-            #self._ratio1 = ratio1
-            #print(ratio1)
-            #logged = []
-            #for i in range(0, len(ratio1)):
-            #    if ratio1[i] <= 0:
-            #        ratio1[i] = 0.000000000001
-
-                #logged.append(np.log10(ratio1[i]))
-
             df['absorbance'] = np.log10(ratio1, where=(np.array(ratio1)>0))
-            #print(logged)
-            #df['absorbance'] = logged
 
         df['wavelength'] = self.bkgd['wavelength']
 
         self.data = df
+        self._log(f"Finished absorbance calculation using {len(bkgd_dfs)} " +
+                  f"bkgds and {len(sample_dfs)} samples")
 
     def change_name(self, new_name):
         """
@@ -272,10 +316,9 @@ class Spectrum:
         
         new_name : (str) the new name for this spectrum
         """
-        old_name = self.name
+        self.oldname = self.name
         self.name = new_name
-        if self.debug:
-            print(f'{old_name} name changed to {self.name}')
+        self._log(f'changed name to {self.name}')
         
     def change_linestyle(self, new_style):
         """
@@ -285,9 +328,7 @@ class Spectrum:
         """
         old_style = self.linestyle
         self.linestyle = new_style
-        if self.debug:
-            print(f'{self.name} linestyle changed from {old_style} '+
-                  f'to {self.linestyle}')
+        self._log(f'linestyle changed from {old_style} '+f'to {self.linestyle}')
 
     def change_linewidth(self, new_width):
         """
@@ -298,9 +339,7 @@ class Spectrum:
         """
         old_width = self.linewidth
         self.linewidth = new_width
-        if self.debug:
-            print(f'{self.name} linewidth changed from {old_width} '+
-                  f'to {self.linewidth}')
+        self._log(f'linewidth changed from {old_width} '+f'to {self.linewidth}')
         
     def change_index(self, new_index):
         """
@@ -316,9 +355,10 @@ class Spectrum:
         
         bkgd_fname : (str) the path to the background file being added
         """
-        self.bkgd_files.append(bkgd_fname)
-        if self.debug:
-            print(f'{self.name} added bkgd file {bkgd_fname}')
+        this_bkgd = SingleScan(bkgd_fname)
+        self.bkgds.append(this_bkgd)
+        self._log(f'added bkgd file {bkgd_fname}')
+        return this_bkgd
         
     def add_sample(self, sample_fname):
         """
@@ -326,9 +366,10 @@ class Spectrum:
         
         sample_fname : (str) the path to the background file being added
         """
-        self.sample_files.append(sample_fname)
-        if self.debug:
-            print(f'{self.name} added sample file {sample_fname}')
+        this_sample = SingleScan(sample_fname)
+        self.samples.append(this_sample)
+        self._log(f'added sample file {sample_fname}')
+        return this_sample
         
     def remove_bkgd(self, bkgd_fname):
         """
@@ -336,9 +377,11 @@ class Spectrum:
         
         bkgd_name : (str) the name of the background being removed
         """
-        self.bkgd_files.remove(bkgd_fname)
-        if self.debug:
-            print(f'{self.name} removed bkgd file {bkgd_fname}')
+        for bkgd in self.bkgds:
+            if bkgd.fname == bkgd_fname:
+                self.bkgds.remove(bkgd)
+        #self.bkgd_files.remove(bkgd_fname)
+        self._log(f'removed bkgd file {bkgd_fname}')
         
     def remove_sample(self, sample_fname):
         """
@@ -346,9 +389,11 @@ class Spectrum:
         
         sample_name : (str) the name of the spectrum being removed
         """
-        self.sample_files.remove(sample_fname)
-        if self.debug:
-            print(f'{self.name} removed sample file {sample_fname}')
+        for sample in self.samples:
+            if sample.fname == sample_fname:
+                self.samples.remove(sample)
+        #self.sample_files.remove(sample_fname)
+        self._log(f'removed sample file {sample_fname}')
         
     def flip_visibility(self):
         """
@@ -357,8 +402,7 @@ class Spectrum:
         function will skip plotting this spectrum.
         """
         self.visible = not self.visible
-        if self.debug:
-            print(f'{self.name} visibility flipped from {not self.visible} '+
+        self._log(f'flipped visibility from {not self.visible} '+
                   f'to {self.visible}')
             
     def change_offset(self, new_offset):
@@ -373,10 +417,7 @@ class Spectrum:
         """
         old_offset = self.offset
         self.offset = new_offset
-        if self.debug:
-            print(f'{self.name} changed offset from {old_offset} to '+
-                  f'{self.offset}')
-        
+        self._log(f'changed offset from {old_offset} to '+ f'{self.offset}')        
         
     def change_color(self, new_color):
         """
@@ -384,8 +425,7 @@ class Spectrum:
         """
         old_color = self.color
         self.color = new_color
-        if self.debug:
-            print(f'{self.name} changed color from {old_color} to {self.color}')
+        self._log(f'changed color from {old_color} to {self.color}')
 
     def cycle_color(self):
         """
@@ -397,24 +437,50 @@ class Spectrum:
         else:
             self.cindex += 1
         self.color = mpl.colors.rgb2hex(self.cmap[self.cindex])
-        if self.debug:
-            print(f'{self.name} changed color from {old_color} to {self.color}')
-        
-        
-    def export(self, path, fname=None):
+        self._log(f'changed color from {old_color} to {self.color}')        
+
+    def export(self, path=None):
         """
-        Saves the spectrum object. Its data will be saved to a csv file.
-        
-        path : (str) the path where you want to save the file. This should be a
-               directory.
+        Export the data and attributes
         """
-        if fname is None:
-            fname = self.name.replace(" ", "") + ".csv"
+        if path == None:
+            path = f"./{self.name}.txt"
+            
+        self._log(f"began data export to file {path}")
+
+        bkgd_files = []
+        for bkgd in self.bkgds:
+            bkgd_files.append(bkgd.fname)
+        sample_files = []
+        for sample in self.samples:
+            sample_files.append(sample.fname)
         
-        with open(path+fname, 'w') as f:
-            f.write("Name=" + self.name + "\n")
-            f.write("Color=" + self.color + "\n")
-            f.write("Offset=" + str(self.offset) + "\n")
+        with open(path, "w") as f:
+            f.write("#----------------------------------------------------")
+            f.write("# Object Attributes")
+            f.write("#----------------------------------------------------")
+            f.write(f"name={self.name}")
+            f.write(f"debug={self.debug}")
+            f.write(f"offset={self.offset}")
+            f.write(f"visible={self.visible}")
+            f.write(f"color={self.color}")
+            f.write(f"cindex={self.cindex}")
+            f.write(f"linestyle={self.linestyle}")
+            f.write(f"linewidth={self.linewidth}")
+            f.write(f"bkgd_files={bkgd_files}")
+            f.write(f"sample_files={sample_files}")
+            f.write(f"baseline_p={self.baseline_p}")
+            f.write(f"peaks={self.peaks}")
+            f.write(f"peak_errors={self.peak_erros}")
+            f.write(f"fit_results={self.fit_results}")
+            f.write("\n")
+            f.write("#----------------------------------------------------")
+            f.write("# Changelog")
+            f.write("#----------------------------------------------------")
+            f.write(self.changelog)
+            f.write("#----------------------------------------------------")
+            f.write("# Spectroscopic Data")
+            f.write("#----------------------------------------------------")
             self.data.to_csv(f, index=False, header=True)
         
     def subtract_baseline(self, lim=None, how="min"):
@@ -466,6 +532,9 @@ class Spectrum:
             self.data['raw_absorbance'] = self.data['absorbance'].copy()
         # remap the shifted data to 'absorbance'
         self.data['absorbance'] = shifted
+
+        self._log(f"baseline subtracted using the '{how}' method " +
+                  f"and a shift of {shift}")
         
     def _make_guesses(self, ng_upper, wavelengths):
         """
@@ -585,6 +654,9 @@ class Spectrum:
         verbose : (boolean) If true, prints debug and progress statements.
                   Defaults to False.
         """
+        self._log("initializing fitting procuedure with fit limits " +
+                  f"{fit_lim[0]} and {fit_lim[1]} nm")
+        
         # we only want to fit where the data are good
         fit_df = self.data[(self.data['wavelength'] > fit_lim[0]) &
                            (self.data['wavelength'] < fit_lim[1])].copy()
@@ -596,10 +668,12 @@ class Spectrum:
             # we need to modify our indices in some places by 2
             #ib = 2
             self._n_scatt = 2
+            self._log("scattering baseline will be included in the fit")
         else:
             self._do_scattering = False
             #ib = 0
             self._n_scatt = 0
+            self._log("scattering baseline will not be included in the fit")
             
         # check if we are using custom components and if so, format them
         #errors = []
@@ -652,10 +726,13 @@ class Spectrum:
                           f"ng_lower={ng_lower}"+", " f"ng_upper={ng_upper}"+
                           " you should write "+f"ng=({ng_lower}, {ng_upper})", 
                          DeprecationWarning, stacklevel=2)
-            
+        self._log(f"fitting will use between {ng_lower} and " +
+                  f"{ng_upper} gaussian functions")
+        
         # manage the guesses for the fitted parameters
         if guesses is None:
             #print("you must provide guesses!! >:O")
+            self._log("no guesses provided. Automatic guessing instead.")
             guesses = self._make_guesses(ng_upper, fit_df['wavelength'])
             
         # unwrap guesses and bounds
@@ -672,19 +749,12 @@ class Spectrum:
         fit_results = []
         # do the fitting with different numbers of gaussians
         for n in range(ng_lower, ng_upper):
-            if verbose:
-                print("Attempting fit with {0} gaussians".format(n))
-            #try:
-            """if bounds is None:
-                these_bounds = (0, 340)
-            else:
-                these_bounds = (bounds[0][:ib+n*3], bounds[1][:ib+n*3])
-                #print(these_bounds)"""
+            self._log(f"Attempting fit with {n} gaussians")
+            
             these_p0 = p0[:self._n_comps+self._n_scatt+n*3]
             these_bounds = (bounds[0][:self._n_comps+self._n_scatt+n*3],
                             bounds[1][:self._n_comps+self._n_scatt+n*3])
-            #print(these_p0)
-            #print(these_bounds)
+
             p, pcov = curve_fit(f=self._fit_function,
                                 xdata=fit_df['wavelength'], 
                             ydata=fit_df["absorbance"]+self.offset,
@@ -694,10 +764,7 @@ class Spectrum:
                        /best_fit).sum() / (len(p))
             fit_results.append({'redchi2':redchi2, 'n':n,
                                 'best_fit':best_fit, 'p':p, 'pcov':pcov})
-            if verbose:
-                print("success! reduced chi2: {0:.2f}".format(redchi2))
-            #except:
-            #    continue
+            self._log("fit success with reduced chi2: {0:.2f}".format(redchi2))
                 
         # evaluate which of our fits was best, based on the reduced chi square
         best_chi2 = 1000
@@ -710,14 +777,11 @@ class Spectrum:
                 best_i = i
                 best_chi2 = fit_results[i]['redchi2']
 
-        if verbose:
-            print("The best fit was achieved with " +
+        self._log("The best fit was achieved with " +
                   "{0}".format(fit_results[best_i]['n']) +
                   " gaussians and a reduced chi2 of"+
                   " {0:.2f}".format(fit_results[best_i]['redchi2']))
-        
-        # manage the fit parameters in a different function to avoid bloat
-        #print(fit_results[best_i])
+
         self._manage_fit_parameters(fit_results[best_i], fit_df)
             
     def _manage_fit_parameters(self, fit_result, fit_df):
@@ -810,37 +874,7 @@ class Spectrum:
             this_gaussian = gaussian(self.data['wavelength'], *values)
             self.fit_components.append({'parameters':params,
                                         'wavelength':self.data['wavelength'],
-                                        'absorbance':this_gaussian-self.offset})
-
-        def export(self, path=None):
-            """
-            Export the data and attributes
-            """
-            if path == None:
-                path = f"./{self.name}.txt"
-            with open(path, "w") as f:
-                f.write("#----------------------------------------------------")
-                f.write("# Object Attributes")
-                f.write("#----------------------------------------------------")
-                f.write(f"name={self.name}")
-                f.write(f"debug={self.debug}")
-                f.write(f"offset={self.offset}")
-                f.write(f"visible={self.visible}")
-                f.write(f"color={self.color}")
-                f.write(f"cindex={self.cindex}")
-                f.write(f"linestyle={self.linestyle}")
-                f.write(f"linewidth={self.linewidth}")
-                f.write(f"bkgd_files={self.bkgd_files}")
-                f.write(f"sample_files={self.sample_files}")
-                f.write(f"baseline_p={self.baseline_p}")
-                f.write(f"peaks={self.peaks}")
-                f.write(f"peak_errors={self.peak_erros}")
-                f.write(f"fit_results={self.fit_results}")
-                f.write("\n")
-                f.write("#----------------------------------------------------")
-                f.write("# Spectroscopic Data")
-                f.write("#----------------------------------------------------")
-            
+                                        'absorbance':this_gaussian-self.offset})            
         
 
 class StitchedSpectrum(Spectrum):
@@ -875,9 +909,9 @@ class StitchedSpectrum(Spectrum):
         self.color = spec1.color
         # these are combined from the two spectra
         self.name = spec1.name + "-" + spec2.name
-        self.sample_files = spec1.sample_files + spec2.sample_files
+        self.samples = spec1.samples + spec2.samples
         #self.scans = spec1.scans + spec2.scans
-        self.bkgd_files = spec1.bkgd_files + spec2.bkgd_files
+        self.bkgds = spec1.bkgds + spec2.bkgds
         # these get reset
         self.offset = 0
         self.visible = True
@@ -1017,7 +1051,7 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
         # Allow for two decimal places on ax2 (Energy)
         #ax2.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
 
-    ax1.set_ylabel("Absorbance (a.u.)")
+    ax1.set_ylabel("Absorbance")
     if plot_residuals:
         axr.set_xlabel("Wavelength (nm)")
         axr.plot(spec.data['wavelength'], spec.data['residuals'],
@@ -1140,7 +1174,7 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
 
     if do_titles:
         if do_ylabel:
-            ax1.set_ylabel("Absorbance (a.u.)")
+            ax1.set_ylabel("Absorbance")
         if do_bottom_xlabel:
             ax1.set_xlabel("Wavelength (nm)")
     if do_legend:
