@@ -148,7 +148,8 @@ class spectrumDisplayTab():
         self.bottomLayout.addWidget(self.eb_clear)
         
         self.eb_sdata = QPushButton("Export Selected Data")
-        self.eb_sdata.pressed.connect(self.export_sdata)
+        self.eb_sdata.pressed.connect(
+            lambda:self.export_sdata(self.speclist.selectedItems()))
         self.bottomLayout.addWidget(self.eb_sdata)
 
         self.eb_adata = QPushButton("Export All Data")
@@ -206,11 +207,15 @@ class spectrumDisplayTab():
     def clear_plot(self):
         print('clear plot is to be implemented')
 
-    def export_sdata(self):
-        print('export data is to be implemented')
+    def export_sdata(self, items):
+        for item in items:
+            for guiSpec in self.all_spectra:
+                if guiSpec.uniqueID == item.toolTip():
+                    guiSpec.export()
 
     def export_adata(self):
-        print('export data is to be implemented')
+        for guiSpec in self.all_spectra:
+            guiSpec.export()
 
     def remove_spectra(self, items):
         for item in items:
@@ -441,7 +446,24 @@ class guiSpectrum():
         """
         Export the spectrum
         """
-        self.spec.export(path=None)
+        # check if we have a description
+        if (self.spec.description == "") or (self.spec.description == None):
+            # exporting without a description is bad practice, so the user is
+            # not allowed to do it >:O
+            self.exportWarningWindow = ExportWarningWindow(self)
+            self.exportWarningWindow.show()
+            return None
+        else:
+            # choose where to export to
+            fnames = QFileDialog.getSaveFileName(
+                directory=f"./{self.spec.name}.txt",
+                filter="Text files (*.txt)")
+            fname = fnames[0]
+            # check for extension
+            if fname[-4:] != ".txt":
+                fname += ".txt"
+            # do the export
+            self.spec.export(path=fname)
 
 class guiScan():
     """
@@ -514,6 +536,25 @@ class ChangelogWindow(QWidget):
     def show_changelog_window(self):
         self.label.setText(self.guiSpec.spec.changelog)
         self.show()
+
+
+class ExportWarningWindow(QWidget):
+    def __init__(self, guiSpec):
+        super().__init__()
+        self.guiSpec = guiSpec
+        self.setWindowTitle("Export Error!")
+
+        labelText = f'''Spectrum: {self.guiSpec.spec.name}
+        
+        No spectrum description found!
+        You must provide a description before you can
+        export the spectrum.
+        
+        (Be sure to click "apply" when you are done!)'''
+        
+        self.label = QLabel(labelText, self)
+        self.label.setGeometry(0, 0, 500, 150)
+        self.label.setAlignment(Qt.AlignCenter)
 
 
 class EditSpecWindow(QWidget):
@@ -617,39 +658,16 @@ class EditSpecWindow(QWidget):
         # ---------------------------------------------------------------------
 
         # plot axis control
+        axisItems = ["Lambda", "Keith/nA", "Ch1/volts", "Ch2/volts",
+                     "Ch3/volts", "Z_Motor", "Beam_current", "temperature",
+                     "GC_Pres", "Time", "UBX_x", "UBX_y", "nor_signal",
+                     "wavelength", "av_signal"]
         self.xaxisControl = QComboBox()
-        self.xaxisControl.addItem("Lambda")
-        self.xaxisControl.addItem("Keith/nA")
-        self.xaxisControl.addItem("Ch1/volts")
-        self.xaxisControl.addItem("Ch2/volts")
-        self.xaxisControl.addItem("Ch3/volts")
-        self.xaxisControl.addItem("Z_Motor")
-        self.xaxisControl.addItem("Beam_current")
-        self.xaxisControl.addItem("temperature")
-        self.xaxisControl.addItem("GC_Pres")
-        self.xaxisControl.addItem("Time")
-        self.xaxisControl.addItem("UBX_x")
-        self.xaxisControl.addItem("UBX_y")
-        self.xaxisControl.addItem("nor_signal")
-        self.xaxisControl.addItem("wavelength")
-        self.xaxisControl.addItem("av_signal")
-        
         self.yaxisControl = QComboBox()
-        self.yaxisControl.addItem("Lambda")
-        self.yaxisControl.addItem("Keith/nA")
-        self.yaxisControl.addItem("Ch1/volts")
-        self.yaxisControl.addItem("Ch2/volts")
-        self.yaxisControl.addItem("Ch3/volts")
-        self.yaxisControl.addItem("Z_Motor")
-        self.yaxisControl.addItem("Beam_current")
-        self.yaxisControl.addItem("temperature")
-        self.yaxisControl.addItem("GC_Pres")
-        self.yaxisControl.addItem("Time")
-        self.yaxisControl.addItem("UBX_x")
-        self.yaxisControl.addItem("UBX_y")
-        self.yaxisControl.addItem("nor_signal")
-        self.yaxisControl.addItem("wavelength")
-        self.yaxisControl.addItem("av_signal")
+        for item in axisItems:
+            self.xaxisControl.addItem(item)
+            self.yaxisControl.addItem(item)
+        
         self.yaxisControl.setCurrentIndex(1)
 
         # background files
