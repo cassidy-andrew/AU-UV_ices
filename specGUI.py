@@ -30,10 +30,13 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QDoubleSpinBox,
     QTabWidget,
+    QTextEdit,
     QDialog,
     QScrollArea,
-    QComboBox
+    QComboBox,
+    QAbstractItemView
 )
+
 from PyQt5.QtGui import (
     QPalette,
     QColor,
@@ -59,6 +62,24 @@ class ScanMplCanvas(FigureCanvasQTAgg):
         self.fig, self.axes = spectools.plot_scans([], "Lambda", "Keith/nA",
             return_fig_and_ax=True)
         super(ScanMplCanvas, self).__init__(self.fig)
+
+
+class ScrollLabel(QScrollArea):
+    def __init__(self, *args, **kwargs):
+        QScrollArea.__init__(self, *args, **kwargs)
+        self.setWidgetResizable(True)
+        content = QWidget(self)
+        self.setWidget(content)
+        self.layout = QVBoxLayout(content)
+        self.label = QLabel(content)
+        self.label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.label.setWordWrap(True)
+        #self.label.setMinimumWidth(600)
+        #self.label.setMinimumHeight(400)
+        self.layout.addWidget(self.label)
+
+    def setText(self, text):
+        self.label.setText(text)
 
 
 class spectrumDisplayTab():
@@ -102,6 +123,8 @@ class spectrumDisplayTab():
         # display list of spectra
         self.speclist = QListWidget()
         self.speclist.setMinimumWidth(400)
+
+        self.speclist.setSelectionMode(QAbstractItemView.ExtendedSelection)
 
     
         # button for adding spectra
@@ -228,6 +251,11 @@ class guiSpectrum():
         The user is done editing, now perform actions to finish up behind the
         scenes.
         """
+        # check if we update the spectrum's description
+        new_description = self.editwindow.descriptionTextEdit.toPlainText()
+        if new_description != self.spec.description:
+            self.spec.update_description(new_description)
+        
         # update plot
         if len(self.spec.bkgds) > 0:
             if recalculate:
@@ -294,7 +322,7 @@ class guiSpectrum():
 
     def removeFiles(self, items, dtype=None):
         """
-        Remove backgroudns or samples
+        Remove backgrounds or samples
         """
         if dtype == 'bkgd':
             for item in items:
@@ -313,6 +341,10 @@ class guiSpectrum():
 
             # update list to current samples
             self.refreshSampleList()
+        self.editwindow.update_plot(
+            xaxis=self.editwindow.xaxisControl.currentText(),
+            yaxis=self.editwindow.yaxisControl.currentText(),
+            keep_axlims=False)
 
     def update_color(self):
         """
@@ -360,6 +392,9 @@ class guiSpectrum():
         """
         Change the name of the spectrum
         """
+        # do nothing if the name didn't actually change
+        if name == self.spec.name:
+            return None
         # update Spectrum
         self.spec.change_name(name)
         # update list check box
@@ -375,7 +410,7 @@ class guiSpectrum():
         # change the spectools Spectrum
         self.spec.flip_visibility()
         # update plot
-        self.isOK(hide=False) #self.parentWindow.update_plot()
+        self.isOK(hide=False) #self.parentWindow.update_plot()   
 
     def make_list_item(self):
         """
@@ -401,6 +436,12 @@ class guiSpectrum():
         self.slItem.setToolTip(self.uniqueID)
         self.slItemWidget.setLayout(self.item_layout)
         self.slItem.setSizeHint(self.slItemWidget.sizeHint())
+
+    def export(self):
+        """
+        Export the spectrum
+        """
+        self.spec.export(path=None)
 
 class guiScan():
     """
@@ -457,24 +498,7 @@ class guiScan():
             xaxis=self.parentSpectrum.editwindow.xaxisControl.currentText(),
             yaxis=self.parentSpectrum.editwindow.yaxisControl.currentText(),
             keep_axlims=True)
-        #self.isOK(hide=False) 
-
-class ScrollLabel(QScrollArea):
-    def __init__(self, *args, **kwargs):
-        QScrollArea.__init__(self, *args, **kwargs)
-        self.setWidgetResizable(True)
-        content = QWidget(self)
-        self.setWidget(content)
-        self.layout = QVBoxLayout(content)
-        self.label = QLabel(content)
-        self.label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        self.label.setWordWrap(True)
-        #self.label.setMinimumWidth(600)
-        #self.label.setMinimumHeight(400)
-        self.layout.addWidget(self.label)
-
-    def setText(self, text):
-        self.label.setText(text)
+        #self.isOK(hide=False)
 
 
 class ChangelogWindow(QWidget):
@@ -500,15 +524,37 @@ class EditSpecWindow(QWidget):
         
         # configure window basics
         self.setWindowTitle(f'Edit Spectrum: {self.guiSpec.spec.name}')
+        # the general layout which holds everything
         self.eOuterLayout = QVBoxLayout()
+        # the layout which holds everything except the bottom buttons
         self.eTopLayout = QHBoxLayout()
+        # the layout which holds the Spectrum parameter area
         self.paramsLayout = QFormLayout()
-        self.plotLayout = QVBoxLayout()
-        self.scansLayout = QFormLayout()
 
-        # -----------------------------------
-        # create widgets in the edit window
-        # -----------------------------------
+        # ---------------------------------------------------------------------
+        # Initialize the tabs
+        # ---------------------------------------------------------------------
+
+        self.tabs = QTabWidget()
+
+        # initialize the scan tab
+        self.scanTab = QWidget()
+        self.scanTabLayout = QHBoxLayout()
+        self.tabs.addTab(self.scanTab, "Spectrum Components")
+        
+        # the layout which holds the scan plot
+        self.scanPlotLayout = QVBoxLayout()
+        # the layout which holds the scans list
+        self.scanListLayout = QFormLayout()
+
+        # initialize the fit tab
+        self.fitTab = QWidget()
+        self.fitTabLayout = QHBoxLayout()
+        self.tabs.addTab(self.fitTab, "Spectrum Fitting")
+
+        # ---------------------------------------------------------------------
+        # Spectrum Parameter Edit
+        # ---------------------------------------------------------------------
         
         # Name edit
         self.nameLineEdit = QLineEdit()
@@ -551,6 +597,24 @@ class EditSpecWindow(QWidget):
         self.linewidthLineEdit.valueChanged.connect(
             lambda: self.guiSpec.update_linewidth(
                 self.linewidthLineEdit.value()))
+
+        # description
+        self.descriptionTextEdit = QTextEdit()
+        self.descriptionTextEdit.setText(self.guiSpec.spec.description)
+
+        # add parameter edit buttons to layout
+        self.paramsLayout.addRow("Spectrum Name:", self.nameLineEdit)
+        self.paramsLayout.addRow("Spectrum Color:", self.colorLayout)
+        self.paramsLayout.addRow("Spectrum Offset:", self.ewOffsetLineEdit)
+        self.paramsLayout.addRow("Spectrum Line Style:", self.ewLSComboBox)
+        self.paramsLayout.addRow("Spectrum Line Width:", self.linewidthLineEdit)
+        self.paramsLayout.addRow("Spectrum Description:\n"+
+                                 "(remember to apply\n changes!)", 
+                                 self.descriptionTextEdit)
+
+        # ---------------------------------------------------------------------
+        # Scan tab
+        # ---------------------------------------------------------------------
 
         # plot axis control
         self.xaxisControl = QComboBox()
@@ -608,20 +672,6 @@ class EditSpecWindow(QWidget):
             lambda: self.guiSpec.removeFiles(self.sampleList.selectedItems(),
                                      'sample'))
 
-        # apply and ok buttons
-        self.applyButton = QPushButton("Apply")
-        self.applyButton.clicked.connect(
-            lambda: self.guiSpec.isOK(hide=False, recalculate=True))
-        self.okButton = QPushButton("OK")
-        self.okButton.clicked.connect(
-            lambda: self.guiSpec.isOK(hide=True, recalculate=True))
-        self.changelogButton = QPushButton("View Changelog")
-
-        # create the changelog window and assign the button showing it
-        self.clogwindow = ChangelogWindow(self.guiSpec)
-        self.changelogButton.clicked.connect(
-            self.clogwindow.show_changelog_window)
-
         #self.slEditButton.clicked.connect(self.editwindow.show)
         self.xaxisControl.currentTextChanged.connect(
             lambda:self.update_plot(
@@ -633,17 +683,27 @@ class EditSpecWindow(QWidget):
                 xaxis=self.xaxisControl.currentText(),
                 yaxis=self.yaxisControl.currentText(),
                 keep_axlims=False))
-        
-        # regular edit options
-        self.paramsLayout.addRow("Spectrum Name:", self.nameLineEdit)
-        self.paramsLayout.addRow("Spectrum Color:", self.colorLayout)
-        self.paramsLayout.addRow("Spectrum Offset:", self.ewOffsetLineEdit)
-        self.paramsLayout.addRow("Spectrum Line Style:", self.ewLSComboBox)
-        self.paramsLayout.addRow("Spectrum Line Width:", self.linewidthLineEdit)
 
         # plot axis controls
-        self.scansLayout.addRow("Plot x-axis:", self.xaxisControl)
-        self.scansLayout.addRow("Plot y-axis:", self.yaxisControl)
+        self.scanListLayout.addRow("Plot x-axis:", self.xaxisControl)
+        self.scanListLayout.addRow("Plot y-axis:", self.yaxisControl)
+
+        # title
+        #self.plotLabel = QLabel("Spectrum Components Plot", self)
+        #self.plotLabel.setSizePolicy(QSizePolicy.Expanding,
+        #                              QSizePolicy.Expanding)
+        #self.plotLabel.setAlignment(Qt.AlignCenter)
+        #self.plotLabel.setFont(QFont('Arial', 30))
+
+        # the plot
+        self.scanCanvas = ScanMplCanvas(self)
+        self.scanCanvas.setMinimumWidth(800)
+        self.scanCanvas.setMinimumHeight(600)
+        self.etoolbar = NavigationToolbar(self.scanCanvas)
+        self.exlims = [100, 700]
+        self.eylims = [-0.1, 1.1]
+        self.scanCanvas.axes.set_ylim(self.eylims)
+        self.scanCanvas.axes.set_xlim(self.exlims)
         
         # Background spectrum list
         self.bkgdListLayout = QVBoxLayout()
@@ -652,7 +712,7 @@ class EditSpecWindow(QWidget):
         self.bkgdButtonLayout.addWidget(self.bkgdRmButton)
         self.bkgdListLayout.addLayout(self.bkgdButtonLayout)
         self.bkgdListLayout.addWidget(self.bkgdList)
-        self.scansLayout.addRow("Background Files:", self.bkgdListLayout)
+        self.scanListLayout.addRow("Background Files:", self.bkgdListLayout)
         
         # Sample spectrum list
         self.sampleListLayout = QVBoxLayout()
@@ -661,39 +721,55 @@ class EditSpecWindow(QWidget):
         self.sampleButtonLayout.addWidget(self.sampleRmButton)
         self.sampleListLayout.addLayout(self.sampleButtonLayout)
         self.sampleListLayout.addWidget(self.sampleList)
-        self.scansLayout.addRow("Sample Files:", self.sampleListLayout)
+        self.scanListLayout.addRow("Sample Files:", self.sampleListLayout)
 
-        # buttons for OK and Apply
+        # add the plot elements to their layout
+        #self.scanPlotLayout.addWidget(self.plotLabel)
+        self.scanPlotLayout.addWidget(self.etoolbar)
+        self.scanPlotLayout.addWidget(self.scanCanvas)
+
+        # finalize the scan tab layout
+        self.scanTabLayout.addLayout(self.scanPlotLayout)
+        self.scanTabLayout.addLayout(self.scanListLayout)
+        self.scanTab.setLayout(self.scanTabLayout)
+
+        # ---------------------------------------------------------------------
+        # Bottom Buttons
+        # ---------------------------------------------------------------------
+
+        # apply button
+        self.applyButton = QPushButton("Apply")
+        self.applyButton.clicked.connect(
+            lambda: self.guiSpec.isOK(hide=False, recalculate=True))
+        
+        # ok button (the same as apply, but closes the window)
+        self.okButton = QPushButton("OK")
+        self.okButton.clicked.connect(
+            lambda: self.guiSpec.isOK(hide=True, recalculate=True))
+        
+        # the changelog view button
+        self.changelogButton = QPushButton("View Changelog")
+        # create the changelog window and assign the button showing it
+        self.clogwindow = ChangelogWindow(self.guiSpec)
+        self.changelogButton.clicked.connect(
+            self.clogwindow.show_changelog_window)
+
+        # the export button
+        self.exportButton = QPushButton("Export Spectrum")
+        self.exportButton.clicked.connect(self.guiSpec.export)
+
+        # add the apply and ok buttons to their layout
         self.applyLayout = QHBoxLayout()
         self.applyLayout.addWidget(self.okButton)
         self.applyLayout.addWidget(self.changelogButton)
+        self.applyLayout.addWidget(self.exportButton)
         self.applyLayout.addWidget(self.applyButton)
-
-        # title
-        self.plotLabel = QLabel("Spectrum Components Plot", self)
-        #self.plotLabel.setSizePolicy(QSizePolicy.Expanding,
-        #                              QSizePolicy.Expanding)
-        self.plotLabel.setAlignment(Qt.AlignCenter)
-        self.plotLabel.setFont(QFont('Arial', 30))
-
-        # the plot
-        self.compCanvas = ScanMplCanvas(self)
-        self.compCanvas.setMinimumWidth(800)
-        self.compCanvas.setMinimumHeight(600)
-        self.etoolbar = NavigationToolbar(self.compCanvas)
-        self.exlims = [100, 700]
-        self.eylims = [-0.1, 1.1]
-        self.compCanvas.axes.set_ylim(self.eylims)
-        self.compCanvas.axes.set_xlim(self.exlims)
-
-        self.plotLayout.addWidget(self.plotLabel)
-        self.plotLayout.addWidget(self.etoolbar)
-        self.plotLayout.addWidget(self.compCanvas)
 
         # set the layout to the window
         self.eTopLayout.addLayout(self.paramsLayout)
-        self.eTopLayout.addLayout(self.plotLayout)
-        self.eTopLayout.addLayout(self.scansLayout)
+        self.eTopLayout.addWidget(self.tabs)
+        #self.eTopLayout.addLayout(self.scanPlotLayout)
+        #self.eTopLayout.addLayout(self.scanListLayout)
         self.eOuterLayout.addLayout(self.eTopLayout) #self.paramsLayout)
         self.eOuterLayout.addLayout(self.applyLayout)
         self.holderwidget = QWidget()
@@ -716,17 +792,17 @@ class EditSpecWindow(QWidget):
 
         # get our current axis limits to revert back if desired
         if keep_axlims:
-            self.xlims = self.compCanvas.axes.get_xlim()
-            self.ylims = self.compCanvas.axes.get_ylim()
+            self.xlims = self.scanCanvas.axes.get_xlim()
+            self.ylims = self.scanCanvas.axes.get_ylim()
 
         # redraw
-        self.compCanvas.axes.cla()
-        spectools.plot_scans(plot_data, xaxis, yaxis, ax=self.compCanvas.axes,
-                             fig=self.compCanvas.fig)
+        self.scanCanvas.axes.cla()
+        spectools.plot_scans(plot_data, xaxis, yaxis, ax=self.scanCanvas.axes,
+                             fig=self.scanCanvas.fig)
         if keep_axlims:
-            self.compCanvas.axes.set_ylim(self.ylims)
-            self.compCanvas.axes.set_xlim(self.xlims)
-        self.compCanvas.draw()
+            self.scanCanvas.axes.set_ylim(self.ylims)
+            self.scanCanvas.axes.set_xlim(self.xlims)
+        self.scanCanvas.draw()
 
     def show_edit_window(self):
         """

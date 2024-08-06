@@ -9,8 +9,7 @@ structured into 'GUI' and 'tools' files. For example the code relating to
 displaying and fitting spectra are called 'specGUI' and 'spectools.' The 'tools'
 files contain the physics and mathematics that interact with the data. The 'GUI'
 files contain the infrastructure for putting those analysis tools into the
-format the user interacts with. This file interfaces with the 'GUI' files, which
-in turn interface with the 'tools.'
+format the user interacts with.
 
 Here is a layout of DUVET's structure:
 

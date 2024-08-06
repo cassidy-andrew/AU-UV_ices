@@ -11,10 +11,10 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
 import matplotlib.ticker as ticker
 from matplotlib.ticker import AutoMinorLocator
+from matplotlib.legend import _get_legend_handles_labels as get_handles
 
 import scipy.constants as constants
 from scipy.optimize import curve_fit
-
 
 
 def scattering(wl, m, k):
@@ -219,6 +219,7 @@ class Spectrum:
         # declare parameters
         self.debug=debug
         self.changelog = ""
+        self.description = ""
         self.name = ""
         self.oldname = ""
         # give default color
@@ -232,9 +233,7 @@ class Spectrum:
         self.visible = True
         self.offset = 0.0
         # data parameters
-        #self.bkgd_files = []
         self.bkgds = []
-        #self.sample_files = []
         self.samples = []
         self.data = None
         # fitting parameters
@@ -245,7 +244,59 @@ class Spectrum:
         self.fit_results = None
         self._comps = None
 
-        self._log(f"initialized to default parameters and debug={self.debug}")
+        # note that this object was made, and with what time (done in _log)
+        self._log(f"initialized spectrum with debug={self.debug}")
+
+    def _fit_function(self, x, *P):
+        """
+        The fit function. It is a linear combination of several optional
+        components: custom components which can be any array-like object, a 
+        rayleigh scattering term, and any number of gaussian functions. The
+        number of gaussian functions is determined by the number of parameters
+        passed to the function. Passed parameters must be in the order of: 
+        scale factors for the custom components, parameters for the scattering
+        function, and parameters for the gaussians. 
+        """
+        # y will hold our spectrum
+        y = np.zeros(len(x))
+        
+        # initialize our parameter space. At this point, P contains all
+        # parameters for all components of the fit. We need to sort them out.
+        # parameters relating to custom components are first
+        if self._comps is not None:
+            self._n_comps = len(self._comps)
+        else:
+            self._n_comps = 0
+        # parameters relating to scattering are second
+        if self._do_scattering:
+            self._n_scatt = 2
+        else:
+            self._n_scatt = 0
+        # remaining parameters are relating to the gaussians. We make new lists
+        # for the parameters below:        
+        # parameters relating to our custom components
+        C = P[:self._n_comps]
+        # parameters relating to our scattering
+        S = P[self._n_comps:self._n_comps+self._n_scatt]
+        # parameters realting to our gaussians
+        G = P[self._n_comps+self._n_scatt:]
+        
+        # add the custom components terms to our y values
+        if self._do_comps:
+            y += sum([c*comp['absorbance'] for c, comp in zip(C, self._comps)])
+            
+        # add the scattering terms to our y values
+        if self._do_scattering:
+            y += scattering(x, *S)
+        
+        # add the gaussian terms to our y values
+        n_gaussians = len(G) // 3
+        # splits all gaussian parameters B into lists of 3 parameters
+        gauss_guesses = [G[i*3:(i+1)*3] for i in range((len(G)+3-1)//3)]
+        for gguess in gauss_guesses:
+            y += gaussian(x, *gguess)
+            
+        return y
 
     def _log(self, message):
         """
@@ -258,7 +309,149 @@ class Spectrum:
         if self.debug:
             # printed message specifies which spectrum we are dealing with
             print(current_time + " Spectrum " + self.oldname + " " + message)
+
+    def _make_guesses(self, ng_upper, wavelengths):
+        """
+        Generate guesses for fit parameters if none are provided. Custom
+        component scale values will be initialized to 1. Scattering parameters
+        will be k=1, m=1. Gaussians will have amplitude 1, standard deviation 5,
+        and central positions evenly distributed in wavelength space.
+        """
+        guesses = []
+        # handle custom components
+        if self._do_comps:
+            for n in range(0, self._n_comps):
+                guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
+                
+        if self._do_scattering:
+            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) # m
+            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) # k
+            
+        centers = np.linspace(wavelengths.iloc[0],wavelengths.iloc[-1],ng_upper)
+        for n in range(0, ng_upper):
+            # amplitude
+            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) 
+            # center
+            guesses.append({'lower':0, 'guess':centers[n], 'upper':np.inf})
+            # standard deviation
+            guesses.append({'lower':0, 'guess':5, 'upper':np.inf})
+            
+        return guesses
+
+    def _manage_fit_parameters(self, fit_result, fit_df):
+        """
+        Takes the fit results from the fitting function, and organizes them in
+        a way the user will want to interact with. Assigns those results to
+        object parameters which can easily be exported later.
+        """
+        # Take care of adding the absorbance and residual values to self.data.
+        # self.data has a different wavelength range than our fitted absorbance
+        # values. But fit_df does not. So, add the fitted absorbance to fit_df
+        # and then merge fit_df into self.data so that the wavelengths line up.
+        fit_df['best_fit'] = fit_result['best_fit']
+        # add the best fit to self.data, but if it already exists
+        # get rid of it first.
+        if 'best_fit' in self.data:
+            self.data = self.data.drop(columns=['best_fit'])
+        self.data = self.data.merge(fit_df, how='left')
+        # un-offset the fit, to match self.data['absorbance'] and give accurate
+        # residuals
+        self.data['best_fit'] = self.data['best_fit'] - self.offset
+        # calculate residuals
+        self.data['residuals'] = self.data['absorbance']-self.data['best_fit']
         
+        #self.fit_results = fit_result
+        # we will use these to calculate our peaks later
+        p = fit_result['p']
+        pcov = fit_result['pcov']
+        perr = np.sqrt(np.diag(pcov))
+        
+        # make a list of all the parameters an their errors
+        all_params = []
+        for i in range(0, len(p)):
+            all_params.append({'value':p[i], 'error':perr[i]})
+        
+        # parameters relating to our custom components
+        C = all_params[:self._n_comps]
+        # parameters relating to our scattering
+        S = all_params[self._n_comps:self._n_comps+self._n_scatt]
+        # parameters realting to our gaussians
+        G = all_params[self._n_comps+self._n_scatt:]
+        
+        # Extract the guassian peak positions and their errors. 
+        peaks = []
+        for i in range(0, len(G), 3):
+            G[i]['parameter'] = 'amplitude'
+            G[i+1]['parameter'] = 'center'
+            G[i+2]['parameter'] = 'std'
+            peaks.append({'peak':G[i+1]['value'], 'peak_error':G[i+1]['error']})
+
+        self.peaks = peaks
+        
+        # save the general fit results
+        self.fit_results = {'reduced_chi_square':fit_result['redchi2'],
+                            'n_gaussians':fit_result['n'],
+                            'n_custom_components':self._n_comps,
+                            'fitted_scattering':self._do_scattering,
+                            'custom_component_parameters':C,
+                            'scattering_parameters':S,
+                            'gaussian_parameters':G,
+                            'p':p,
+                            'pcov':pcov}
+        
+        # save the individual components that make up the fit
+        self.fit_components = []
+        # handle the custom components
+        if self._do_comps:
+            for i in range(0, self._n_comps):
+                this_comp = self._comps[i]
+                this_ab = [C[i]['value']*ab for ab in this_comp['absorbance']]
+                self.fit_components.append({'parameters':C[i],
+                                        'wavelength':this_comp['wavelength'],
+                                        'absorbance':this_ab})
+        # handle the scattering
+        if self._do_scattering:
+            self.fit_components.append({
+                'parameters':S,
+                'wavelength':self.data['wavelength'],
+                'absorbance':scattering(self.data['wavelength'],
+                                        S[0]['value'],
+                                        S[1]['value'])
+            })
+        # handle the gaussians
+        ps = [G[i*3:(i+1)*3] for i in range((len(G)+3-1)//3)]
+        for params in ps:
+            # each item in ps is a list of three numbers, for one gaussian
+            values = []
+            for parameter in params:
+                values.append(parameter['value'])
+            this_gaussian = gaussian(self.data['wavelength'], *values)
+            self.fit_components.append({'parameters':params,
+                                        'wavelength':self.data['wavelength'],
+                                        'absorbance':this_gaussian-self.offset})
+
+    def add_bkgd(self, bkgd_fname):
+        """
+        Adds a background file to this spectrum's list of backgrounds
+        
+        bkgd_fname : (str) the path to the background file being added
+        """
+        this_bkgd = SingleScan(bkgd_fname)
+        self.bkgds.append(this_bkgd)
+        self._log(f'added bkgd file {bkgd_fname}')
+        return this_bkgd
+        
+    def add_sample(self, sample_fname):
+        """
+        Adds a sample file to this spectrum's list of samples
+        
+        sample_fname : (str) the path to the background file being added
+        """
+        this_sample = SingleScan(sample_fname)
+        self.samples.append(this_sample)
+        self._log(f'added sample file {sample_fname}')
+        return this_sample
+
     def average_scans(self):
         """
         Averages the scans relating to this spectrum. First all backgrounds are
@@ -314,18 +507,24 @@ class Spectrum:
         df['wavelength'] = self.bkgd['wavelength']
 
         self.data = df
-        self._log(f"Finished absorbance calculation using {len(bkgd_dfs)} " +
+        self._log(f"finished absorbance calculation using {len(bkgd_dfs)} " +
                   f"bkgds and {len(sample_dfs)} samples")
 
-    def change_name(self, new_name):
+    def change_color(self, new_color):
         """
-        Changes the name of this spectrum
+        Changes the color used for plotting this spectrum
+        """
+        old_color = self.color
+        self.color = new_color
+        self._log(f'changed color from {old_color} to {self.color}')
+
+    def change_index(self, new_index):
+        """
+        Changes the index of this spectrum for use in the DUVET GUI
         
-        new_name : (str) the new name for this spectrum
+        new_index : (int) the new index for this spectrum
         """
-        self.oldname = self.name
-        self.name = new_name
-        self._log(f'changed name to {self.name}')
+        self.index = new_index
         
     def change_linestyle(self, new_style):
         """
@@ -347,71 +546,17 @@ class Spectrum:
         old_width = self.linewidth
         self.linewidth = new_width
         self._log(f'linewidth changed from {old_width} '+f'to {self.linewidth}')
+
+    def change_name(self, new_name):
+        """
+        Changes the name of this spectrum
         
-    def change_index(self, new_index):
+        new_name : (str) the new name for this spectrum
         """
-        Changes the index of this spectrum for use in the DUVET GUI
-        
-        new_index : (int) the new index for this spectrum
-        """
-        self.index = new_index
-    
-    def add_bkgd(self, bkgd_fname):
-        """
-        Adds a background file to this spectrum's list of backgrounds
-        
-        bkgd_fname : (str) the path to the background file being added
-        """
-        this_bkgd = SingleScan(bkgd_fname)
-        self.bkgds.append(this_bkgd)
-        self._log(f'added bkgd file {bkgd_fname}')
-        return this_bkgd
-        
-    def add_sample(self, sample_fname):
-        """
-        Adds a sample file to this spectrum's list of samples
-        
-        sample_fname : (str) the path to the background file being added
-        """
-        this_sample = SingleScan(sample_fname)
-        self.samples.append(this_sample)
-        self._log(f'added sample file {sample_fname}')
-        return this_sample
-        
-    def remove_bkgd(self, bkgd_fname):
-        """
-        Removes a background from this spectrum's list of backgrounds
-        
-        bkgd_name : (str) the name of the background being removed
-        """
-        for bkgd in self.bkgds:
-            if bkgd.fname == bkgd_fname:
-                self.bkgds.remove(bkgd)
-        #self.bkgd_files.remove(bkgd_fname)
-        self._log(f'removed bkgd file {bkgd_fname}')
-        
-    def remove_sample(self, sample_fname):
-        """
-        Removes a sample from this spectrum's list of samples
-        
-        sample_name : (str) the name of the spectrum being removed
-        """
-        for sample in self.samples:
-            if sample.fname == sample_fname:
-                self.samples.remove(sample)
-        #self.sample_files.remove(sample_fname)
-        self._log(f'removed sample file {sample_fname}')
-        
-    def flip_visibility(self):
-        """
-        Changes the visibility of the spectrum when plotting. If 
-        the self.visible parameter is false, the plot_absorbance
-        function will skip plotting this spectrum.
-        """
-        self.visible = not self.visible
-        self._log(f'flipped visibility from {not self.visible} '+
-                  f'to {self.visible}')
-            
+        self.oldname = self.name
+        self.name = new_name
+        self._log(f'changed name to {self.name}')
+
     def change_offset(self, new_offset):
         """
         Gives the spectrum an offset value. When plotted in the 
@@ -425,14 +570,6 @@ class Spectrum:
         old_offset = self.offset
         self.offset = new_offset
         self._log(f'changed offset from {old_offset} to '+ f'{self.offset}')        
-        
-    def change_color(self, new_color):
-        """
-        Changes the color used for plotting this spectrum
-        """
-        old_color = self.color
-        self.color = new_color
-        self._log(f'changed color from {old_color} to {self.color}')
 
     def cycle_color(self):
         """
@@ -450,8 +587,16 @@ class Spectrum:
         """
         Export the data and attributes
         """
-        if path == None:
+        if self.description == "":
+            print(f"You must provide a description to spectrum {self.name} " +
+                  "before you may export its data! You can do this with the " +
+                  "Spectrum.update_description() function.")
+            return None
+
+        if path is None:
             path = f"./{self.name}.txt"
+
+        print(f"path after check {path}")
             
         self._log(f"began data export to file {path}")
 
@@ -463,165 +608,46 @@ class Spectrum:
             sample_files.append(sample.fname)
         
         with open(path, "w") as f:
-            f.write("#----------------------------------------------------")
-            f.write("# Object Attributes")
-            f.write("#----------------------------------------------------")
-            f.write(f"name={self.name}")
-            f.write(f"debug={self.debug}")
-            f.write(f"offset={self.offset}")
-            f.write(f"visible={self.visible}")
-            f.write(f"color={self.color}")
-            f.write(f"cindex={self.cindex}")
-            f.write(f"linestyle={self.linestyle}")
-            f.write(f"linewidth={self.linewidth}")
-            f.write(f"bkgd_files={bkgd_files}")
-            f.write(f"sample_files={sample_files}")
-            f.write(f"baseline_p={self.baseline_p}")
-            f.write(f"peaks={self.peaks}")
-            f.write(f"peak_errors={self.peak_erros}")
-            f.write(f"fit_results={self.fit_results}")
+            f.write("#----------------------------------------------------\n")
+            f.write("# Spectrum Description\n")
+            f.write("#----------------------------------------------------\n")
+            f.write(f"Name: {self.name}\n")
             f.write("\n")
-            f.write("#----------------------------------------------------")
-            f.write("# Changelog")
-            f.write("#----------------------------------------------------")
+            f.write(f"{self.description}\n")
+            f.write("\n")
+            f.write(f"Background Files: {bkgd_files}\n")
+            f.write(f"Sample Files: {sample_files}\n")
+            f.write("\n")
+            f.write("#----------------------------------------------------\n")
+            f.write("# Object and Plotting Attributes\n")
+            f.write("#----------------------------------------------------\n")
+            f.write(f"Debug: {self.debug}\n")
+            f.write(f"Offset: {self.offset}\n")
+            f.write(f"Visible: {self.visible}\n")
+            f.write(f"Color: {self.color}\n")
+            #f.write(f"Color Index: {self.cindex}\n")
+            f.write(f"Linestyle: {self.linestyle}\n")
+            f.write(f"Linewidth: {self.linewidth}\n")
+            f.write("\n")
+            f.write("#----------------------------------------------------\n")
+            f.write("# Fit Parameters\n")
+            f.write("#----------------------------------------------------\n")
+            f.write(f"Baseline parameters: {self.baseline_p}\n")
+            f.write(f"Peak positions: {self.peaks}\n")
+            f.write(f"Peak errors: {self.peak_errors}\n")
+            f.write(f"Fit results: {self.fit_results}\n")
+            f.write("\n")
+            f.write("#----------------------------------------------------\n")
+            f.write("# Changelog\n")
+            f.write("#----------------------------------------------------\n")
             f.write(self.changelog)
-            f.write("#----------------------------------------------------")
-            f.write("# Spectroscopic Data")
-            f.write("#----------------------------------------------------")
-            self.data.to_csv(f, index=False, header=True)
-        
-    def subtract_baseline(self, lim=None, how="min"):
-        """
-        Performs a baseline subtraction on the spectrum. This is done just by
-        shifting all values such that some chosen value is zero. There are two
-        methods, determined by the how parameter.
-        
-        lim : (tuple or None) the limits on where the zero point is searched
-              for. Defaults to None.
-        how : (str) How to determine the zero point. Acceptable values are
-              "min", and "right". When "min", the function will find the minimum
-              absorbance value within the wavelength range set by lim, and shift
-              the data such that it is zero. When "right", the rightmost
-              value will be shifted such that it is zero.
-        """
-        # set limits for finding the shift value
-        if lim is not None:
-            search_df = self.data[(self.data['wavelength'] >= lim[0]) &
-                                  (self.data['wavelength'] <= lim[1])]
-        else:
-            search_df = self.data
-        
-        # if this has already been run, make sure we search on unshifted data
-        if 'raw_absorbance' in self.data.columns:
-            key = 'raw_absorbance'
-        else:
-            key = 'absorbance'
-        
-        # do the shifting
-        if how == "min":
-            # get the minimum value as the shift
-            shift = -1*search_df[key].min()
-        elif how == "right":
-            # get the rightmost value as the shift
-            shift = -1*search_df[key].iloc[-1]
-        else:
-            print("Invalid value for the how parameter."+
-                  " You entered '{0}',".format(how) + 
-                  " but only 'min' or 'right' are accepted." +
-                  " Run help(tools.Spectrum.subtract_baseline) for help.")
-            return None
-        
-        # apply the shift
-        shifted = [a+shift for a in self.data[key]]
-        
-        # remap the unshifted data to 'raw_absorbance' if needed
-        if not ('raw_absorbance' in self.data.columns):  
-            self.data['raw_absorbance'] = self.data['absorbance'].copy()
-        # remap the shifted data to 'absorbance'
-        self.data['absorbance'] = shifted
+            f.write("\n")
+            f.write("#----------------------------------------------------\n")
+            f.write("# Spectroscopic Data\n")
+            f.write("#----------------------------------------------------\n")
+            if self.data is not None:
+                self.data.to_csv(f, index=False, header=True)
 
-        self._log(f"baseline subtracted using the '{how}' method " +
-                  f"and a shift of {shift}")
-        
-    def _make_guesses(self, ng_upper, wavelengths):
-        """
-        Generate guesses for fit parameters if none are provided. Custom
-        component scale values will be initialized to 1. Scattering parameters
-        will be k=1, m=1. Gaussians will have amplitude 1, standard deviation 5,
-        and central positions evenly distributed in wavelength space.
-        """
-        guesses = []
-        # handle custom components
-        if self._do_comps:
-            for n in range(0, self._n_comps):
-                guesses.append({'lower':0, 'guess':1, 'upper':np.inf})
-                
-        if self._do_scattering:
-            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) # m
-            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) # k
-            
-        centers = np.linspace(wavelengths.iloc[0],wavelengths.iloc[-1],ng_upper)
-        for n in range(0, ng_upper):
-            # amplitude
-            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) 
-            # center
-            guesses.append({'lower':0, 'guess':centers[n], 'upper':np.inf})
-            # standard deviation
-            guesses.append({'lower':0, 'guess':5, 'upper':np.inf})
-            
-        return guesses
-        
-    def _fit_function(self, x, *P):
-        """
-        The fit function. It is a linear combination of several optional
-        components: custom components which can be any array-like object, a 
-        rayleigh scattering term, and any number of gaussian functions. The
-        number of gaussian functions is determined by the number of parameters
-        passed to the function. Passed parameters must be in the order of: 
-        scale factors for the custom components, parameters for the scattering
-        function, and parameters for the gaussians. 
-        """
-        # y will hold our spectrum
-        y = np.zeros(len(x))
-        
-        # initialize our parameter space. At this point, P contains all
-        # parameters for all components of the fit. We need to sort them out.
-        # parameters relating to custom components are first
-        if self._comps is not None:
-            self._n_comps = len(self._comps)
-        else:
-            self._n_comps = 0
-        # parameters relating to scattering are second
-        if self._do_scattering:
-            self._n_scatt = 2
-        else:
-            self._n_scatt = 0
-        # remaining parameters are relating to the gaussians. We make new lists
-        # for the parameters below:        
-        # parameters relating to our custom components
-        C = P[:self._n_comps]
-        # parameters relating to our scattering
-        S = P[self._n_comps:self._n_comps+self._n_scatt]
-        # parameters realting to our gaussians
-        G = P[self._n_comps+self._n_scatt:]
-        
-        # add the custom components terms to our y values
-        if self._do_comps:
-            y += sum([c*comp['absorbance'] for c, comp in zip(C, self._comps)])
-            
-        # add the scattering terms to our y values
-        if self._do_scattering:
-            y += scattering(x, *S)
-        
-        # add the gaussian terms to our y values
-        n_gaussians = len(G) // 3
-        # splits all gaussian parameters B into lists of 3 parameters
-        gauss_guesses = [G[i*3:(i+1)*3] for i in range((len(G)+3-1)//3)]
-        for gguess in gauss_guesses:
-            y += gaussian(x, *gguess)
-            
-        return y
-        
     def fit_peaks(self, verbose=False, guesses=None, ng=None,
                   ng_lower=None, ng_upper=None, do_scattering=False,
                   fit_lim=(120, 340), custom_components=None):
@@ -790,98 +816,100 @@ class Spectrum:
                   " {0:.2f}".format(fit_results[best_i]['redchi2']))
 
         self._manage_fit_parameters(fit_results[best_i], fit_df)
-            
-    def _manage_fit_parameters(self, fit_result, fit_df):
-        """
-        Takes the fit results from the fitting function, and organizes them in
-        a way the user will want to interact with. Assigns those results to
-        object parameters which can easily be exported later.
-        """
-        # Take care of adding the absorbance and residual values to self.data.
-        # self.data has a different wavelength range than our fitted absorbance
-        # values. But fit_df does not. So, add the fitted absorbance to fit_df
-        # and then merge fit_df into self.data so that the wavelengths line up.
-        fit_df['best_fit'] = fit_result['best_fit']
-        # add the best fit to self.data, but if it already exists
-        # get rid of it first.
-        if 'best_fit' in self.data:
-            self.data = self.data.drop(columns=['best_fit'])
-        self.data = self.data.merge(fit_df, how='left')
-        # un-offset the fit, to match self.data['absorbance'] and give accurate
-        # residuals
-        self.data['best_fit'] = self.data['best_fit'] - self.offset
-        # calculate residuals
-        self.data['residuals'] = self.data['absorbance']-self.data['best_fit']
-        
-        #self.fit_results = fit_result
-        # we will use these to calculate our peaks later
-        p = fit_result['p']
-        pcov = fit_result['pcov']
-        perr = np.sqrt(np.diag(pcov))
-        
-        # make a list of all the parameters an their errors
-        all_params = []
-        for i in range(0, len(p)):
-            all_params.append({'value':p[i], 'error':perr[i]})
-        
-        # parameters relating to our custom components
-        C = all_params[:self._n_comps]
-        # parameters relating to our scattering
-        S = all_params[self._n_comps:self._n_comps+self._n_scatt]
-        # parameters realting to our gaussians
-        G = all_params[self._n_comps+self._n_scatt:]
-        
-        # Extract the guassian peak positions and their errors. 
-        peaks = []
-        for i in range(0, len(G), 3):
-            G[i]['parameter'] = 'amplitude'
-            G[i+1]['parameter'] = 'center'
-            G[i+2]['parameter'] = 'std'
-            peaks.append({'peak':G[i+1]['value'], 'peak_error':G[i+1]['error']})
 
-        self.peaks = peaks
+    def flip_visibility(self):
+        """
+        Changes the visibility of the spectrum when plotting. If 
+        the self.visible parameter is false, the plot_absorbance
+        function will skip plotting this spectrum.
+        """
+        self.visible = not self.visible
+        self._log(f'flipped visibility from {not self.visible} '+
+                  f'to {self.visible}')
         
-        # save the general fit results
-        self.fit_results = {'reduced_chi_square':fit_result['redchi2'],
-                            'n_gaussians':fit_result['n'],
-                            'n_custom_components':self._n_comps,
-                            'fitted_scattering':self._do_scattering,
-                            'custom_component_parameters':C,
-                            'scattering_parameters':S,
-                            'gaussian_parameters':G,
-                            'p':p,
-                            'pcov':pcov}
+    def remove_bkgd(self, bkgd_fname):
+        """
+        Removes a background from this spectrum's list of backgrounds
         
-        # save the individual components that make up the fit
-        self.fit_components = []
-        # handle the custom components
-        if self._do_comps:
-            for i in range(0, self._n_comps):
-                this_comp = self._comps[i]
-                this_ab = [C[i]['value']*ab for ab in this_comp['absorbance']]
-                self.fit_components.append({'parameters':C[i],
-                                        'wavelength':this_comp['wavelength'],
-                                        'absorbance':this_ab})
-        # handle the scattering
-        if self._do_scattering:
-            self.fit_components.append({
-                'parameters':S,
-                'wavelength':self.data['wavelength'],
-                'absorbance':scattering(self.data['wavelength'],
-                                        S[0]['value'],
-                                        S[1]['value'])
-            })
-        # handle the gaussians
-        ps = [G[i*3:(i+1)*3] for i in range((len(G)+3-1)//3)]
-        for params in ps:
-            # each item in ps is a list of three numbers, for one gaussian
-            values = []
-            for parameter in params:
-                values.append(parameter['value'])
-            this_gaussian = gaussian(self.data['wavelength'], *values)
-            self.fit_components.append({'parameters':params,
-                                        'wavelength':self.data['wavelength'],
-                                        'absorbance':this_gaussian-self.offset})            
+        bkgd_name : (str) the name of the background being removed
+        """
+        for bkgd in self.bkgds:
+            if bkgd.fname == bkgd_fname:
+                self.bkgds.remove(bkgd)
+        #self.bkgd_files.remove(bkgd_fname)
+        self._log(f'removed bkgd file {bkgd_fname}')
+        
+    def remove_sample(self, sample_fname):
+        """
+        Removes a sample from this spectrum's list of samples
+        
+        sample_name : (str) the name of the spectrum being removed
+        """
+        for sample in self.samples:
+            if sample.fname == sample_fname:
+                self.samples.remove(sample)
+        #self.sample_files.remove(sample_fname)
+        self._log(f'removed sample file {sample_fname}')
+
+    def subtract_baseline(self, lim=None, how="min"):
+        """
+        Performs a baseline subtraction on the spectrum. This is done just by
+        shifting all values such that some chosen value is zero. There are two
+        methods, determined by the how parameter.
+        
+        lim : (tuple or None) the limits on where the zero point is searched
+              for. Defaults to None.
+        how : (str) How to determine the zero point. Acceptable values are
+              "min", and "right". When "min", the function will find the minimum
+              absorbance value within the wavelength range set by lim, and shift
+              the data such that it is zero. When "right", the rightmost
+              value will be shifted such that it is zero.
+        """
+        # set limits for finding the shift value
+        if lim is not None:
+            search_df = self.data[(self.data['wavelength'] >= lim[0]) &
+                                  (self.data['wavelength'] <= lim[1])]
+        else:
+            search_df = self.data
+        
+        # if this has already been run, make sure we search on unshifted data
+        if 'raw_absorbance' in self.data.columns:
+            key = 'raw_absorbance'
+        else:
+            key = 'absorbance'
+        
+        # do the shifting
+        if how == "min":
+            # get the minimum value as the shift
+            shift = -1*search_df[key].min()
+        elif how == "right":
+            # get the rightmost value as the shift
+            shift = -1*search_df[key].iloc[-1]
+        else:
+            print("Invalid value for the how parameter."+
+                  " You entered '{0}',".format(how) + 
+                  " but only 'min' or 'right' are accepted." +
+                  " Run help(tools.Spectrum.subtract_baseline) for help.")
+            return None
+        
+        # apply the shift
+        shifted = [a+shift for a in self.data[key]]
+        
+        # remap the unshifted data to 'raw_absorbance' if needed
+        if not ('raw_absorbance' in self.data.columns):  
+            self.data['raw_absorbance'] = self.data['absorbance'].copy()
+        # remap the shifted data to 'absorbance'
+        self.data['absorbance'] = shifted
+
+        self._log(f"baseline subtracted using the '{how}' method " +
+                  f"and a shift of {shift}")
+
+    def update_description(self, new_description):
+        """
+        Change the description of the spectrum
+        """
+        self.description = new_description
+        #self._log('changed description')            
         
 
 class StitchedSpectrum(Spectrum):
@@ -1117,8 +1145,11 @@ def plot_scans(scans, xaxis, yaxis, xlim=None, ylim=None, figsize=(8, 4.5),
     if do_titles:
         ax.set_ylabel(yaxis)
         ax.set_xlabel(xaxis)
+
     if do_legend:
-        ax.legend()
+        handels, labels = get_handles([ax])
+        if handels:
+            ax.legend()
     
     if save_path:
         plt.savefig(save_path, bbox_inches='tight')
@@ -1225,7 +1256,9 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
         if do_bottom_xlabel:
             ax1.set_xlabel("Wavelength (nm)")
     if do_legend:
-        ax1.legend(loc=legend_loc)
+        handels, labels = get_handles([ax1])
+        if handels:
+            ax1.legend(loc=legend_loc)
     
     if save_path:
         plt.savefig(save_path, bbox_inches='tight')
