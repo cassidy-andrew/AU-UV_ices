@@ -129,12 +129,19 @@ class spectrumDisplayTab():
     
         # button for adding spectra
         self.add_spec_btn = QPushButton("Add Spectrum")
-        self.listButtonsLayout.addWidget(self.add_spec_btn)
+        self.listLayout.addWidget(self.add_spec_btn)
         self.add_spec_btn.pressed.connect(self.add_spectrum)
 
+        # button for stitching spectra
+        self.stitchSpectraButton = QPushButton("Stitch Highlighted Spectra")
+        self.listButtonsLayout.addWidget(self.stitchSpectraButton)
+        self.stitchSpectraButton.pressed.connect(
+            lambda: self.stitch_spectra(self.speclist.selectedItems()))
+
+        # button for removing spectra
         self.remove_spec_btn = QPushButton("Remove Highlighted Spectra")
-        self.remove_spec_btn.pressed.connect(lambda: self.remove_spectra(
-            self.speclist.selectedItems()))
+        self.remove_spec_btn.pressed.connect(
+            lambda: self.remove_spectra(self.speclist.selectedItems()))
         self.listButtonsLayout.addWidget(self.remove_spec_btn)
 
         self.listLayout.addLayout(self.listButtonsLayout)
@@ -176,12 +183,91 @@ class spectrumDisplayTab():
         self.all_spectra.append(guiSpec)
         self.refresh_spectrum_list()
 
+    def clear_plot(self):
+        """
+        Set all spectra to be invisible on the plot
+        """
+        print('clear plot is to be implemented')
+
+    def export_adata(self):
+        """
+        Export all spectra
+        """
+        for guiSpec in self.all_spectra:
+            guiSpec.export()
+
+    def export_sdata(self, items):
+        """
+        Export selected spectra
+        """
+        for item in items:
+            for guiSpec in self.all_spectra:
+                if guiSpec.uniqueID == item.toolTip():
+                    guiSpec.export()
+
     def refresh_spectrum_list(self):
+        """
+        Update the list of spectra
+        """
         self.speclist.clear()
         for guiSpec in self.all_spectra:
             guiSpec.make_list_item()
             self.speclist.addItem(guiSpec.slItem)
             self.speclist.setItemWidget(guiSpec.slItem, guiSpec.slItemWidget)
+
+    def remove_spectra(self, items):
+        """
+        Remove selected spectra from the spectrum list
+        """
+        for item in items:
+            for guiSpec in self.all_spectra:
+                if guiSpec.uniqueID == item.toolTip():
+                    self.all_spectra.remove(guiSpec)
+        self.refresh_spectrum_list()
+        self.update_plot()
+
+    def stitch_spectra(self, items):
+        """
+        Take two spectra and make a new stitched spectrum
+        """
+        print("stitch_spectra is not implemented yet")
+        # check the right number of spectra are selected
+        if len(items) != 2:
+            if len(items) == 0:
+                message = f'''
+                You must highlight spectra in the list to stitch.
+                Press and hold ctrl and click on the two spectra in the
+                list that you want to stitch together. Be careful to not
+                just "uncheck" the spectra from the plot.
+                '''
+            elif len(items) == 1:
+                message = f'''
+                You must highlight another spectrum to stitch.
+                Press and hold ctrl and click on the other spectrum
+                in the list that you want to stitch with.
+                '''
+            elif len(items) > 2:
+                message = f'''
+                Spectrum stitching can only be done with
+                two spectra at a time.
+                '''
+            self.stitchErrorWindow = ErrorWarningWindow(self, "Stitching",
+                                                        message)
+            self.stitchErrorWindow.show()
+        # identify which spectra are selected
+        for guiSpec in self.all_spectra:
+            if guiSpec.uniqueID == items[0].toolTip():
+                spec1 = guiSpec
+            elif guiSpec.uniqueID == items[1].toolTip():
+                spec2 = guiSpec
+
+        # create a stitched spectrum
+        item_index = len(self.all_spectra)
+        guiStitchedSpec = guiStitchedSpectrum(item_index, self, self.debug,
+                                              spec1, spec2)
+        self.all_spectra.append(guiStitchedSpec)
+        self.refresh_spectrum_list()
+    
 
     def update_plot(self):
         """
@@ -204,26 +290,15 @@ class spectrumDisplayTab():
         self.sc.axes[0].set_xlim(self.xlims)
         self.sc.draw()
 
-    def clear_plot(self):
-        print('clear plot is to be implemented')
-
-    def export_sdata(self, items):
-        for item in items:
-            for guiSpec in self.all_spectra:
-                if guiSpec.uniqueID == item.toolTip():
-                    guiSpec.export()
-
-    def export_adata(self):
-        for guiSpec in self.all_spectra:
-            guiSpec.export()
-
-    def remove_spectra(self, items):
-        for item in items:
-            for guiSpec in self.all_spectra:
-                if guiSpec.uniqueID == item.toolTip():
-                    self.all_spectra.remove(guiSpec)
-        self.refresh_spectrum_list()
-        self.update_plot()
+class ErrorWarningWindow(QWidget):
+    def __init__(self, guiSpec, error, message):
+        super().__init__()
+        self.guiSpec = guiSpec
+        self.setWindowTitle(f"{error} Error!")
+        
+        self.label = QLabel(message, self)
+        self.label.setGeometry(0, 0, 500, 175)
+        self.label.setAlignment(Qt.AlignCenter)
     
 
 class guiSpectrum():
@@ -450,7 +525,17 @@ class guiSpectrum():
         if (self.spec.description == "") or (self.spec.description == None):
             # exporting without a description is bad practice, so the user is
             # not allowed to do it >:O
-            self.exportWarningWindow = ExportWarningWindow(self)
+            labelText = f'''
+            Spectrum: {self.spec.name}
+
+            No spectrum description found!
+            You must provide a description before you can
+            export the spectrum.
+             
+            (Be sure to click "apply" when you are done!)
+            '''
+            self.exportWarningWindow = ErrorWarningWindow(self, "Export",
+                                                          labelText)
             self.exportWarningWindow.show()
             return None
         else:
@@ -464,6 +549,25 @@ class guiSpectrum():
                 fname += ".txt"
             # do the export
             self.spec.export(path=fname)
+
+class guiStitchedSpectrum(guiSpectrum):
+    def __init__(self, index, parentWindow, debug, spec1, spec2):
+        self.parentWindow = parentWindow
+        self.debug = debug
+        # create the spectools Spectrum, give it a basic name
+        self.spec = spectools.StitchedSpectrum(spec1.spec, spec2.spec,
+                                               debug=debug)
+        proposed_name = f"Spectrum {index}"
+        for spec in self.parentWindow.all_spectra:
+            if spec.spec.name == proposed_name:
+                proposed_name += " again"
+        self.uniqueID = "Spectrum ID: "+ datetime.now().strftime("%d%H%M%S%f")
+        self.spec.change_name(proposed_name)
+        self.guiBkgds = spec1.guiBkgds + spec2.guiBkgds
+        self.guiSamples = spec1.guiSamples + spec2.guiSamples
+
+        # create the edit window and assign the button to showing it
+        self.editwindow = EditSpecWindow(self)
 
 class guiScan():
     """
@@ -538,25 +642,6 @@ class ChangelogWindow(QWidget):
         self.show()
 
 
-class ExportWarningWindow(QWidget):
-    def __init__(self, guiSpec):
-        super().__init__()
-        self.guiSpec = guiSpec
-        self.setWindowTitle("Export Error!")
-
-        labelText = f'''Spectrum: {self.guiSpec.spec.name}
-        
-        No spectrum description found!
-        You must provide a description before you can
-        export the spectrum.
-        
-        (Be sure to click "apply" when you are done!)'''
-        
-        self.label = QLabel(labelText, self)
-        self.label.setGeometry(0, 0, 500, 150)
-        self.label.setAlignment(Qt.AlignCenter)
-
-
 class EditSpecWindow(QWidget):
     def __init__(self, guiSpec):
         super().__init__()
@@ -589,14 +674,14 @@ class EditSpecWindow(QWidget):
         self.scanListLayout = QFormLayout()
 
         # initialize the fit tab
-        self.fitTab = QWidget()
-        self.fitTabLayout = QHBoxLayout()
-        self.tabs.addTab(self.fitTab, "Spectrum Fitting")
+        #self.fitTab = QWidget()
+        #self.fitTabLayout = QHBoxLayout()
+        #self.tabs.addTab(self.fitTab, "Spectrum Fitting")
 
         # ---------------------------------------------------------------------
         # Spectrum Parameter Edit
         # ---------------------------------------------------------------------
-        
+
         # Name edit
         self.nameLineEdit = QLineEdit()
         self.nameLineEdit.setText(self.guiSpec.spec.name)
