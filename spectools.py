@@ -943,6 +943,9 @@ class StitchedSpectrum(Spectrum):
         self.data = self._stich(spec1, spec2)
         # keep the color of spec1; spec2 is added to spec1 from the user POV
         self.color = spec1.color
+        self.cindex = spec1.cindex
+        self.lenccycle = spec1.lenccycle
+        self.cmap = spec1.cmap
         # these are combined from the two spectra
         self.name = spec1.name + "-" + spec2.name
         self.samples = spec1.samples + spec2.samples
@@ -956,12 +959,26 @@ class StitchedSpectrum(Spectrum):
         self.changelog = ""
         self.debug = debug
         self.description = ""
+        self.baseline_p = None
+        self.peaks = None
+        self.peak_errors = None
+        self.fit_results = None
         
-    def _stich(self, spec1, spec2):
+    def _stich(self, specA, specB):
         """
         Stiches two Spectrum objects together. The two objects should
         have overlapping data.
         """
+        # make sure spec1 is the short wavelength, spec2 is the long wavelength
+        wlA = specA.data['wavelength'][0]
+        wlB = specB.data['wavelength'][0]
+        if wlA > wlB:
+            spec1 = specB
+            spec2 = specA
+        else:
+            spec1 = specA
+            spec2 = specB
+        # a place to store the overlapping region
         overlaps = []
         # find the overlapping region, which we assume is at the start of spec2
         for i in range(0, len(spec2.data)):
@@ -985,7 +1002,7 @@ class StitchedSpectrum(Spectrum):
         offset = sum(diffs) / len(diffs)
 
         # add the offset to spec2
-        spec2.offset = offset
+        #spec2.offset = offset
         df['abs2'] = df['abs2'] + offset
         spec2fixed = spec2.data.copy()
         spec2fixed['absorbance'] = spec2fixed['absorbance'] + offset

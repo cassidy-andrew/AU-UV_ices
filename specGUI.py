@@ -267,6 +267,7 @@ class spectrumDisplayTab():
                                               spec1, spec2)
         self.all_spectra.append(guiStitchedSpec)
         self.refresh_spectrum_list()
+        self.update_plot()
     
 
     def update_plot(self):
