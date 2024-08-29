@@ -154,7 +154,7 @@ class spectrumDisplayTab():
         self.eb_clear.pressed.connect(self.clear_plot)
         self.bottomLayout.addWidget(self.eb_clear)
         
-        self.eb_sdata = QPushButton("Export Selected Data")
+        self.eb_sdata = QPushButton("Export Highlighted Data")
         self.eb_sdata.pressed.connect(
             lambda:self.export_sdata(self.speclist.selectedItems()))
         self.bottomLayout.addWidget(self.eb_sdata)
@@ -230,41 +230,23 @@ class spectrumDisplayTab():
         """
         Take two spectra and make a new stitched spectrum
         """
-        print("stitch_spectra is not implemented yet")
-        # check the right number of spectra are selected
-        if len(items) != 2:
-            if len(items) == 0:
-                message = f'''
-                You must highlight spectra in the list to stitch.
-                Press and hold ctrl and click on the two spectra in the
-                list that you want to stitch together. Be careful to not
-                just "uncheck" the spectra from the plot.
-                '''
-            elif len(items) == 1:
-                message = f'''
-                You must highlight another spectrum to stitch.
-                Press and hold ctrl and click on the other spectrum
-                in the list that you want to stitch with.
-                '''
-            elif len(items) > 2:
-                message = f'''
-                Spectrum stitching can only be done with
-                two spectra at a time.
-                '''
-            self.stitchErrorWindow = ErrorWarningWindow(self, "Stitching",
-                                                        message)
-            self.stitchErrorWindow.show()
         # identify which spectra are selected
+        toolTips = []
+        for item in items:
+            toolTips.append(item.toolTip())
+        print(toolTips)
+        guiSpecs = []
         for guiSpec in self.all_spectra:
-            if guiSpec.uniqueID == items[0].toolTip():
-                spec1 = guiSpec
-            elif guiSpec.uniqueID == items[1].toolTip():
-                spec2 = guiSpec
+            print(guiSpec.uniqueID)
+            if guiSpec.uniqueID in toolTips:
+                guiSpecs.append(guiSpec)
+
+        print(guiSpecs)
 
         # create a stitched spectrum
         item_index = len(self.all_spectra)
         guiStitchedSpec = guiStitchedSpectrum(item_index, self, self.debug,
-                                              spec1, spec2)
+                                              guiSpecs)
         self.all_spectra.append(guiStitchedSpec)
         self.refresh_spectrum_list()
         self.update_plot()
@@ -348,7 +330,8 @@ class guiSpectrum():
         # update list check box
         self.slCheckBox.setText(self.spec.name)
         # update edit window name
-        self.editwindow.setWindowTitle(f'Edit Spectrum: {self.spec.name}')
+        #self.editwindow.setWindowTitle(f'Edit Spectrum: {self.spec.name}')
+        self.editwindow.refresh_name()
         # hide the edit window
         if hide == True:
             self.editwindow.hide()
@@ -438,7 +421,7 @@ class guiSpectrum():
             color = dialog.getColor().name()
         self.spec.change_color(color)
         self.editwindow.colorLabel.setText(self.spec.color)
-        self.isOK(hide=False) 
+        self.isOK(hide=False)
 
     def cycle_color(self):
         """
@@ -481,7 +464,8 @@ class guiSpectrum():
         # update list check box
         self.slCheckBox.setText(self.spec.name)
         # update edit window name
-        self.editwindow.setWindowTitle(f'Edit Spectrum: {self.spec.name}')
+        #self.editwindow.setWindowTitle(f'Edit Spectrum: {self.spec.name}')
+        self.editwindow.refresh_name()
         self.isOK(hide=False)
 
     def flip_visibility(self):
@@ -498,7 +482,7 @@ class guiSpectrum():
         """
         # the name and visibility check box
         self.slCheckBox = QCheckBox(self.spec.name)
-        self.slCheckBox.setChecked(True)
+        self.slCheckBox.setChecked(self.spec.visible)
         self.slCheckBox.stateChanged.connect(self.flip_visibility)
         # the color cycler
         self.slColorCycleButton = QPushButton("cycle color")
@@ -551,24 +535,36 @@ class guiSpectrum():
             # do the export
             self.spec.export(path=fname)
 
+
 class guiStitchedSpectrum(guiSpectrum):
-    def __init__(self, index, parentWindow, debug, spec1, spec2):
+    def __init__(self, index, parentWindow, debug, guiSpecs):
         self.parentWindow = parentWindow
         self.debug = debug
-        # create the spectools Spectrum, give it a basic name
-        self.spec = spectools.StitchedSpectrum(spec1.spec, spec2.spec,
-                                               debug=debug)
-        proposed_name = f"Spectrum {index}"
+        # organize the data
+        specs = []
+        self.guiBkgds = []
+        self.guiSamples = []
+        for guiSpec in guiSpecs:
+            specs.append(guiSpec.spec)
+            self.guiBkgds += guiSpec.guiBkgds
+            self.guiSamples += guiSpec.guiSamples
+
+        # create the spectools Spectrum
+        self.spec = spectools.StitchedSpectrum(specs, debug=debug)
+        
+        # Give it a basic name
+        proposed_name = f"Stitched {index}"
         for spec in self.parentWindow.all_spectra:
             if spec.spec.name == proposed_name:
                 proposed_name += " again"
-        self.uniqueID = "Spectrum ID: "+ datetime.now().strftime("%d%H%M%S%f")
         self.spec.change_name(proposed_name)
-        self.guiBkgds = spec1.guiBkgds + spec2.guiBkgds
-        self.guiSamples = spec1.guiSamples + spec2.guiSamples
+
+        # ID for the spectrum list
+        self.uniqueID = "Spectrum ID: "+ datetime.now().strftime("%d%H%M%S%f")
 
         # create the edit window and assign the button to showing it
-        self.editwindow = EditSpecWindow(self)
+        self.editwindow = EditStitchedSpecWindow(self)
+
 
 class guiScan():
     """
@@ -761,7 +757,7 @@ class EditSpecWindow(QWidget):
         self.bkgdAddButton = QPushButton("Add Files")
         self.bkgdAddButton.clicked.connect(
             lambda: self.guiSpec.getFiles('bkgd'))
-        self.bkgdRmButton = QPushButton("Remove Selected Files")
+        self.bkgdRmButton = QPushButton("Remove Highlighted Files")
         self.bkgdRmButton.clicked.connect(
             lambda: self.guiSpec.removeFiles(self.bkgdList.selectedItems(),
                                              'bkgd'))
@@ -771,7 +767,7 @@ class EditSpecWindow(QWidget):
         self.sampleAddButton = QPushButton("Add Files")
         self.sampleAddButton.clicked.connect(
             lambda: self.guiSpec.getFiles('sample'))
-        self.sampleRmButton = QPushButton("Remove Selected Files")
+        self.sampleRmButton = QPushButton("Remove Highlighted Files")
         self.sampleRmButton.clicked.connect(
             lambda: self.guiSpec.removeFiles(self.sampleList.selectedItems(),
                                      'sample'))
@@ -907,6 +903,136 @@ class EditSpecWindow(QWidget):
             self.scanCanvas.axes.set_ylim(self.ylims)
             self.scanCanvas.axes.set_xlim(self.xlims)
         self.scanCanvas.draw()
+
+    def show_edit_window(self):
+        """
+        Shows the window where the user can edit the spectrum.
+        """
+        self.show()
+
+    def refresh_name(self):
+        self.setWindowTitle(f'Edit Spectrum: {self.guiSpec.spec.name}')
+
+class EditStitchedSpecWindow(QWidget):
+    def __init__(self, guiSpec):
+        super().__init__()
+        # make sure we know what spectrum this edit window belongs to
+        self.guiSpec = guiSpec
+        
+        # configure window basics
+        self.setWindowTitle(f'Edit Stitched Spectrum: {self.guiSpec.spec.name}')
+        # the general layout which holds everything
+        self.eOuterLayout = QVBoxLayout()
+        # the layout which holds everything except the bottom buttons
+        self.eTopLayout = QHBoxLayout()
+        # the layout which holds the Spectrum parameter area
+        self.paramsLayout = QFormLayout()
+
+        # ---------------------------------------------------------------------
+        # Spectrum Parameter Edit
+        # ---------------------------------------------------------------------
+
+        # Name edit
+        self.nameLineEdit = QLineEdit()
+        self.nameLineEdit.setText(self.guiSpec.spec.name)
+        self.nameLineEdit.editingFinished.connect(
+            lambda: self.guiSpec.update_name(self.nameLineEdit.text()))
+
+        # color picker
+        self.colorLabel = QLabel(self.guiSpec.spec.color)
+        self.colorButton = QPushButton("choose color")
+        self.colorButton.clicked.connect(self.guiSpec.update_color)
+        self.colorLayout = QHBoxLayout()
+        self.colorLayout.addWidget(self.colorLabel)
+        self.colorLayout.addWidget(self.colorButton)
+
+        # offset
+        self.ewOffsetLineEdit = QDoubleSpinBox()
+        self.ewOffsetLineEdit.setRange(-20.0, 20.0)
+        self.ewOffsetLineEdit.setDecimals(4)
+        self.ewOffsetLineEdit.setSingleStep(0.001)
+        self.ewOffsetLineEdit.setValue(self.guiSpec.spec.offset)
+        self.ewOffsetLineEdit.valueChanged.connect(
+            lambda: self.guiSpec.update_offset(self.ewOffsetLineEdit.value()))
+
+        # linestyle
+        self.ewLSComboBox = QComboBox()
+        self.ewLSComboBox.addItem("solid")
+        self.ewLSComboBox.addItem("dotted")
+        self.ewLSComboBox.addItem("dashed")
+        self.ewLSComboBox.addItem("dashdot")
+        self.ewLSComboBox.currentTextChanged.connect(
+            self.guiSpec.update_linestyle)
+
+        # linewidth
+        self.linewidthLineEdit = QDoubleSpinBox()
+        self.linewidthLineEdit.setRange(0.1, 20.0)
+        self.linewidthLineEdit.setDecimals(1)
+        self.linewidthLineEdit.setSingleStep(1.0)
+        self.linewidthLineEdit.setValue(self.guiSpec.spec.linewidth)
+        self.linewidthLineEdit.valueChanged.connect(
+            lambda: self.guiSpec.update_linewidth(
+                self.linewidthLineEdit.value()))
+
+        # description
+        self.descriptionTextEdit = QTextEdit()
+        self.descriptionTextEdit.setText(self.guiSpec.spec.description)
+
+        # add parameter edit buttons to layout
+        self.paramsLayout.addRow("Spectrum Name:", self.nameLineEdit)
+        self.paramsLayout.addRow("Spectrum Color:", self.colorLayout)
+        self.paramsLayout.addRow("Spectrum Offset:", self.ewOffsetLineEdit)
+        self.paramsLayout.addRow("Spectrum Line Style:", self.ewLSComboBox)
+        self.paramsLayout.addRow("Spectrum Line Width:", self.linewidthLineEdit)
+        self.paramsLayout.addRow("Spectrum Description:\n"+
+                                 "(remember to apply\n changes!)", 
+                                 self.descriptionTextEdit)
+
+        # ---------------------------------------------------------------------
+        # Bottom Buttons
+        # ---------------------------------------------------------------------
+
+        # apply button
+        self.applyButton = QPushButton("Apply")
+        self.applyButton.clicked.connect(
+            lambda: self.guiSpec.isOK(hide=False, recalculate=False))
+        
+        # ok button (the same as apply, but closes the window)
+        self.okButton = QPushButton("OK")
+        self.okButton.clicked.connect(
+            lambda: self.guiSpec.isOK(hide=True, recalculate=False))
+        
+        # the changelog view button
+        self.changelogButton = QPushButton("View Changelog")
+        # create the changelog window and assign the button showing it
+        self.clogwindow = ChangelogWindow(self.guiSpec)
+        self.changelogButton.clicked.connect(
+            self.clogwindow.show_changelog_window)
+
+        # the export button
+        self.exportButton = QPushButton("Export Spectrum")
+        self.exportButton.clicked.connect(self.guiSpec.export)
+
+        # add the apply and ok buttons to their layout
+        self.applyLayout = QHBoxLayout()
+        self.applyLayout.addWidget(self.okButton)
+        self.applyLayout.addWidget(self.changelogButton)
+        self.applyLayout.addWidget(self.exportButton)
+        self.applyLayout.addWidget(self.applyButton)
+
+        # set the layout to the window
+        self.eTopLayout.addLayout(self.paramsLayout)
+        #self.eTopLayout.addWidget(self.tabs)
+        #self.eTopLayout.addLayout(self.scanPlotLayout)
+        #self.eTopLayout.addLayout(self.scanListLayout)
+        self.eOuterLayout.addLayout(self.eTopLayout) #self.paramsLayout)
+        self.eOuterLayout.addLayout(self.applyLayout)
+        self.holderwidget = QWidget()
+        self.eOuterLayout.addWidget(self.holderwidget)
+        self.setLayout(self.eOuterLayout)
+
+    def refresh_name(self):
+        self.setWindowTitle(f'Edit Stitched Spectrum: {self.guiSpec.spec.name}')
 
     def show_edit_window(self):
         """
