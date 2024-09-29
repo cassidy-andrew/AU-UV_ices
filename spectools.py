@@ -17,12 +17,12 @@ import scipy.constants as constants
 from scipy.optimize import curve_fit
 
 
-def scattering(wl, m, k):
+def scattering(wl, m, k, b):
     """
     The rayleigh scattering function, as outlined in equation 11 of
     Ioppolo et al. 2021: https://doi.org/10.1051/0004-6361/202039184
     """
-    return k*np.log(1/(1-m*(wl**-4)))
+    return k*np.log(1/(1-m*(wl**-4))) + b
 
 def gaussian(x, a1,c1,s1):
     """
@@ -327,6 +327,7 @@ class Spectrum:
         if self._do_scattering:
             guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) # m
             guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) # k
+            guesses.append({'lower':0, 'guess':1, 'upper':np.inf}) # b
             
         centers = np.linspace(wavelengths.iloc[0],wavelengths.iloc[-1],ng_upper)
         for n in range(0, ng_upper):
@@ -406,7 +407,7 @@ class Spectrum:
         if self._do_comps:
             for i in range(0, self._n_comps):
                 this_comp = self._comps[i]
-                this_ab = [C[i]['value']*ab for ab in this_comp['absorbance']]
+                this_ab = [C[i]['value']*(ab)-self.offset for ab in this_comp['absorbance']]
                 self.fit_components.append({'parameters':C[i],
                                         'wavelength':this_comp['wavelength'],
                                         'absorbance':this_ab})
@@ -701,7 +702,7 @@ class Spectrum:
             # if we are doing the baseline, there are 2 extra parameters
             # we need to modify our indices in some places by 2
             #ib = 2
-            self._n_scatt = 2
+            self._n_scatt = 3
             self._log("scattering baseline will be included in the fit")
         else:
             self._do_scattering = False
@@ -734,6 +735,9 @@ class Spectrum:
                                                     xp=this_comp['wavelength'],
                                                     fp=this_comp['absorbance'],
                                                     left=0, right=0)
+                    # apply the offset for this spectrum
+                fit_comp['absorbance'] += self.offset
+                #print(self.offset)
                 
                 # add the formatted component to the list of fitting components
                 self._comps.append(fit_comp)
@@ -1134,13 +1138,13 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
     # plot the data
     ax1.plot(spec.data['wavelength'], spec.data['absorbance']+spec.offset,
              color=spec.color, label=spec.name, linestyle=spec.linestyle, 
-             linewidth=spec.linethickness)
+             linewidth=spec.linewidth)
     # calculate a color for the fit
     fit_color = lighten_color(spec.color, amount=1.2)
     # plot the fit
     ax1.plot(spec.data['wavelength'], spec.data['best_fit']+spec.offset,
              color=fit_color, linestyle='--', label=spec.name+" Best Fit",
-             linewidth=spec.linethickness)
+             linewidth=spec.linewidth)
     # plot the peaks as vertical lines if desired
     if plot_peaks:
         for peak in spec.peaks:
@@ -1151,6 +1155,7 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
         for component in spec.fit_components:
             ax1.plot(component['wavelength'],
                      [spec.offset+c for c in component['absorbance']],
+                     #[c for c in component['absorbance']],
                      color='xkcd:grey', linestyle='-')
             ax1.fill_between(component['wavelength'], 0,
                              [spec.offset+c for c in component['absorbance']],
