@@ -1,6 +1,7 @@
 import sys
 import os
 import inspect
+import json
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -43,13 +44,17 @@ from PyQt5.Qt import (
     QRect
 )
 
+sys.path.insert(0, parentdir)
+with open("config.json") as f:
+    config_file = json.load(f)
+
 class AnnealTab():
-    def __init__(self, debug, polling_rate=1000):
+    def __init__(self, debug):
         """
         A tab for annealing stuff with!
         """
         self.debug = debug
-        self.polling_rate = polling_rate
+        self.polling_rate = config_file['polling_rate']
         # temperature controller hardware!
         self.tempController = TC.TemperatureController()
 

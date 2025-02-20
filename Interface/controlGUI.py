@@ -60,8 +60,7 @@ class ControlTab():
 
         self.annealTabWidget = QWidget()
         #self.annealTabWidget.setFixedWidth(500)
-        self.annealTabObject = annealTab.AnnealTab(debug,
-                                  self.parentWindow.polling_rate)
+        self.annealTabObject = annealTab.AnnealTab(debug)
         self.annealTabWidget.setLayout(self.annealTabObject.outerLayout)
         self.tabs.addTab(self.annealTabWidget, "Anneal")
 

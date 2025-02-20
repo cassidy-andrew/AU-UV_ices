@@ -61,10 +61,9 @@ class MainWindow(QWidget):
     """
     The main window which opens at the beginning once DUVET is run
     """
-    def __init__(self, debug, polling_rate):
+    def __init__(self, debug):
         super().__init__()
         self.debug = debug
-        self.polling_rate = polling_rate
 
         # initialize the log file
         self.changelog = ""
@@ -180,15 +179,6 @@ if __name__ == "__main__":
         debug = True
     else:
         debug = False
-
-    # how often to update hardware communications?
-    for argument in sys.argv:
-        if "polling_rate=" in argument:
-            start_index = argument.index("polling_rate=")+13
-            polling_rate = int(argument[start_index:])
-            break
-        else:
-            polling_rate = 1000   # ms
         
     # intialize error catching
     sys.excepthook = excepthook
@@ -201,7 +191,7 @@ if __name__ == "__main__":
     # contruct the application
     app = QApplication(sys.argv)
     app.setFont(font)
-    window = MainWindow(debug, polling_rate)
+    window = MainWindow(debug)
     #window.setFont(font)
     window.show()
     sys.exit(app.exec())

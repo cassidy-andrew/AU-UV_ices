@@ -1,0 +1,4 @@
+{
+    "polling_rate":1000,
+    "temperature_controller_channel":"COM0"
+}
