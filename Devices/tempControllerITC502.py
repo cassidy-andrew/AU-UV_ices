@@ -1,5 +1,15 @@
 import serial
 import traceback
+import os
+import sys
+import inspect
+import json
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+with open("config.json") as f:
+    config_file = json.load(f)
 
 class TemperatureController():
     def __init__(self):
@@ -14,7 +24,7 @@ class TemperatureController():
         self.read_timeout = 1    # seconds
         self.write_timeout = 2    # seconds
         self.baudrate = 9600    # see pages 10 and 76 of the manual
-        self.default_channel = "COM0"    # a total guess, change this!!!!!!!
+        self.default_channel = config_file['temperature_controller_channel']
 
     def _open_serial_connection(self, channel):
         try:
