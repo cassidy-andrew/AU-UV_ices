@@ -12,15 +12,15 @@ with open("config.json") as f:
     config_file = json.load(f)
 
 class TemperatureController():
-    def __init__(self):
-        """
-        This class represents the Oxford Instruments ITC502 temperature
-        controller and associated functions. It is used to both read values
-        from, and send commands to, the temperature controller hardware.
+    """
+    This class represents the Oxford Instruments ITC502 temperature
+    controller and associated functions. It is used to both read values
+    from, and send commands to, the temperature controller hardware.
 
-        Until I have access to the hardware to test with, I assume we are using
-        the serial interface rather than the GPIB connection.
-        """
+    Until I have access to the hardware to test with, I assume we are using
+    the serial interface rather than the GPIB connection.
+    """
+    def __init__(self):
         self.read_timeout = 1    # seconds
         self.write_timeout = 2    # seconds
         self.baudrate = 9600    # see pages 10 and 76 of the manual

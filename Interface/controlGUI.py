@@ -2,12 +2,8 @@ import sys
 import os
 import inspect
 
+sys.path.insert(0, "Interface/ControlTabs")
 import annealTab
-
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir+'/Tools')
-import depTools
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -47,6 +43,7 @@ import pyqtgraph as pg
 class ControlTab():
     def __init__(self, parentWindow, debug):
         self.parentWindow = parentWindow
+        self.hardwareManager = parentWindow.hardwareManager
         self.valueFont = QFont("Consolas", 30)
         self.titleFont = QFont("Arial", 12)
         
@@ -60,7 +57,7 @@ class ControlTab():
 
         self.annealTabWidget = QWidget()
         #self.annealTabWidget.setFixedWidth(500)
-        self.annealTabObject = annealTab.AnnealTab(debug)
+        self.annealTabObject = annealTab.AnnealTab(self, debug)
         self.annealTabWidget.setLayout(self.annealTabObject.outerLayout)
         self.tabs.addTab(self.annealTabWidget, "Anneal")
 

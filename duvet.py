@@ -22,6 +22,8 @@ sys.path.insert(0, 'Interface')
 import analysisGUI
 import controlGUI
 
+sys.path.insert(0, 'Devices')
+import hardwareManager
 
 from PyQt5 import QtGui
 
@@ -70,6 +72,9 @@ class MainWindow(QWidget):
         now = datetime.now()
         current_time = now.strftime("%Y-%m-%d_%H%M%S")
         self.changelogFile = "./Logs/"+current_time+".log"
+
+        # create the hardware manager
+        self.hardwareManager = hardwareManager.HardwareManager()
 
         self.log("Started DUVET!")
         if self.debug:

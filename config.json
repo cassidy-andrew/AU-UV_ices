@@ -1,4 +1,5 @@
 {
     "polling_rate":1000,
-    "temperature_controller_channel":"COM0"
+    "temperature_controller_channel":"COM0",
+    "guage_controller_channel":"COM1"
 }

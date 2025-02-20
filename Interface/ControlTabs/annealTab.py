@@ -3,11 +3,6 @@ import os
 import inspect
 import json
 
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir+'/Devices')
-import tempControllerITC502 as TC
-
 from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -44,19 +39,16 @@ from PyQt5.Qt import (
     QRect
 )
 
-sys.path.insert(0, parentdir)
-with open("config.json") as f:
-    config_file = json.load(f)
-
 class AnnealTab():
-    def __init__(self, debug):
+    def __init__(self, parent, debug):
         """
         A tab for annealing stuff with!
         """
+        self.parent = parent
         self.debug = debug
-        self.polling_rate = config_file['polling_rate']
+        
         # temperature controller hardware!
-        self.tempController = TC.TemperatureController()
+        self.tempController = parent.hardwareManager.temperatureController
 
         # define fonts
         self.valueFont = QFont("Consolas", 15)
@@ -307,15 +299,14 @@ class AnnealTab():
         # this helps formatting the rows so they stay at the top of the tab
         self.outerLayout.setRowStretch(self.outerLayout.rowCount(), 1)
 
-        # update timer to refresh the data
-        self.update_timer = QTimer()
-        self.update_timer.timeout.connect(self.refresh_controller)
-        # set the period of the update timer, in ms
-        self.update_timer.start(self.polling_rate)
+        # configure update timer to refresh the data
+        self.parent.hardwareManager.add_refresh_function(
+            self.refresh_controller
+        )
 
     def refresh_controller(self):
         """
-        Update all values from the temperature controller
+        Update all values from the temperature controller.
         """
         # measured temperature
         self.measured_temperature = self.tempController.get_temp()
