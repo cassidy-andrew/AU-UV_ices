@@ -173,7 +173,7 @@ class TemperatureController():
         if channel == None:
             channel = self.default_channel
 
-        command = ""
+        command = "R5" + "\n"
 
         ser = self._open_serial_connection(channel)
 

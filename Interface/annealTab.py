@@ -44,23 +44,23 @@ from PyQt5.Qt import (
 )
 
 class AnnealTab():
-    def __init__(self, debug):
+    def __init__(self, debug, polling_rate=1000):
         """
         A tab for annealing stuff with!
         """
+        self.debug = debug
+        self.polling_rate = polling_rate
         # temperature controller hardware!
         self.tempController = TC.TemperatureController()
-        
+
+        # define fonts
         self.valueFont = QFont("Consolas", 15)
         self.titleFont = QFont("Arial", 10)
-        
-        self.outerLayout = QGridLayout() #QHBoxLayout()
 
-        # layout for the measured parameter values
-        #self.leftLayout = QVBoxLayout()
-        # layout for the target parameter values
-        #self.rightLayout = QVBoxLayout()
+        # where we hold all the smaller UI elements
+        self.outerLayout = QGridLayout()
 
+        # this is good for making the tab a little easier to read
         self.verticalSpacer = QSpacerItem(20, 20)   # x, y
 
         # -----------------------------------------
@@ -81,6 +81,7 @@ class AnnealTab():
         self.mtLabel.setFont(self.valueFont)
         self.mtLabel.setAlignment(Qt.AlignHCenter)
         self.measuredTempLayout.addWidget(self.mtLabel)
+        
         self.measuredTempLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.measuredTempLayout, 0, 0)
 
@@ -106,6 +107,7 @@ class AnnealTab():
             )
         self.tempLineEdit.setAlignment(Qt.AlignHCenter)
         self.targetTempLayout.addWidget(self.tempLineEdit)
+        
         self.targetTempLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.targetTempLayout, 0, 1)
 
@@ -126,6 +128,7 @@ class AnnealTab():
         self.mspLabel.setFont(self.valueFont)
         self.mspLabel.setAlignment(Qt.AlignHCenter)
         self.measuredSetPointLayout.addWidget(self.mspLabel)
+        
         self.measuredSetPointLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.measuredSetPointLayout, 1, 0)
 
@@ -146,6 +149,7 @@ class AnnealTab():
         self.mpsLabel.setFont(self.valueFont)
         self.mpsLabel.setAlignment(Qt.AlignHCenter)
         self.powerSettingLayout.addWidget(self.mpsLabel)
+        
         self.powerSettingLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.powerSettingLayout, 2, 0)
 
@@ -165,6 +169,7 @@ class AnnealTab():
         self.targetPowerComboBox.setFont(self.valueFont)
         #self.targetPowerComboBox.currentTextChanged.connect()
         self.powerTargetLayout.addWidget(self.targetPowerComboBox)
+        
         self.powerTargetLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.powerTargetLayout, 2, 1)
 
@@ -185,6 +190,7 @@ class AnnealTab():
         self.plLabel.setFont(self.valueFont)
         self.plLabel.setAlignment(Qt.AlignHCenter)
         self.powerLevelLayout.addWidget(self.plLabel)
+        
         self.powerLevelLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.powerLevelLayout, 3, 0)
 
@@ -205,6 +211,7 @@ class AnnealTab():
         self.mrrLabel.setFont(self.valueFont)
         self.mrrLabel.setAlignment(Qt.AlignHCenter)
         self.measuredRRLayout.addWidget(self.mrrLabel)
+        
         self.measuredRRLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.measuredRRLayout, 4, 0)
 
@@ -227,6 +234,7 @@ class AnnealTab():
         #self.rrLineEdit.editingFinished.connect()
         self.rrLineEdit.setAlignment(Qt.AlignHCenter)
         self.targetRRLayout.addWidget(self.rrLineEdit)
+        
         self.targetRRLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.targetRRLayout, 4, 1)
 
@@ -247,6 +255,7 @@ class AnnealTab():
         self.mhsLabel.setFont(self.valueFont)
         self.mhsLabel.setAlignment(Qt.AlignHCenter)
         self.measuredHeaterStatusLayout.addWidget(self.mhsLabel)
+        
         self.measuredHeaterStatusLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.measuredHeaterStatusLayout, 5, 0)
 
@@ -290,15 +299,14 @@ class AnnealTab():
         # Configuration & Logistics
         # -----------------------------------------
 
-        # this helps formatting the rows. The first number should be 1 higher
-        # than the highest index widget's index in the outerlayout grid
-        self.outerLayout.setRowStretch(7, 1)
+        # this helps formatting the rows so they stay at the top of the tab
+        self.outerLayout.setRowStretch(self.outerLayout.rowCount(), 1)
 
         # update timer to refresh the data
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.refresh_controller)
         # set the period of the update timer, in ms
-        self.update_timer.start(10000)
+        self.update_timer.start(self.polling_rate)
 
     def refresh_controller(self):
         """

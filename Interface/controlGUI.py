@@ -7,7 +7,6 @@ import annealTab
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir+'/Tools')
-import tempTools
 import depTools
 
 from PyQt5.QtWidgets import (
@@ -61,7 +60,8 @@ class ControlTab():
 
         self.annealTabWidget = QWidget()
         #self.annealTabWidget.setFixedWidth(500)
-        self.annealTabObject = annealTab.AnnealTab(debug)
+        self.annealTabObject = annealTab.AnnealTab(debug,
+                                  self.parentWindow.polling_rate)
         self.annealTabWidget.setLayout(self.annealTabObject.outerLayout)
         self.tabs.addTab(self.annealTabWidget, "Anneal")
 

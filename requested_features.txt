@@ -1,0 +1,19 @@
+# ------------------------------------------------------------------------------
+# Requested Features
+# ------------------------------------------------------------------------------
+
+- "File" and "options" toolbar at the top of the main window, to make space for future configuration settings.
+
+- secret developer settings under "file": debug, legacy stitch, etc.
+
+- load previously exported spectra
+
+- allow viewing (not editing) of raw data for stitched spectra change stitched spectrum edit window to be "locked" with no ability to add or remove raw componenets.
+
+- Remember last window position for new edit windows, with some small offset to avoid windows entirely overlapping when created
+
+- advanced plotting settings: axis ticks in or out, fontsize, colors, etc
+
+- "ruler" in the analysis plot to let the user place vertical lines wherever they want, for inspecting spectroscopic peak positions
+
+- "overwatch" pop-out window displaying up to 4 important parameters in large text, for use on a separate monitor viewed from a distance (i.e. to easily see the chamber pressure while depositing a sample, or other similar tasks)

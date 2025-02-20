@@ -5,20 +5,13 @@ It's UV-VIS spectroscopy time.
 This is the main file, which creates the main window. All the 'stuff' in the
 program like the spectrum display and deposition fitting gets put into the main
 window as tabs. As such, they are separated into different .py files. They are
-structured into 'GUI' and 'tools' files. For example the code relating to
-displaying and fitting spectra are called 'analysisGUI' and 'spectools.' The 'tools'
-files contain the physics and mathematics that interact with the data. The 'GUI'
-files contain the infrastructure for putting those analysis tools into the
-format the user interacts with.
+structured into 'Interface', 'Devices', and 'Tools' folders. This file interacts
+with the interface files, which then interact with the devices and/or tools as
+needed.
 
-Here is a layout of DUVET's structure:
-
-duvet.py
- |----> analysisGUI.py <-> spectools.py
- |----> controlGUI.py <-> controltools.py
-
-Further functionality can be added this way, as different options for tabs in
-the DUVET main display.
+Functions relating to GUI elements should be under 'Interface'.
+Functions relating to hardware interaction should be under 'Devices'.
+Functions relating to analysis, fitting, etc, should be under 'Tools'.
 """
 
 import sys
@@ -27,7 +20,6 @@ from datetime import datetime
 
 sys.path.insert(0, 'Interface')
 import analysisGUI
-#import depGUI
 import controlGUI
 
 
@@ -69,9 +61,10 @@ class MainWindow(QWidget):
     """
     The main window which opens at the beginning once DUVET is run
     """
-    def __init__(self, debug):
+    def __init__(self, debug, polling_rate):
         super().__init__()
         self.debug = debug
+        self.polling_rate = polling_rate
 
         # initialize the log file
         self.changelog = ""
@@ -101,14 +94,6 @@ class MainWindow(QWidget):
         self.SDT = analysisGUI.spectrumDisplayTab(self, debug)
         # set the layout of the spectrum display tab placeholder widget
         self.specTab.setLayout(self.SDT.outerLayout)
-
-        # ---------------------------------------------------------------------
-        # Setup timescan tab
-        # ---------------------------------------------------------------------
-        
-        #self.depTab = QWidget()
-        #self.DFT = depGUI.depositionFittingTab()
-        #self.depTab.setLayout(self.DFT.outerLayout)
 
         # ---------------------------------------------------------------------
         # Setup Control tab
@@ -191,10 +176,20 @@ class MainWindow(QWidget):
 
 if __name__ == "__main__":
     # do we debug?
-    if "debug" in sys.argv:
+    if "debug=True" in sys.argv:
         debug = True
     else:
         debug = False
+
+    # how often to update hardware communications?
+    for argument in sys.argv:
+        if "polling_rate=" in argument:
+            start_index = argument.index("polling_rate=")+13
+            polling_rate = int(argument[start_index:])
+            break
+        else:
+            polling_rate = 1000   # ms
+        
     # intialize error catching
     sys.excepthook = excepthook
     
@@ -206,7 +201,7 @@ if __name__ == "__main__":
     # contruct the application
     app = QApplication(sys.argv)
     app.setFont(font)
-    window = MainWindow(debug)
+    window = MainWindow(debug, polling_rate)
     #window.setFont(font)
     window.show()
     sys.exit(app.exec())

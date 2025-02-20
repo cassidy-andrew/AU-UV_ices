@@ -1406,7 +1406,7 @@ def plot_absorbance(spectra, xlim=None, ylim=None, peaks=None, plot_fit=False,
     if do_legend:
         handels, labels = get_handles([ax1])
         if handels:
-            ax1.legend(loc=legend_loc)
+            ax1.legend(loc=legend_loc, framealpha=0)
     
     if save_path:
         plt.savefig(save_path, bbox_inches='tight')
