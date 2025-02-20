@@ -29,6 +29,7 @@ tools.py
 data/
 raw_data/
 calibrated_data/
+Logs/*
 
 
 # Byte-compiled / optimized / DLL files

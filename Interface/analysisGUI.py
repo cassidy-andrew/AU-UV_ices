@@ -1,5 +1,12 @@
 import sys
-import spectools
+import os
+import inspect
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir+'/Tools')
+import specTools
+
 from datetime import datetime
 
 import matplotlib
@@ -52,14 +59,14 @@ from PyQt5.Qt import (
 
 class SpecMplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None):
-        self.fig, self.axes = spectools.plot_absorbance([],
+        self.fig, self.axes = specTools.plot_absorbance([],
             return_fig_and_ax=True)
         super(SpecMplCanvas, self).__init__(self.fig)
 
 
 class ScanMplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None):
-        self.fig, self.axes = spectools.plot_scans([], "Lambda", "Keith/nA",
+        self.fig, self.axes = specTools.plot_scans([], "Lambda", "Keith/nA",
             return_fig_and_ax=True)
         super(ScanMplCanvas, self).__init__(self.fig)
 
@@ -83,7 +90,8 @@ class ScrollLabel(QScrollArea):
 
 
 class spectrumDisplayTab():
-    def __init__(self, debug):
+    def __init__(self, parent, debug):
+        self.parent = parent
         self.debug = debug
         # Create an outer layout
         self.outerLayout = QVBoxLayout()
@@ -182,6 +190,7 @@ class spectrumDisplayTab():
         guiSpec = guiSpectrum(item_index, self, self.debug)
         self.all_spectra.append(guiSpec)
         self.refresh_spectrum_list()
+        self.parent.log("Made new blank spectrum")
 
     def clear_plot(self):
         """
@@ -195,6 +204,8 @@ class spectrumDisplayTab():
         """
         for guiSpec in self.all_spectra:
             guiSpec.export()
+            self.parent.log("Exported data for spectrum" +
+                            f"{guiSpec.spec.name}")
 
     def export_sdata(self, items):
         """
@@ -204,6 +215,8 @@ class spectrumDisplayTab():
             for guiSpec in self.all_spectra:
                 if guiSpec.uniqueID == item.toolTip():
                     guiSpec.export()
+                    self.parent.log("Exported data for spectrum" +
+                                    f"{guiSpec.spec.name}")
 
     def refresh_spectrum_list(self):
         """
@@ -223,6 +236,7 @@ class spectrumDisplayTab():
             for guiSpec in self.all_spectra:
                 if guiSpec.uniqueID == item.toolTip():
                     self.all_spectra.remove(guiSpec)
+                    self.parent.log(f"Removed spectrum {guiSpec.spec.name}")
         self.refresh_spectrum_list()
         self.update_plot()
 
@@ -241,12 +255,16 @@ class spectrumDisplayTab():
             if guiSpec.uniqueID in toolTips:
                 guiSpecs.append(guiSpec)
 
-        print(guiSpecs)
+        #print(guiSpecs)
+        spec_names = []
+        for guiSpec in guiSpecs:
+            spec_names.append(guiSpec.spec.name)
 
         # create a stitched spectrum
         item_index = len(self.all_spectra)
         guiStitchedSpec = guiStitchedSpectrum(item_index, self, self.debug,
                                               guiSpecs)
+        self.parent.log(f"Stitched spectra: {spec_names}")
         self.all_spectra.append(guiStitchedSpec)
         self.refresh_spectrum_list()
         self.update_plot()
@@ -267,7 +285,7 @@ class spectrumDisplayTab():
         self.sc.axes[0].cla()
         self.sc.axes[1].cla()
 
-        spectools.plot_absorbance(plot_data, ax1=self.sc.axes[0])
+        specTools.plot_absorbance(plot_data, ax1=self.sc.axes[0])
 
         self.sc.axes[0].set_ylim(self.ylims)
         self.sc.axes[0].set_xlim(self.xlims)
@@ -287,7 +305,7 @@ class ErrorWarningWindow(QWidget):
 class guiSpectrum():
     """
     A class to hold the functions and attributes needed to combine a spectrum
-    with the GUI. It contains spec, a spectools Spectrum object, but also many
+    with the GUI. It contains spec, a specTools Spectrum object, but also many
     other functions and methods to access and display its data. For example,
     update_name from this object lets you update the Spectrum, as well as the
     graphical elements at the same time.
@@ -295,8 +313,8 @@ class guiSpectrum():
     def __init__(self, index, parentWindow, debug):
         self.parentWindow = parentWindow
         self.debug = debug
-        # create the spectools Spectrum, give it a basic name
-        self.spec = spectools.Spectrum(debug=debug)
+        # create the specTools Spectrum, give it a basic name
+        self.spec = specTools.Spectrum(debug=debug)
         proposed_name = f"Spectrum {index}"
         for spec in self.parentWindow.all_spectra:
             if spec.spec.name == proposed_name:
@@ -472,7 +490,7 @@ class guiSpectrum():
         """
         Change the visibility of the spectrum in plotting
         """
-        # change the spectools Spectrum
+        # change the specTools Spectrum
         self.spec.flip_visibility()
         # update plot
         self.isOK(hide=False) #self.parentWindow.update_plot()   
@@ -549,8 +567,8 @@ class guiStitchedSpectrum(guiSpectrum):
             self.guiBkgds += guiSpec.guiBkgds
             self.guiSamples += guiSpec.guiSamples
 
-        # create the spectools Spectrum
-        self.spec = spectools.StitchedSpectrum(specs, debug=debug)
+        # create the specTools Spectrum
+        self.spec = specTools.StitchedSpectrum(specs, debug=debug)
         
         # Give it a basic name
         proposed_name = f"Stitched {index}"
@@ -604,7 +622,7 @@ class guiScan():
         """
         Change the visibility of the spectrum in plotting
         """
-        # change the spectools Spectrum
+        # change the specTools Spectrum
         self.scan.flip_visibility()
         # update plot
         self.parentSpectrum.editwindow.update_plot(
@@ -884,7 +902,7 @@ class EditSpecWindow(QWidget):
         plot_data = []
 
         # get the data we want to plot
-        # visibility check is donw within the spectools.plot_scans function
+        # visibility check is donw within the specTools.plot_scans function
         # so we don't have to worry about it here
         for guiScan in all_guiScans:
             if guiScan.scan.data is not None:
@@ -897,7 +915,7 @@ class EditSpecWindow(QWidget):
 
         # redraw
         self.scanCanvas.axes.cla()
-        spectools.plot_scans(plot_data, xaxis, yaxis, ax=self.scanCanvas.axes,
+        specTools.plot_scans(plot_data, xaxis, yaxis, ax=self.scanCanvas.axes,
                              fig=self.scanCanvas.fig)
         if keep_axlims:
             self.scanCanvas.axes.set_ylim(self.ylims)

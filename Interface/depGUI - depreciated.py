@@ -1,8 +1,14 @@
 import sys
-import spectools
+import os
+import inspect
+
 import specGUI
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir+'/Tools')
+import spectools
 import deptools
-import depGUI
 
 import matplotlib
 import matplotlib.pyplot as plt
