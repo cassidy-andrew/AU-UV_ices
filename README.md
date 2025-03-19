@@ -1,19 +1,39 @@
-# DUVET
+# DUVET Overview
 **D**anish **UV** **E**nd-station **T**ool
 
 This tool is designed to help you manage data obtained at the AU-UV endstation of the ASTRID2 synchrotron at Aarhus Univeristy, in Denmark.
 Its current main functionality is to read the data files produced by the endstation, calculate absorbances, and produce plots of absorbance.
 It can also fit the absorbance data with gaussian functions as a first step in your data analysis.
 
-This document provides usage examples. To being using the tools, you must have `spectools.py` in your working directory, and import it as follows:
+## Dependencies
+
+To use DUVET you must have python version 3.12.3 or higher.
+
+
+DUVET relies on several python packages, most of which are very standard for python data analysis workflows. They are listed below, along with the version I am running in my own development environment. But I expect the latest versions of each to be compatible.
+
+- **numpy** (version 1.26.4)
+- **pandas** (version 2.2.2)
+- **matplotlib** (version 3.8.4)
+- **serial** (version 0.0.97)
+- **scipy** (version 1.13.1)
+- **PyQt5** (version 5.15.9)
+- **pyqtgraph** (version 0.13.7)
+- **pyqt_color_picker** (version 0.0.20)
+
+# Reading, Calibrating, and Displaying Spectra
+
+The tools for working with spectral data are all in the `specTools` module, which is located inside the `Tools` folder. If your working directory is the main directory of DUVET (i.e., you have duvet.py in the same folder as your current workbook or program), you can import specTools as follows:
 
 
 ```python
-import spectools
-#help(spectools)
+import sys
+sys.path.insert(0, 'Tools')
+import specTools
+#help(specTools)
 ```
 
-You can run `help(spectools)` to see a full summary of the classes and methods. 
+You can run `help(specTools)` to see a full summary of the classes and methods. 
 
 ## Example: Reading Data
 
@@ -36,7 +56,7 @@ sample_short1 = path + "R73780.d01"
 sample_short2 = path + "R73780.d02"
 
 # build the spectrum object
-spec1 = spectools.Spectrum()
+spec1 = specTools.Spectrum()
 spec1.change_name("R73780")
 # add backgrounds
 spec1.add_bkgd(bkgd_short1)
@@ -50,16 +70,16 @@ spec1.change_color("blue")
 spec1.average_scans()
 
 # make a plot of the data
-spectools.plot_absorbance([spec1], figsize=(7, 5),
+specTools.plot_absorbance([spec1], figsize=(7, 5),
                       xlim=(120, 340), ylim=(-0.02, 0.7),
                       save_path="./misc_figures/one_spectrum.svg");
 ```
 
 
     
-![png](README_files/output_5_0.png)
+![png](README_files/output_8_0.png)
     
-s
+
 
 By running `help` on the `Spectrum` object you can see all its methods:
 
@@ -68,10 +88,10 @@ By running `help` on the `Spectrum` object you can see all its methods:
 help(spec1)
 ```
 
-    Help on Spectrum in module spectools object:
+    Help on Spectrum in module specTools object:
     
     class Spectrum(builtins.object)
-     |  Spectrum(debug=False)
+     |  Spectrum(debug=False, datapath=None)
      |
      |  Represents a spectrum, so the average of one or more scans
      |
@@ -80,7 +100,8 @@ help(spec1)
      |      baseline_p : (list) parameters from the fit of the rayleigh scattering
      |                   baseline. None until subtract_baseline() has been run.
      |      bkgd : (pandas.DataFrame) The averaged background data.
-     |      bkgd_files : (list) a list of background files that make up the scans.
+     |      bkgds : (list) a list of SingleSpectrum objects that make up
+     |              the backgrounds.
      |      changelog : (str) a string which contains the history of the data. Every
      |                  time a function is called, a line is written to describe
      |                  what happened and at what time. This is then added to the
@@ -88,6 +109,7 @@ help(spec1)
      |      cindex : (int) the index of the current position in the color cycle for
      |               color cycling.
      |      color : (str) the hex color used for plotting this spectrum.
+     |      _comps : (list) a list of custom component dataframes used for fitting
      |      data : (pandas.DataFrame) the data belonging to this
      |             spectrum, averaged together from its corresponding
      |             scans.
@@ -121,7 +143,8 @@ help(spec1)
      |      peak_errors : (list) a list of the standard deviation peak errors. Is
      |                    None prior to calling `fit_peaks()`
      |      sample : (pandas.DataFrame) The averaged sample data.
-     |      sample_files : (list) a list of sample files that make up the scans.
+     |      samples : (list) a list of SingleSpectrum objects that make up the
+     |                 samples.
      |      scans : (list) a list of SingleScan objects that will be
      |              averaged together to make this spectrum.
      |      visible : (boolean) whether the spectrum should appear in
@@ -130,7 +153,7 @@ help(spec1)
      |
      |  Methods defined here:
      |
-     |  __init__(self, debug=False)
+     |  __init__(self, debug=False, datapath=None)
      |
      |  add_bkgd(self, bkgd_fname)
      |      Adds a background file to this spectrum's list of backgrounds
@@ -422,31 +445,33 @@ spec1.visible
 
 
 ```python
-# a list of the background files associated with this Spectrum
+# a list of the backgrounds associated with this Spectrum
 spec1.bkgds
 ```
 
 
 
 
-    [<spectools.SingleScan at 0x7faa60341a30>,
-     <spectools.SingleScan at 0x7faa6081c5f0>]
+    [<specTools.SingleScan at 0x7f1b9219d8b0>,
+     <specTools.SingleScan at 0x7f1c18700fe0>]
 
 
 
 
 ```python
-# a list of the sample files associated with this Spectrum
+# a list of the samples associated with this Spectrum
 spec1.samples
 ```
 
 
 
 
-    [<spectools.SingleScan at 0x7faa61383d70>,
-     <spectools.SingleScan at 0x7faa607fa360>]
+    [<specTools.SingleScan at 0x7f1b92e5a2a0>,
+     <specTools.SingleScan at 0x7f1b921d71d0>]
 
 
+
+As you can see above, printing the `bkgds` and `samples` attributes of the spectrum object gives a strange output. This is because `specTools` configures your individual scan data with `SingleSpectrum` objects. These are discussed in more detail later.
 
 ## Example: Plotting Data
 
@@ -460,7 +485,7 @@ sample_long1 = path + "R73781.d01"
 sample_long2 = path + "R73781.d02"
 
 # build long spectrum
-spec2 = spectools.Spectrum()
+spec2 = specTools.Spectrum()
 spec2.change_name("R73781")
 spec2.add_bkgd(bkgd_long1)
 spec2.add_bkgd(bkgd_long2)
@@ -469,14 +494,14 @@ spec2.add_sample(sample_long2)
 spec2.change_color("red")
 spec2.average_scans()
 
-spectools.plot_absorbance([spec1, spec2], figsize=(7, 5),
+specTools.plot_absorbance([spec1, spec2], figsize=(7, 5),
                       xlim=(120, 340), ylim=(-0.02, 0.7),
                       save_path="./misc_figures/two_spectrums.svg");
 ```
 
 
     
-![png](README_files/output_17_0.png)
+![png](README_files/output_21_0.png)
     
 
 
@@ -488,15 +513,128 @@ The spectra are not perfectly aligned. This happens normally with the endstation
 ```python
 spec2.change_offset(0.1)
 
-spectools.plot_absorbance([spec1, spec2], figsize=(7, 5),
+specTools.plot_absorbance([spec1, spec2], figsize=(7, 5),
                       xlim=(120, 340), ylim=(-0.02, 0.7),
                       save_path="./misc_figures/shift_example.svg");
 ```
 
 
     
-![png](README_files/output_19_0.png)
+![png](README_files/output_23_0.png)
     
+
+
+A new column in the `data` attribute dataframe will show the offset absorbance:
+
+
+```python
+spec2.data
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>absorbance</th>
+      <th>wavelength</th>
+      <th>offset absorbance</th>
+    </tr>
+    <tr>
+      <th>index</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.011248</td>
+      <td>210.0</td>
+      <td>0.111248</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>0.011132</td>
+      <td>211.0</td>
+      <td>0.111132</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>0.010637</td>
+      <td>212.0</td>
+      <td>0.110637</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>0.010427</td>
+      <td>213.0</td>
+      <td>0.110427</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>0.010252</td>
+      <td>214.0</td>
+      <td>0.110252</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>126</th>
+      <td>0.004211</td>
+      <td>336.0</td>
+      <td>0.104211</td>
+    </tr>
+    <tr>
+      <th>127</th>
+      <td>0.003718</td>
+      <td>337.0</td>
+      <td>0.103718</td>
+    </tr>
+    <tr>
+      <th>128</th>
+      <td>0.004022</td>
+      <td>338.0</td>
+      <td>0.104022</td>
+    </tr>
+    <tr>
+      <th>129</th>
+      <td>0.004216</td>
+      <td>339.0</td>
+      <td>0.104216</td>
+    </tr>
+    <tr>
+      <th>130</th>
+      <td>0.004440</td>
+      <td>340.0</td>
+      <td>0.104440</td>
+    </tr>
+  </tbody>
+</table>
+<p>131 rows × 3 columns</p>
+</div>
+
 
 
 Calling the `change_offset` function always changes the offset with respect to the data's original absorbance values, not the offset values. If we call it again and pass 0.0 as our offset value, the data in the plot return to where they were originally (the offset is now set to 0, rather than having 0 added to it):
@@ -505,14 +643,14 @@ Calling the `change_offset` function always changes the offset with respect to t
 ```python
 spec2.change_offset(0.0)
 
-spectools.plot_absorbance([spec1, spec2], figsize=(7, 5),
+specTools.plot_absorbance([spec1, spec2], figsize=(7, 5),
                       xlim=(120, 340), ylim=(-0.02, 0.7),
                       save_path="./misc_figures/shift_example_2.svg");
 ```
 
 
     
-![png](README_files/output_21_0.png)
+![png](README_files/output_27_0.png)
     
 
 
@@ -520,19 +658,21 @@ spectools.plot_absorbance([spec1, spec2], figsize=(7, 5),
 
 Properly aligned spectra can be stitched together into a single object. This is done by creating a `SitchedSpectrum` which consists of two or more `Spectrum` objects. The `Spectrum` objects are passed to the `StitchedSpectrum` initializer in a list. There can be as many `Spectrum` objects in that list as you need, so you can stitch many spectra together at once. Below is an example where we stitch the two spectra we already made above:
 
+Note! You must first align your spectra by changing one's offset before stitching. A previous version of the stitching algorithm did this for you, but that has been depreciated.
+
 
 ```python
 spec2.change_offset(0.002)
-stitched = spectools.StitchedSpectrum([spec1, spec2])
+stitched = specTools.StitchedSpectrum([spec1, spec2])
 
-spectools.plot_absorbance([stitched], figsize=(7, 5),
+specTools.plot_absorbance([stitched], figsize=(7, 5),
                       xlim=(120, 340), ylim=(-0.02, 0.7),
                       save_path="./misc_figures/stitched.svg");
 ```
 
 
     
-![png](README_files/output_23_0.png)
+![png](README_files/output_29_0.png)
     
 
 
@@ -592,10 +732,10 @@ stitched.samples
 
 
 
-    [<spectools.SingleScan at 0x7faa61383d70>,
-     <spectools.SingleScan at 0x7faa607fa360>,
-     <spectools.SingleScan at 0x7faa575ed640>,
-     <spectools.SingleScan at 0x7faa5760e990>]
+    [<specTools.SingleScan at 0x7f1b92e5a2a0>,
+     <specTools.SingleScan at 0x7f1b921d71d0>,
+     <specTools.SingleScan at 0x7f1b89cb97c0>,
+     <specTools.SingleScan at 0x7f1b89ce2000>]
 
 
 
@@ -607,10 +747,10 @@ stitched.bkgds
 
 
 
-    [<spectools.SingleScan at 0x7faa60341a30>,
-     <spectools.SingleScan at 0x7faa6081c5f0>,
-     <spectools.SingleScan at 0x7faa5f85eea0>,
-     <spectools.SingleScan at 0x7faa57603d70>]
+    [<specTools.SingleScan at 0x7f1b9219d8b0>,
+     <specTools.SingleScan at 0x7f1c18700fe0>,
+     <specTools.SingleScan at 0x7f1b91f0f9e0>,
+     <specTools.SingleScan at 0x7f1b89c6a6f0>]
 
 
 
@@ -628,16 +768,16 @@ It does not perform any value averaging. If you, like in the above example, have
 
 
 ```python
-stitched.change_name("Propane as deposited at 8K")
+stitched.change_name("Some cool VUV data!")
 
-spectools.plot_absorbance([stitched], figsize=(7, 5),
+specTools.plot_absorbance([stitched], figsize=(7, 5),
                       xlim=(120, 340), ylim=(-0.02, 0.7),
                       save_path="./misc_figures/name_change.svg");
 ```
 
 
     
-![png](README_files/output_33_0.png)
+![png](README_files/output_39_0.png)
     
 
 
@@ -647,14 +787,14 @@ spectools.plot_absorbance([stitched], figsize=(7, 5),
 ```python
 stitched.change_color("green")
 
-spectools.plot_absorbance([stitched], figsize=(7, 5),
+specTools.plot_absorbance([stitched], figsize=(7, 5),
                       xlim=(120, 340), ylim=(-0.02, 0.7),
                       save_path="./misc_figures/color_change.svg");
 ```
 
 
     
-![png](README_files/output_35_0.png)
+![png](README_files/output_41_0.png)
     
 
 
@@ -666,14 +806,335 @@ For the baseline subtraction, the minimum value is found in some wavelenght rang
 ```python
 stitched.subtract_baseline(lim=(120, 340))
 
-spectools.plot_absorbance([stitched], figsize=(7, 5),
+specTools.plot_absorbance([stitched], figsize=(7, 5),
                       xlim=(120, 340), ylim=(-0.02, 0.7),
                       save_path="./misc_figures/baseline_subtract.svg");
 ```
 
 
     
-![png](README_files/output_37_0.png)
+![png](README_files/output_43_0.png)
+    
+
+
+## `SingleSpectrum` Objects
+
+In order to make many of the user-interface features easier to program, `specTools` stores the data from your individual data scan files (i.e. those ending in .d01, .d02, etc) in `SingleScan` objects. Each such object represents one scan, hence the name! They do not distinguish between backgrounds and samples - that is done at the level of the `Spectrum` object.
+
+We can have a look at one of the `SingleScan`s that was created in the background earlier:
+
+
+```python
+this_singleScan = spec1.bkgds[0]
+this_singleScan.data
+```
+
+
+
+
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Lambda</th>
+      <th>Keith/nA</th>
+      <th>Ch1/volts</th>
+      <th>Ch2/volts</th>
+      <th>Ch3/volts</th>
+      <th>Z_Motor</th>
+      <th>Beam_current</th>
+      <th>temperature</th>
+      <th>GC_Pres</th>
+      <th>Time</th>
+      <th>UBX_x</th>
+      <th>UBX_y</th>
+      <th>nor_signal</th>
+      <th>wavelength</th>
+      <th>av_signal</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>110.0</td>
+      <td>-0.00049</td>
+      <td>-0.00058</td>
+      <td>0.0006</td>
+      <td>-0.0001</td>
+      <td>-12.6822</td>
+      <td>180.0957</td>
+      <td>-50.16</td>
+      <td>0.0</td>
+      <td>10:49:09</td>
+      <td>-0.002211</td>
+      <td>-0.001252</td>
+      <td>-0.000490</td>
+      <td>110.0</td>
+      <td>-0.000490</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>111.0</td>
+      <td>-0.00070</td>
+      <td>-0.00058</td>
+      <td>0.0006</td>
+      <td>-0.0001</td>
+      <td>-12.4759</td>
+      <td>180.0224</td>
+      <td>-50.16</td>
+      <td>0.0</td>
+      <td>10:49:11</td>
+      <td>-0.002494</td>
+      <td>-0.001280</td>
+      <td>-0.000700</td>
+      <td>111.0</td>
+      <td>-0.000700</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>112.0</td>
+      <td>-0.00061</td>
+      <td>-0.00058</td>
+      <td>0.0006</td>
+      <td>-0.0001</td>
+      <td>-12.2696</td>
+      <td>179.9491</td>
+      <td>-50.16</td>
+      <td>0.0</td>
+      <td>10:49:14</td>
+      <td>-0.002488</td>
+      <td>-0.001270</td>
+      <td>-0.000610</td>
+      <td>112.0</td>
+      <td>-0.000610</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>113.0</td>
+      <td>-0.00057</td>
+      <td>-0.00058</td>
+      <td>0.0006</td>
+      <td>-0.0001</td>
+      <td>-12.0632</td>
+      <td>179.8666</td>
+      <td>-50.16</td>
+      <td>0.0</td>
+      <td>10:49:16</td>
+      <td>-0.002325</td>
+      <td>-0.001573</td>
+      <td>-0.000570</td>
+      <td>113.0</td>
+      <td>-0.000570</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>114.0</td>
+      <td>0.00296</td>
+      <td>-0.00058</td>
+      <td>0.0007</td>
+      <td>-0.0001</td>
+      <td>-11.8568</td>
+      <td>182.7076</td>
+      <td>-50.16</td>
+      <td>0.0</td>
+      <td>10:49:38</td>
+      <td>-0.002308</td>
+      <td>-0.001689</td>
+      <td>0.002916</td>
+      <td>114.0</td>
+      <td>0.002916</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>106</th>
+      <td>216.0</td>
+      <td>1.55973</td>
+      <td>-0.00057</td>
+      <td>0.0006</td>
+      <td>-0.0001</td>
+      <td>9.5375</td>
+      <td>183.4408</td>
+      <td>-50.12</td>
+      <td>0.0</td>
+      <td>10:54:41</td>
+      <td>-0.002736</td>
+      <td>-0.001790</td>
+      <td>1.530474</td>
+      <td>216.0</td>
+      <td>1.530474</td>
+    </tr>
+    <tr>
+      <th>107</th>
+      <td>217.0</td>
+      <td>1.53702</td>
+      <td>-0.00057</td>
+      <td>0.0006</td>
+      <td>-0.0001</td>
+      <td>9.7506</td>
+      <td>183.3675</td>
+      <td>-50.12</td>
+      <td>0.0</td>
+      <td>10:54:43</td>
+      <td>-0.002338</td>
+      <td>-0.001720</td>
+      <td>1.508793</td>
+      <td>217.0</td>
+      <td>1.508793</td>
+    </tr>
+    <tr>
+      <th>108</th>
+      <td>218.0</td>
+      <td>1.51776</td>
+      <td>-0.00057</td>
+      <td>0.0006</td>
+      <td>-0.0001</td>
+      <td>9.9638</td>
+      <td>183.3033</td>
+      <td>-50.16</td>
+      <td>0.0</td>
+      <td>10:54:46</td>
+      <td>-0.002471</td>
+      <td>-0.001617</td>
+      <td>1.490409</td>
+      <td>218.0</td>
+      <td>1.490409</td>
+    </tr>
+    <tr>
+      <th>109</th>
+      <td>219.0</td>
+      <td>1.49952</td>
+      <td>-0.00057</td>
+      <td>0.0006</td>
+      <td>-0.0001</td>
+      <td>10.1770</td>
+      <td>183.2117</td>
+      <td>-50.12</td>
+      <td>0.0</td>
+      <td>10:54:48</td>
+      <td>-0.002172</td>
+      <td>-0.001392</td>
+      <td>1.473233</td>
+      <td>219.0</td>
+      <td>1.473233</td>
+    </tr>
+    <tr>
+      <th>110</th>
+      <td>220.0</td>
+      <td>1.47580</td>
+      <td>-0.00057</td>
+      <td>0.0006</td>
+      <td>-0.0001</td>
+      <td>10.3903</td>
+      <td>183.1384</td>
+      <td>-50.16</td>
+      <td>0.0</td>
+      <td>10:54:51</td>
+      <td>-0.002110</td>
+      <td>-0.001795</td>
+      <td>1.450510</td>
+      <td>220.0</td>
+      <td>1.450510</td>
+    </tr>
+  </tbody>
+</table>
+<p>111 rows × 15 columns</p>
+</div>
+
+
+
+
+```python
+this_singleScan.fname
+```
+
+
+
+
+    './raw_data/SergioIoppolo-November2023/20231101/R73773.d01'
+
+
+
+You can see that the `.data` attribute of this `SingleScan` object is all the same data as in the file `R73773.d01` we used earlier, as one of the backgrounds of `spec1`.
+
+All of the other functions and attributes of a `SingleScan` object are related to plotting within the "edit spectrum" windows of DUVET's graphical interface and not relevant for this tutorial.
+
+
+```python
+help(this_singleScan)
+```
+
+    Help on SingleScan in module specTools object:
+    
+    class SingleScan(builtins.object)
+     |  SingleScan(fname, df=None, debug=False)
+     |
+     |  Represents a single scan.
+     |
+     |  Parameters belonging to the fully constructed object:
+     |
+     |  cindex : (int) the current index in color cycling
+     |  cmap : (matplotlib.pyplot.colormap) the colormap for color cycling
+     |  color : (str) the HEX code of the scan color for plotting
+     |  data : (pandas.dataframe) the data contained in this scan's file
+     |  debug : (boolean) whether or not to print debug statements. Defaults to
+     |          False.
+     |  fname : (str) the full file path associated with this object.
+     |  lenccycle (int) the length of the color cycle for color cycling
+     |  name : (str) the name of this scan
+     |  visible : (boolean) whether or not to show this scan in plotting
+     |
+     |  Methods defined here:
+     |
+     |  __init__(self, fname, df=None, debug=False)
+     |      Initialize self.  See help(type(self)) for accurate signature.
+     |
+     |  cycle_color(self)
+     |      Changes the color based on a color cycle
+     |
+     |  flip_visibility(self)
+     |      Changes the visibility of the scan when plotting. If
+     |      the self.visible parameter is false, the plot_absorbance
+     |      function will skip plotting this spectrum.
+     |
+     |  ----------------------------------------------------------------------
+     |  Data descriptors defined here:
+     |
+     |  __dict__
+     |      dictionary for instance variables
+     |
+     |  __weakref__
+     |      list of weak references to the object
     
 
 
@@ -700,7 +1161,7 @@ where:
 - $k$ is the amplitude of the Rayleigh scattering baseline
 - $b$ is a constant absorbance baseline
 
-DUVET automatically adjusts this function to include as many Gaussian functions and/or custom components as the user specifies. All of the parts of the fit function are optional. If the user specifies to use 0 Gaussian functions, that term will be ignored. If the user does not provide custom components to fit with, that term will be ignored. And Rayleigh scattering is not fit by default, and will be ignored unless the user turns it on. The user enables and disables parts of the fit function by providing arguments to the `fit_peaks` Python function of the `Spectrum` and `StitchedSpectrum` classes of the `spectools` module.
+DUVET automatically adjusts this function to include as many Gaussian functions and/or custom components as the user specifies. All of the parts of the fit function are optional. If the user specifies to use 0 Gaussian functions, that term will be ignored. If the user does not provide custom components to fit with, that term will be ignored. And Rayleigh scattering is not fit by default, and will be ignored unless the user turns it on. The user enables and disables parts of the fit function by providing arguments to the `fit_peaks` Python function of the `Spectrum` and `StitchedSpectrum` classes of the `specTools` module.
 
 The free parameters which are fit with the function are:
 - $a_i$ is the amplitude of each respective Gaussian function
@@ -723,7 +1184,7 @@ You can fit with any arbitrary number of gaussians. If you provide your own gues
 
 
 ```python
-import spectools
+import specTools
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -743,7 +1204,7 @@ def build_spectra(path, bkgd_short1, bkgd_short2, bkgd_long1, bkgd_long2,
     Builds the spectra as appropriate for this experiment
     """
     # build short spectrum
-    spec1 = spectools.Spectrum()
+    spec1 = specTools.Spectrum()
     spec1.change_name(sample_short1[-9:-4])
     spec1.add_bkgd(bkgd_short1)
     spec1.add_bkgd(bkgd_short2)
@@ -754,7 +1215,7 @@ def build_spectra(path, bkgd_short1, bkgd_short2, bkgd_long1, bkgd_long2,
     spec1.average_scans()
 
     # build long spectrum
-    spec2 = spectools.Spectrum()
+    spec2 = specTools.Spectrum()
     spec2.change_name(sample_long1[-9:-4])
     spec2.add_bkgd(bkgd_long1)
     spec2.add_bkgd(bkgd_long2)
@@ -764,7 +1225,7 @@ def build_spectra(path, bkgd_short1, bkgd_short2, bkgd_long1, bkgd_long2,
     spec2.change_offset(0.0)
     spec2.average_scans()
 
-    stiched = spectools.StitchedSpectrum([spec1, spec2])
+    stiched = specTools.StitchedSpectrum([spec1, spec2])
     if name:
         stiched.change_name(name)
     return stiched
@@ -783,7 +1244,7 @@ sample_long2 = path + "R73809.d02"
 
 spec = build_spectra(path, bkgd_short1, bkgd_short2, bkgd_long1, bkgd_long2,
                         sample_short1, sample_short2, sample_long1, sample_long2,
-                        color=colors[11], name="200K Propane + 50s 1keV e-")
+                        color=colors[11], name="Some Cool VUV Data!")
 
 
 # fix the end of the spectrum to 0
@@ -819,7 +1280,7 @@ guesses = [{'lower':0, 'guess':4, 'upper':5},   # amplitude
           ]
 
 spec.fit_peaks(verbose=True, ng=6, guesses=guesses, fit_lim=(120, 340))
-spectools.plot_fit(spec, plot_peaks=True, xlim=(120, 340),
+specTools.plot_fit(spec, plot_peaks=True, xlim=(120, 340),
                ylim=(0, spec.data[spec.data['wavelength']>120]['absorbance'].max()*1.1),
                plot_fit_components=True, save_path="./misc_figures/fit.svg")
 ```
@@ -833,7 +1294,7 @@ spectools.plot_fit(spec, plot_peaks=True, xlim=(120, 340),
 
 
     
-![png](README_files/output_41_1.png)
+![png](README_files/output_52_1.png)
     
 
 
@@ -865,6 +1326,7 @@ spec.data
       <th></th>
       <th>wavelength</th>
       <th>absorbance</th>
+      <th>offset absorbance</th>
       <th>best_fit</th>
       <th>residuals</th>
     </tr>
@@ -874,6 +1336,7 @@ spec.data
       <th>0</th>
       <td>110.0</td>
       <td>0.036513</td>
+      <td>0.012398</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -881,6 +1344,7 @@ spec.data
       <th>1</th>
       <td>111.0</td>
       <td>-0.002350</td>
+      <td>-0.026466</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -888,6 +1352,7 @@ spec.data
       <th>2</th>
       <td>112.0</td>
       <td>0.022638</td>
+      <td>-0.001477</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -895,6 +1360,7 @@ spec.data
       <th>3</th>
       <td>113.0</td>
       <td>0.014045</td>
+      <td>-0.010071</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -902,6 +1368,7 @@ spec.data
       <th>4</th>
       <td>114.0</td>
       <td>0.096445</td>
+      <td>0.072330</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
@@ -911,11 +1378,13 @@ spec.data
       <td>...</td>
       <td>...</td>
       <td>...</td>
+      <td>...</td>
     </tr>
     <tr>
       <th>226</th>
       <td>336.0</td>
       <td>0.024983</td>
+      <td>0.000868</td>
       <td>0.025747</td>
       <td>-0.000763</td>
     </tr>
@@ -923,6 +1392,7 @@ spec.data
       <th>227</th>
       <td>337.0</td>
       <td>0.025773</td>
+      <td>0.001658</td>
       <td>0.025454</td>
       <td>0.000320</td>
     </tr>
@@ -930,6 +1400,7 @@ spec.data
       <th>228</th>
       <td>338.0</td>
       <td>0.024884</td>
+      <td>0.000769</td>
       <td>0.025194</td>
       <td>-0.000310</td>
     </tr>
@@ -937,6 +1408,7 @@ spec.data
       <th>229</th>
       <td>339.0</td>
       <td>0.024810</td>
+      <td>0.000694</td>
       <td>0.024970</td>
       <td>-0.000160</td>
     </tr>
@@ -944,12 +1416,13 @@ spec.data
       <th>230</th>
       <td>340.0</td>
       <td>0.024115</td>
+      <td>0.000000</td>
       <td>NaN</td>
       <td>NaN</td>
     </tr>
   </tbody>
 </table>
-<p>231 rows × 4 columns</p>
+<p>231 rows × 5 columns</p>
 </div>
 
 
@@ -1180,17 +1653,17 @@ spec.fit_components
       229    339.0
       230    340.0
       Name: wavelength, Length: 231, dtype: float64,
-      'absorbance': 0      0.048397
-      1      0.050338
-      2      0.052335
-      3      0.054375
-      4      0.056448
-               ...   
-      226    0.024115
-      227    0.024115
-      228    0.024115
-      229    0.024115
-      230    0.024115
+      'absorbance': 0      2.428171e-02
+      1      2.622312e-02
+      2      2.821936e-02
+      3      3.025993e-02
+      4      3.233303e-02
+                 ...     
+      226    5.313555e-34
+      227    2.571947e-34
+      228    1.240499e-34
+      229    5.961960e-35
+      230    2.855218e-35
       Name: wavelength, Length: 231, dtype: float64},
      {'parameters': [{'value': 4.32676377266341,
         'error': 0.27031895450146226,
@@ -1213,17 +1686,17 @@ spec.fit_components
       229    339.0
       230    340.0
       Name: wavelength, Length: 231, dtype: float64,
-      'absorbance': 0      0.027613
-      1      0.027895
-      2      0.028195
-      3      0.028514
-      4      0.028853
-               ...   
-      226    0.024115
-      227    0.024115
-      228    0.024115
-      229    0.024115
-      230    0.024115
+      'absorbance': 0      3.498052e-03
+      1      3.779931e-03
+      2      4.080069e-03
+      3      4.399237e-03
+      4      4.738200e-03
+                 ...     
+      226    1.265532e-07
+      227    1.068651e-07
+      228    9.014149e-08
+      229    7.595210e-08
+      230    6.392650e-08
       Name: wavelength, Length: 231, dtype: float64},
      {'parameters': [{'value': 1.1974241901062608,
         'error': 0.13804794018989236,
@@ -1246,17 +1719,17 @@ spec.fit_components
       229    339.0
       230    340.0
       Name: wavelength, Length: 231, dtype: float64,
-      'absorbance': 0      0.024115
-      1      0.024115
-      2      0.024115
-      3      0.024115
-      4      0.024115
-               ...   
-      226    0.024117
-      227    0.024117
-      228    0.024116
-      229    0.024116
-      230    0.024116
+      'absorbance': 0      1.901318e-12
+      1      2.659979e-12
+      2      3.712278e-12
+      3      5.168231e-12
+      4      7.177650e-12
+                 ...     
+      226    1.817240e-06
+      227    1.463698e-06
+      228    1.176060e-06
+      229    9.426422e-07
+      230    7.537079e-07
       Name: wavelength, Length: 231, dtype: float64},
      {'parameters': [{'value': 0.12141719220191141,
         'error': 0.05938295294136964,
@@ -1279,17 +1752,17 @@ spec.fit_components
       229    339.0
       230    340.0
       Name: wavelength, Length: 231, dtype: float64,
-      'absorbance': 0      0.024115
-      1      0.024115
-      2      0.024115
-      3      0.024115
-      4      0.024115
-               ...   
-      226    0.024115
-      227    0.024115
-      228    0.024115
-      229    0.024115
-      230    0.024115
+      'absorbance': 0      1.430006e-121
+      1      3.732441e-120
+      2      9.553046e-119
+      3      2.397643e-117
+      4      5.900935e-116
+                 ...      
+      226     1.114691e-17
+      227     3.478482e-18
+      228     1.064434e-18
+      229     3.194046e-19
+      230     9.398476e-20
       Name: wavelength, Length: 231, dtype: float64},
      {'parameters': [{'value': 0.3733466504767837,
         'error': 0.06501195642506839,
@@ -1312,17 +1785,17 @@ spec.fit_components
       229    339.0
       230    340.0
       Name: wavelength, Length: 231, dtype: float64,
-      'absorbance': 0      0.024115
-      1      0.024115
-      2      0.024115
-      3      0.024115
-      4      0.024115
-               ...   
-      226    0.024195
-      227    0.024176
-      228    0.024162
-      229    0.024150
-      230    0.024141
+      'absorbance': 0      5.674503e-56
+      1      2.089893e-55
+      2      7.643624e-55
+      3      2.776217e-54
+      4      1.001351e-53
+                 ...     
+      226    8.002159e-05
+      227    6.118406e-05
+      228    4.645670e-05
+      229    3.502977e-05
+      230    2.623042e-05
       Name: wavelength, Length: 231, dtype: float64},
      {'parameters': [{'value': 0.07338471576859575,
         'error': 0.02136876681605398,
@@ -1345,20 +1818,26 @@ spec.fit_components
       229    339.0
       230    340.0
       Name: wavelength, Length: 231, dtype: float64,
-      'absorbance': 0      0.024115
-      1      0.024115
-      2      0.024115
-      3      0.024115
-      4      0.024115
-               ...   
-      226    0.025665
-      227    0.025391
-      228    0.025146
-      229    0.024934
-      230    0.024753
+      'absorbance': 0      2.380748e-188
+      1      1.226741e-186
+      2      6.206450e-185
+      3      3.083077e-183
+      4      1.503752e-181
+                 ...      
+      226     1.549585e-03
+      227     1.275689e-03
+      228     1.031156e-03
+      229     8.183807e-04
+      230     6.377302e-04
       Name: wavelength, Length: 231, dtype: float64}]
 
 
+
+**IMPORTANT!!** The fitting is done to the data **with the spectrum offset applied**. The justification for this is that you make your nice plot, and then likely want to fit that which you see in front of you, rather than unadjusted data. Any negative absorbance regions in unadjusted data can also give strange looking fits when then converted to offset adjusted data for plotting.
+
+Because of this, the `fit_results` will show your fit components **with** the spectrum offset used when fitting. If you do not want this, remember to subtract it out again! Or, set the spectrum offset to 0 before fitting.
+
+Based on user feedback, this may change in future versions.
 
 ## Example: Fitting with whatever you want
 
@@ -1379,6 +1858,7 @@ custom_dict = {
     "absorbance":Y
 }
 custom_df = pd.DataFrame(custom_dict)
+
 ```
 
 
@@ -1483,7 +1963,7 @@ guesses = [{'lower':0, 'guess':1, 'upper':10}, # amplitude of our custom compone
 
 spec.fit_peaks(verbose=True, ng=0, guesses=guesses, fit_lim=(120, 340),
               custom_components=[custom_df])
-spectools.plot_fit(spec, plot_peaks=True, xlim=(120, 340),
+specTools.plot_fit(spec, plot_peaks=True, xlim=(120, 340),
                ylim=(0, spec.data[spec.data['wavelength']>120]['absorbance'].max()*1.1),
                plot_fit_components=True, save_path="./misc_figures/fit.svg")
 ```
@@ -1497,8 +1977,251 @@ spectools.plot_fit(spec, plot_peaks=True, xlim=(120, 340),
 
 
     
-![png](README_files/output_50_1.png)
+![png](README_files/output_62_1.png)
     
+
+
+
+```python
+spec.fit_components
+```
+
+
+
+
+    [{'parameters': {'value': 0.38634186438109736, 'error': 0.0024388864262753756},
+      'wavelength': 11     121.0
+      12     122.0
+      13     123.0
+      14     124.0
+      15     125.0
+             ...  
+      225    335.0
+      226    336.0
+      227    337.0
+      228    338.0
+      229    339.0
+      Name: wavelength, Length: 219, dtype: float64,
+      'absorbance': [0.07382993028322771,
+       0.07348222260528471,
+       0.07313451492734173,
+       0.07278680724939873,
+       0.07243909957145575,
+       0.07209139189351277,
+       0.07174368421556977,
+       0.07139597653762679,
+       0.0710482688596838,
+       0.07070056118174081,
+       0.07035285350379782,
+       0.07000514582585485,
+       0.06965743814791185,
+       0.06930973046996887,
+       0.06896202279202589,
+       0.06861431511408288,
+       0.0682666074361399,
+       0.06791889975819691,
+       0.06757119208025393,
+       0.06722348440231093,
+       0.06687577672436795,
+       0.06652806904642496,
+       0.06618036136848197,
+       0.06583265369053899,
+       0.065484946012596,
+       0.06513723833465301,
+       0.06478953065671002,
+       0.06444182297876704,
+       0.06409411530082405,
+       0.06374640762288106,
+       0.06339869994493808,
+       0.06305099226699509,
+       0.0627032845890521,
+       0.06235557691110912,
+       0.062007869233166125,
+       0.061660161555223136,
+       0.061312453877280154,
+       0.06096474619933716,
+       0.06061703852139417,
+       0.06026933084345119,
+       0.0599216231655082,
+       0.0595739154875652,
+       0.05922620780962222,
+       0.05887850013167923,
+       0.05853079245373625,
+       0.05818308477579325,
+       0.05783537709785026,
+       0.057487669419907295,
+       0.0571399617419643,
+       0.05679225406402131,
+       0.05644454638607833,
+       0.05609683870813533,
+       0.05574913103019234,
+       0.05540142335224936,
+       0.05505371567430637,
+       0.05470600799636339,
+       0.05435830031842039,
+       0.0540105926404774,
+       0.05366288496253442,
+       0.05331517728459143,
+       0.052967469606648436,
+       0.052619761928705454,
+       0.052272054250762465,
+       0.05192434657281949,
+       0.0515766388948765,
+       0.051228931216933504,
+       0.05088122353899053,
+       0.05053351586104753,
+       0.050185808183104544,
+       0.04983810050516156,
+       0.049490392827218566,
+       0.049142685149275576,
+       0.048794977471332594,
+       0.048447269793389605,
+       0.048099562115446616,
+       0.04775185443750363,
+       0.047404146759560645,
+       0.04705643908161765,
+       0.04670873140367466,
+       0.046361023725731684,
+       0.0460133160477887,
+       0.045665608369845706,
+       0.04531790069190272,
+       0.044970193013959735,
+       0.044622485336016746,
+       0.044274777658073756,
+       0.04392706998013077,
+       0.04357936230218778,
+       0.043231654624244796,
+       0.0428839469463018,
+       0.04253623926835882,
+       0.04218853159041583,
+       0.04184082391247283,
+       0.04149311623452985,
+       0.04114540855658686,
+       0.04079770087864388,
+       0.0404499932007009,
+       0.04010228552275791,
+       0.03975457784481492,
+       0.039406870166871937,
+       0.03905916248892894,
+       0.03871145481098595,
+       0.03836374713304297,
+       0.03801603945509998,
+       0.03766833177715699,
+       0.037320624099214,
+       0.03697291642127101,
+       0.03662520874332803,
+       0.036277501065385034,
+       0.035929793387442045,
+       0.03558208570949906,
+       0.035234378031556074,
+       0.034886670353613085,
+       0.03453896267567011,
+       0.03419125499772712,
+       0.033843547319784124,
+       0.03349583964184114,
+       0.03314813196389815,
+       0.032800424285955164,
+       0.032452716608012175,
+       0.032105008930069186,
+       0.031757301252126204,
+       0.031409593574183214,
+       0.031061885896240222,
+       0.030714178218297236,
+       0.030366470540354247,
+       0.03001876286241126,
+       0.02967105518446827,
+       0.029323347506525283,
+       0.0289756398285823,
+       0.02862793215063932,
+       0.028280224472696326,
+       0.02793251679475334,
+       0.027584809116810355,
+       0.027237101438867362,
+       0.026889393760924373,
+       0.026541686082981387,
+       0.026193978405038402,
+       0.02584627072709541,
+       0.02549856304915242,
+       0.025150855371209434,
+       0.02480314769326645,
+       0.024455440015323456,
+       0.024107732337380467,
+       0.02376002465943748,
+       0.023412316981494492,
+       0.023064609303551507,
+       0.022716901625608528,
+       0.022369193947665535,
+       0.02202148626972255,
+       0.021673778591779564,
+       0.021326070913836575,
+       0.020978363235893586,
+       0.020630655557950597,
+       0.020282947880007608,
+       0.019935240202064622,
+       0.019587532524121633,
+       0.019239824846178644,
+       0.018892117168235665,
+       0.018544409490292672,
+       0.01819670181234968,
+       0.0178489941344067,
+       0.017501286456463712,
+       0.017153578778520716,
+       0.016805871100577734,
+       0.016458163422634745,
+       0.01611045574469175,
+       0.015762748066748766,
+       0.01541504038880578,
+       0.015067332710862786,
+       0.01471962503291981,
+       0.01437191735497682,
+       0.014024209677033841,
+       0.013676501999090847,
+       0.013328794321147855,
+       0.012981086643204872,
+       0.012633378965261883,
+       0.01228567128731889,
+       0.01193796360937591,
+       0.011590255931432921,
+       0.011242548253489923,
+       0.010894840575546943,
+       0.010547132897603955,
+       0.010199425219660961,
+       0.009851717541717977,
+       0.009504009863774992,
+       0.009156302185832013,
+       0.008808594507889022,
+       0.008460886829946031,
+       0.00811317915200305,
+       0.00776547147406006,
+       0.007417763796117065,
+       0.007070056118174083,
+       0.006722348440231095,
+       0.0063746407622881,
+       0.0060269330843451185,
+       0.00567922540640213,
+       0.005331517728459135,
+       0.004983810050516152,
+       0.004636102372573168,
+       0.004288394694630173,
+       0.003940687016687186,
+       0.0035929793387442024,
+       0.0032452716608012237,
+       0.0028975639828582346,
+       0.0025498563049152407,
+       0.002202148626972258,
+       0.0018544409490292694,
+       0.0015067332710862744,
+       0.0011590255931432927,
+       0.0008113179152003069,
+       0.0004636102372573107,
+       0.00011590255931432633,
+       -0.00023180511862865865,
+       -0.0005795127965716532,
+       -0.0009272204745146383,
+       -0.0012749281524576208,
+       -0.0016226358304006169,
+       -0.001970343508343591]}]
+
 
 
 As we can see from the residuals, fitting just a line to these data is not the best we could have possibly done. But, if you want to add in your own data to fit with, DUVET can handle it! In this example we created data in the form of a line, but you could just as easily have data from another experiment that you want to use. Just make sure that you format it in terms of wavelength and absorbance, and put it into a pandas dataframe. After that, DUVET doesn't care what the values are.
@@ -1513,16 +2236,16 @@ spec.fit_results
 
 
 
-    {'reduced_chi_square': 0.7867730503306898,
+    {'reduced_chi_square': 9.9562089317253,
      'n_gaussians': 0,
      'n_custom_components': 1,
      'fitted_scattering': False,
-     'custom_component_parameters': [{'value': 0.4670949552926718,
-       'error': 0.005250810511035509}],
+     'custom_component_parameters': [{'value': 0.38634186438109736,
+       'error': 0.0024388864262753756}],
      'scattering_parameters': [],
      'gaussian_parameters': [],
-     'p': array([0.46709496]),
-     'pcov': array([[2.7571011e-05]])}
+     'p': array([0.38634186]),
+     'pcov': array([[5.948167e-06]])}
 
 
 
@@ -1546,7 +2269,7 @@ spec.fit_components
 
 
 
-    [{'parameters': {'value': 0.4670949552926718, 'error': 0.005250810511035509},
+    [{'parameters': {'value': 0.38634186438109736, 'error': 0.0024388864262753756},
       'wavelength': 11     121.0
       12     122.0
       13     123.0
@@ -1559,225 +2282,225 @@ spec.fit_components
       228    338.0
       229    339.0
       Name: wavelength, Length: 219, dtype: float64,
-      'absorbance': [0.10211296939607989,
-       0.10169258393631649,
-       0.10127219847655308,
-       0.10085181301678968,
-       0.10043142755702628,
-       0.10001104209726287,
-       0.09959065663749946,
-       0.09917027117773605,
-       0.09874988571797265,
-       0.09832950025820925,
-       0.09790911479844584,
-       0.09748872933868244,
-       0.09706834387891904,
-       0.09664795841915563,
-       0.09622757295939224,
-       0.09580718749962881,
-       0.09538680203986541,
-       0.09496641658010202,
-       0.09454603112033862,
-       0.0941256456605752,
-       0.09370526020081181,
-       0.09328487474104839,
-       0.09286448928128499,
-       0.09244410382152159,
-       0.09202371836175817,
-       0.09160333290199478,
-       0.09118294744223136,
-       0.09076256198246796,
-       0.09034217652270456,
-       0.08992179106294115,
-       0.08950140560317775,
-       0.08908102014341436,
-       0.08866063468365094,
-       0.08824024922388755,
-       0.08781986376412414,
-       0.08739947830436073,
-       0.08697909284459733,
-       0.08655870738483393,
-       0.08613832192507051,
-       0.08571793646530712,
-       0.0852975510055437,
-       0.0848771655457803,
-       0.0844567800860169,
-       0.0840363946262535,
-       0.08361600916649009,
-       0.08319562370672669,
-       0.08277523824696327,
-       0.0823548527871999,
-       0.08193446732743648,
-       0.08151408186767307,
-       0.08109369640790967,
-       0.08067331094814627,
-       0.08025292548838285,
-       0.07983254002861946,
-       0.07941215456885604,
-       0.07899176910909265,
-       0.07857138364932924,
-       0.07815099818956583,
-       0.07773061272980243,
-       0.07731022727003903,
-       0.07688984181027561,
-       0.07646945635051222,
-       0.0760490708907488,
-       0.07562868543098543,
-       0.07520829997122201,
-       0.07478791451145861,
-       0.0743675290516952,
-       0.07394714359193179,
-       0.07352675813216838,
-       0.07310637267240498,
-       0.07268598721264158,
-       0.07226560175287816,
-       0.07184521629311477,
-       0.07142483083335135,
-       0.07100444537358795,
-       0.07058405991382455,
-       0.07016367445406115,
-       0.06974328899429774,
-       0.06932290353453434,
-       0.06890251807477094,
-       0.06848213261500755,
-       0.06806174715524413,
-       0.06764136169548073,
-       0.06722097623571732,
-       0.06680059077595392,
-       0.0663802053161905,
-       0.0659598198564271,
-       0.0655394343966637,
-       0.06511904893690029,
-       0.06469866347713689,
-       0.06427827801737349,
-       0.06385789255761008,
-       0.06343750709784667,
-       0.06301712163808326,
-       0.06259673617831986,
-       0.06217635071855647,
-       0.061755965258793066,
-       0.06133557979902966,
-       0.06091519433926626,
-       0.06049480887950286,
-       0.06007442341973944,
-       0.059654037959976036,
-       0.05923365250021263,
-       0.05881326704044923,
-       0.05839288158068581,
-       0.05797249612092241,
-       0.057552110661159006,
-       0.0571317252013956,
-       0.0567113397416322,
-       0.056290954281868796,
-       0.05587056882210539,
-       0.05545018336234199,
-       0.05502979790257857,
-       0.05460941244281518,
-       0.05418902698305178,
-       0.05376864152328837,
-       0.05334825606352497,
-       0.05292787060376156,
-       0.05250748514399816,
-       0.05208709968423475,
-       0.05166671422447135,
-       0.051246328764707944,
-       0.05082594330494454,
-       0.05040555784518113,
-       0.04998517238541772,
-       0.04956478692565432,
-       0.04914440146589091,
-       0.04872401600612751,
-       0.04830363054636411,
-       0.047883245086600704,
-       0.04746285962683731,
-       0.0470424741670739,
-       0.046622088707310494,
-       0.04620170324754709,
-       0.04578131778778368,
-       0.04536093232802028,
-       0.044940546868256874,
-       0.04452016140849347,
-       0.04409977594873006,
-       0.04367939048896666,
-       0.043259005029203254,
-       0.04283861956943985,
-       0.042418234109676434,
-       0.04199784864991303,
-       0.04157746319014963,
-       0.041157077730386224,
-       0.04073669227062282,
-       0.04031630681085943,
-       0.039895921351096014,
-       0.03947553589133261,
-       0.03905515043156921,
-       0.038634764971805804,
-       0.038214379512042394,
-       0.03779399405227899,
-       0.03737360859251559,
-       0.036953223132752185,
-       0.036532837672988774,
-       0.03611245221322537,
-       0.03569206675346198,
-       0.035271681293698565,
-       0.03485129583393516,
-       0.03443091037417176,
-       0.034010524914408355,
-       0.03359013945464494,
-       0.03316975399488154,
-       0.03274936853511814,
-       0.03232898307535472,
-       0.031908597615591325,
-       0.03148821215582792,
-       0.031067826696064508,
-       0.030647441236301115,
-       0.030227055776537712,
-       0.029806670316774315,
-       0.029386284857010902,
-       0.02896589939724749,
-       0.028545513937484095,
-       0.02812512847772069,
-       0.02770474301795728,
-       0.027284357558193882,
-       0.026863972098430475,
-       0.02644358663866706,
-       0.026023201178903662,
-       0.02560281571914026,
-       0.025182430259376845,
-       0.024762044799613445,
-       0.024341659339850042,
-       0.02392127388008665,
-       0.023500888420323243,
-       0.023080502960559832,
-       0.022660117500796436,
-       0.022239732041033026,
-       0.021819346581269612,
-       0.021398961121506216,
-       0.020978575661742813,
-       0.020558190201979396,
-       0.020137804742216,
-       0.019717419282452596,
-       0.019297033822689182,
-       0.018876648362925783,
-       0.01845626290316238,
-       0.01803587744339897,
-       0.017615491983635566,
-       0.017195106523872163,
-       0.01677472106410877,
-       0.016354335604345363,
-       0.015933950144581953,
-       0.015513564684818553,
-       0.015093179225055148,
-       0.014672793765291734,
-       0.014252408305528336,
-       0.013832022845764935,
-       0.013411637386001518,
-       0.012991251926238118,
-       0.012570866466474716,
-       0.012150481006711305,
-       0.011730095546947901,
-       0.011309710087184505,
-       0.01088932462742109,
-       0.0104689391676577]}]
+      'absorbance': [0.07382993028322771,
+       0.07348222260528471,
+       0.07313451492734173,
+       0.07278680724939873,
+       0.07243909957145575,
+       0.07209139189351277,
+       0.07174368421556977,
+       0.07139597653762679,
+       0.0710482688596838,
+       0.07070056118174081,
+       0.07035285350379782,
+       0.07000514582585485,
+       0.06965743814791185,
+       0.06930973046996887,
+       0.06896202279202589,
+       0.06861431511408288,
+       0.0682666074361399,
+       0.06791889975819691,
+       0.06757119208025393,
+       0.06722348440231093,
+       0.06687577672436795,
+       0.06652806904642496,
+       0.06618036136848197,
+       0.06583265369053899,
+       0.065484946012596,
+       0.06513723833465301,
+       0.06478953065671002,
+       0.06444182297876704,
+       0.06409411530082405,
+       0.06374640762288106,
+       0.06339869994493808,
+       0.06305099226699509,
+       0.0627032845890521,
+       0.06235557691110912,
+       0.062007869233166125,
+       0.061660161555223136,
+       0.061312453877280154,
+       0.06096474619933716,
+       0.06061703852139417,
+       0.06026933084345119,
+       0.0599216231655082,
+       0.0595739154875652,
+       0.05922620780962222,
+       0.05887850013167923,
+       0.05853079245373625,
+       0.05818308477579325,
+       0.05783537709785026,
+       0.057487669419907295,
+       0.0571399617419643,
+       0.05679225406402131,
+       0.05644454638607833,
+       0.05609683870813533,
+       0.05574913103019234,
+       0.05540142335224936,
+       0.05505371567430637,
+       0.05470600799636339,
+       0.05435830031842039,
+       0.0540105926404774,
+       0.05366288496253442,
+       0.05331517728459143,
+       0.052967469606648436,
+       0.052619761928705454,
+       0.052272054250762465,
+       0.05192434657281949,
+       0.0515766388948765,
+       0.051228931216933504,
+       0.05088122353899053,
+       0.05053351586104753,
+       0.050185808183104544,
+       0.04983810050516156,
+       0.049490392827218566,
+       0.049142685149275576,
+       0.048794977471332594,
+       0.048447269793389605,
+       0.048099562115446616,
+       0.04775185443750363,
+       0.047404146759560645,
+       0.04705643908161765,
+       0.04670873140367466,
+       0.046361023725731684,
+       0.0460133160477887,
+       0.045665608369845706,
+       0.04531790069190272,
+       0.044970193013959735,
+       0.044622485336016746,
+       0.044274777658073756,
+       0.04392706998013077,
+       0.04357936230218778,
+       0.043231654624244796,
+       0.0428839469463018,
+       0.04253623926835882,
+       0.04218853159041583,
+       0.04184082391247283,
+       0.04149311623452985,
+       0.04114540855658686,
+       0.04079770087864388,
+       0.0404499932007009,
+       0.04010228552275791,
+       0.03975457784481492,
+       0.039406870166871937,
+       0.03905916248892894,
+       0.03871145481098595,
+       0.03836374713304297,
+       0.03801603945509998,
+       0.03766833177715699,
+       0.037320624099214,
+       0.03697291642127101,
+       0.03662520874332803,
+       0.036277501065385034,
+       0.035929793387442045,
+       0.03558208570949906,
+       0.035234378031556074,
+       0.034886670353613085,
+       0.03453896267567011,
+       0.03419125499772712,
+       0.033843547319784124,
+       0.03349583964184114,
+       0.03314813196389815,
+       0.032800424285955164,
+       0.032452716608012175,
+       0.032105008930069186,
+       0.031757301252126204,
+       0.031409593574183214,
+       0.031061885896240222,
+       0.030714178218297236,
+       0.030366470540354247,
+       0.03001876286241126,
+       0.02967105518446827,
+       0.029323347506525283,
+       0.0289756398285823,
+       0.02862793215063932,
+       0.028280224472696326,
+       0.02793251679475334,
+       0.027584809116810355,
+       0.027237101438867362,
+       0.026889393760924373,
+       0.026541686082981387,
+       0.026193978405038402,
+       0.02584627072709541,
+       0.02549856304915242,
+       0.025150855371209434,
+       0.02480314769326645,
+       0.024455440015323456,
+       0.024107732337380467,
+       0.02376002465943748,
+       0.023412316981494492,
+       0.023064609303551507,
+       0.022716901625608528,
+       0.022369193947665535,
+       0.02202148626972255,
+       0.021673778591779564,
+       0.021326070913836575,
+       0.020978363235893586,
+       0.020630655557950597,
+       0.020282947880007608,
+       0.019935240202064622,
+       0.019587532524121633,
+       0.019239824846178644,
+       0.018892117168235665,
+       0.018544409490292672,
+       0.01819670181234968,
+       0.0178489941344067,
+       0.017501286456463712,
+       0.017153578778520716,
+       0.016805871100577734,
+       0.016458163422634745,
+       0.01611045574469175,
+       0.015762748066748766,
+       0.01541504038880578,
+       0.015067332710862786,
+       0.01471962503291981,
+       0.01437191735497682,
+       0.014024209677033841,
+       0.013676501999090847,
+       0.013328794321147855,
+       0.012981086643204872,
+       0.012633378965261883,
+       0.01228567128731889,
+       0.01193796360937591,
+       0.011590255931432921,
+       0.011242548253489923,
+       0.010894840575546943,
+       0.010547132897603955,
+       0.010199425219660961,
+       0.009851717541717977,
+       0.009504009863774992,
+       0.009156302185832013,
+       0.008808594507889022,
+       0.008460886829946031,
+       0.00811317915200305,
+       0.00776547147406006,
+       0.007417763796117065,
+       0.007070056118174083,
+       0.006722348440231095,
+       0.0063746407622881,
+       0.0060269330843451185,
+       0.00567922540640213,
+       0.005331517728459135,
+       0.004983810050516152,
+       0.004636102372573168,
+       0.004288394694630173,
+       0.003940687016687186,
+       0.0035929793387442024,
+       0.0032452716608012237,
+       0.0028975639828582346,
+       0.0025498563049152407,
+       0.002202148626972258,
+       0.0018544409490292694,
+       0.0015067332710862744,
+       0.0011590255931432927,
+       0.0008113179152003069,
+       0.0004636102372573107,
+       0.00011590255931432633,
+       -0.00023180511862865865,
+       -0.0005795127965716532,
+       -0.0009272204745146383,
+       -0.0012749281524576208,
+       -0.0016226358304006169,
+       -0.001970343508343591]}]
 
 
 
@@ -1831,23 +2554,23 @@ Remember also that DUVET preserves all of the data associated with your spectra 
 
 # Deposition Time Scans
 
-Spectra are not the only data taken at the UV endstation. It is also necessary to monitor the deposition of an ice with the deposition time scans. These can then be fit, and optics principles can be used to determine the dosing rate and index of refraction of the ice. This is done using `deptools.py`, for deposition tools.
+Spectra are not the only data taken at the UV endstation. It is also necessary to monitor the deposition of an ice with the deposition time scans. These can then be fit, and optics principles can be used to determine the dosing rate and index of refraction of the ice. This is done using `depTools.py`, for deposition tools.
 
 
 ```python
-import deptools
+import depTools
 ```
 
-`deptools` has only one class: `DepositionTimeScan`. It is initialized by giving it the data file of some deposition time scan. The data can then be plotted with `plot_timescan()`
+`depTools` has only one class: `DepositionTimeScan`. It is initialized by giving it the data file of some deposition time scan. The data can then be plotted with `plot_timescan()`
 
 
 ```python
 # create the DepositionTimeScan object
 path = "./raw_data/SergioIoppolo-November2023/20231101/T73776.dat"
-dep = deptools.DepositionTimeScan(path)
+dep = depTools.DepositionTimeScan(path)
 
 # plot it
-deptools.plot_timescan(dep, save_path="./misc_figures/deposition_fit.svg")
+depTools.plot_timescan(dep, save_path="./misc_figures/deposition_fit.svg")
 ```
 
 
@@ -1859,11 +2582,11 @@ deptools.plot_timescan(dep, save_path="./misc_figures/deposition_fit.svg")
 
 
     
-![png](README_files/output_62_1.png)
+![png](README_files/output_75_1.png)
     
 
 
-Finding the dosing rate is then (in principle) very easy. All you need to do is run `find_dowing_rate()` and give the function a few parameters, all of which are optional for the function itself, but likely necessary to get a good fit.
+Finding the dosing rate is then (in principle) very easy. All you need to do is run `find_dosing_rate()` and give the function a few parameters, all of which are optional for the function itself, but likely necessary to get a good fit.
 
 The first of these is `guesses` which contains the guesses for the fitted parameters. It is structured the same way as the guesses for spectrum fitting. It should be a list where each item in the list is a dictionary containing a lower and upper limit on the parameter, and a guess. There are five parameters that are fit every time. These parameters are called `m`, `c`, `xc`, `w`, and `n`. The function being fit with these parameters is shown below:
 
@@ -1895,7 +2618,7 @@ guesses = [{'lower':-np.inf, 'guess':3e-6, 'upper':np.inf}, # m
 
 # fit the data and get the dosing rate
 dep.find_deposition_rate(guesses=guesses, t_start=1020, t_end=1700, verbose=True)
-deptools.plot_timescan(dep, save_path="./misc_figures/deposition_fit.svg")
+depTools.plot_timescan(dep, save_path="./misc_figures/deposition_fit.svg")
 ```
 
     The fit suceeded with a reduced chi square of [1m9.551e-05[0m
@@ -1917,7 +2640,7 @@ deptools.plot_timescan(dep, save_path="./misc_figures/deposition_fit.svg")
 
 
     
-![png](README_files/output_64_2.png)
+![png](README_files/output_77_2.png)
     
 
 
@@ -1943,7 +2666,7 @@ thickness, error = dep.find_thickness(dep_time=20, verbose=True)
 
 This gave roughly the desired thickness, as we can see here. But why not just fit the deposition scan of the ice we actually used? A deposition time of only 20 seconds is far too short to generate a fittable sine curve like the one above. Further, the user might not yet know how long they want to deposit for, only how thick of an ice they want to eventually have. The deposition rate must be found first. This is also why the program does not automatically calculate the thickness of the deposited ice when you run `find_deposition_rate()`.
 
-But what about that user who knows what thickness of ice they want, but not how long to deposit for? `deptools` can also calculate that in much the same way as finding the thickness:
+But what about that user who knows what thickness of ice they want, but not how long to deposit for? `depTools` can also calculate that in much the same way as finding the thickness:
 
 
 ```python
