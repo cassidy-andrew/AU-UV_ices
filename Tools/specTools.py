@@ -100,6 +100,20 @@ def lighten_color(color, amount=0.5):
 class SingleScan:
     """
     Represents a single scan.
+
+    Parameters belonging to the fully constructed object:
+
+    cindex : (int) the current index in color cycling
+    cmap : (matplotlib.pyplot.colormap) the colormap for color cycling
+    color : (str) the HEX code of the scan color for plotting
+    data : (pandas.dataframe) the data contained in this scan's file
+    debug : (boolean) whether or not to print debug statements. Defaults to
+            False.
+    fname : (str) the full file path associated with this object.
+    lenccycle (int) the length of the color cycle for color cycling
+    name : (str) the name of this scan
+    visible : (boolean) whether or not to show this scan in plotting
+    
     """
     def __init__(self, fname, df=None, debug=False):
         self.debug = debug
@@ -166,7 +180,8 @@ class Spectrum:
         baseline_p : (list) parameters from the fit of the rayleigh scattering
                      baseline. None until subtract_baseline() has been run.
         bkgd : (pandas.DataFrame) The averaged background data.
-        bkgd_files : (list) a list of background files that make up the scans.
+        bkgds : (list) a list of SingleSpectrum objects that make up
+                the backgrounds.
         changelog : (str) a string which contains the history of the data. Every
                     time a function is called, a line is written to describe
                     what happened and at what time. This is then added to the
@@ -174,6 +189,7 @@ class Spectrum:
         cindex : (int) the index of the current position in the color cycle for
                  color cycling.
         color : (str) the hex color used for plotting this spectrum.
+        _comps : (list) a list of custom component dataframes used for fitting
         data : (pandas.DataFrame) the data belonging to this
                spectrum, averaged together from its corresponding
                scans.
@@ -207,7 +223,8 @@ class Spectrum:
         peak_errors : (list) a list of the standard deviation peak errors. Is
                       None prior to calling `fit_peaks()`
         sample : (pandas.DataFrame) The averaged sample data.
-        sample_files : (list) a list of sample files that make up the scans.
+        samples : (list) a list of SingleSpectrum objects that make up the 
+                   samples.
         scans : (list) a list of SingleScan objects that will be
                 averaged together to make this spectrum.
         visible : (boolean) whether the spectrum should appear in
@@ -338,7 +355,7 @@ class Spectrum:
         
         # add the custom components terms to our y values
         if self._do_comps:
-            y += sum([c*comp['absorbance'] for c, comp in zip(C, self._comps)])
+            y += sum([c*(comp['absorbance']) for c, comp in zip(C, self._comps)])
             
         # add the scattering terms to our y values
         if self._do_scattering:
@@ -484,7 +501,7 @@ class Spectrum:
             this_gaussian = gaussian(self.data['wavelength'], *values)
             self.fit_components.append({'parameters':params,
                                         'wavelength':self.data['wavelength'],
-                                        'absorbance':this_gaussian-self.offset})
+                                        'absorbance':this_gaussian})
 
     def add_bkgd(self, bkgd_fname):
         """
@@ -627,6 +644,9 @@ class Spectrum:
         """
         old_offset = self.offset
         self.offset = new_offset
+        if self.data is not None:
+            self.data['offset absorbance'] = self.data['absorbance'] +\
+                                             self.offset
         self._log(f'changed offset from {old_offset} to '+ f'{self.offset}')        
 
     def cycle_color(self):
@@ -1191,13 +1211,13 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
     # plot the data
     ax1.plot(spec.data['wavelength'], spec.data['absorbance']+spec.offset,
              color=spec.color, label=spec.name, linestyle=spec.linestyle, 
-             linewidth=spec.linethickness)
+             linewidth=spec.linewidth)
     # calculate a color for the fit
     fit_color = lighten_color(spec.color, amount=1.2)
     # plot the fit
     ax1.plot(spec.data['wavelength'], spec.data['best_fit']+spec.offset,
              color=fit_color, linestyle='--', label=spec.name+" Best Fit",
-             linewidth=spec.linethickness)
+             linewidth=spec.linewidth)
     # plot the peaks as vertical lines if desired
     if plot_peaks:
         for peak in spec.peaks:
@@ -1207,10 +1227,10 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
     if plot_fit_components:
         for component in spec.fit_components:
             ax1.plot(component['wavelength'],
-                     [spec.offset+c for c in component['absorbance']],
+                     [c for c in component['absorbance']],
                      color='xkcd:grey', linestyle='-')
             ax1.fill_between(component['wavelength'], 0,
-                             [spec.offset+c for c in component['absorbance']],
+                             [c for c in component['absorbance']],
                              color='xkcd:grey', alpha=.2)
             
     if do_top_axis:
