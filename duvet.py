@@ -95,7 +95,7 @@ class MainWindow(QWidget):
         
         self.specTab = QWidget()
         # create the spectrum display
-        self.SDT = analysisGUI.spectrumDisplayTab(self, debug)
+        self.SDT = analysisGUI.AnalysisTab(self, debug)
         # set the layout of the spectrum display tab placeholder widget
         self.specTab.setLayout(self.SDT.outerLayout)
 

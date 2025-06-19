@@ -25,12 +25,12 @@ def scattering(wl, m, k):
     """
     return k*np.log(1/(1-m*(wl**-4)))
 
-def gaussian(x, a1,c1,s1):
+def gaussian(x, a, c, s):
     """
-    A single gaussian function, centered at c1 with standard deviation s1, and
-    amplitude a1.
+    A single gaussian function, centered at c with standard deviation s, and
+    amplitude a.
     """
-    return (a1/(s1*(np.sqrt(2*np.pi)))) * np.exp((-1.0/2.0)*(((x-c1)/s1)**2))
+    return (a/(s*(np.sqrt(2*np.pi)))) * np.exp((-1.0/2.0)*(((x-c)/s)**2))
 
 def preventDivisionByZero(some_array):
     """

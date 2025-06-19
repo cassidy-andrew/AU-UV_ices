@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.ndimage.filters import gaussian_filter
+from scipy.signal import argrelextrema
 
 
 def _sloped_depositon_curve(t, m, c, tc, w, A):
@@ -73,6 +74,8 @@ class DepositionTimeScan:
         self.fit_parameters = None
         self.redchi2 = None
         self.refractive_index = None
+        self.Rmin = None
+        self.Rmax = None
         
     def _read_data(self, fname):
         """
@@ -119,7 +122,7 @@ class DepositionTimeScan:
                        {'lower':-np.inf, 'guess':0, 'upper':np.inf}, # c
                        {'lower':-np.inf, 'guess':200, 'upper':np.inf}, # tc
                        {'lower':0, 'guess':300, 'upper':np.inf}, # w
-                       {'lower':1, 'guess':1.2, 'upper':4.1} # n
+                       {'lower':0, 'guess':0.1, 'upper':100} # A
                         ]
         
         # unwrap guesses and bounds
@@ -138,7 +141,8 @@ class DepositionTimeScan:
             fit_df = self.data[(self.data['Time/s'] > t_start) & 
                            (self.data['Time/s'] < t_end)].copy()
             # smooth
-            fit_df['smoothed Ch2'] = gaussian_filter(fit_df['Ch2/volts'], sigma=7, mode='nearest')
+            fit_df['smoothed Ch2'] = gaussian_filter(fit_df['Ch2/volts'],
+                                                     sigma=7, mode='nearest')
             # we fit to this
             fit_y = fit_df['smoothed Ch2']
         else:
@@ -149,37 +153,62 @@ class DepositionTimeScan:
             fit_y = fit_df['Ch2/volts']
         
         # do the fit        
-        popt, pcov = curve_fit(_sloped_depositon_curve_n, fit_df['Time/s'], 
+        popt, pcov = curve_fit(_sloped_depositon_curve, fit_df['Time/s'], 
                                fit_y, p0=p0, bounds=bounds)
         perr = np.sqrt(np.diag(pcov))
         
         # extract fit parameters
-        m, c, tc, w, n = popt[:5]
-        m_err, c_err, tc_err, w_err, n_err = perr[:5]
+        m, c, tc, w, A = popt[:5]
+        m_err, c_err, tc_err, w_err, A_err = perr[:5]
         self.fit_parameters = [{'name':'m', 'value':m, 'error':m_err},
                                {'name':'c', 'value':c, 'error':c_err},
                                {'name':'tc', 'value':tc, 'error':tc_err},
                                {'name':'w', 'value':w, 'error':w_err},
-                               {'name':'n', 'value':n, 'error':n_err}]
+                               {'name':'A', 'value':A, 'error':A_err}]
         
         # get the fitted line
-        y= _sloped_depositon_curve_n(fit_df['Time/s'], m, c, tc, w, n)
+        y= _sloped_depositon_curve(fit_df['Time/s'], m, c, tc, w, A)
         fit_df['fit'] = y
+        n = A
+        n_err = A_err
         
         # get the reduced chi square
         redchi2 = np.sum(((fit_df['Ch2/volts']-y)**2)/y) / 5
         self.redchi2 = redchi2
+
+        # find the maximum and minimum signal
+        maxima = argrelextrema(np.array(y), np.greater)[0]
+        minima = argrelextrema(np.array(y), np.less)[0]
+        specifier = -1
+        try:
+            maxSignal_x = fit_df['Time/s'].iloc[maxima[specifier]]
+            maxSignal_y = y.iloc[maxima[specifier]]
+        except:
+            print("Warning: No R_max found from fit, taking simple maximum")
+            maxSignal_y = max(y)
+            maxSignal_x = fit_df['Time/s'].iloc[np.argmax(y)]
+        try:
+            minSignal_x = fit_df['Time/s'].iloc[minima[specifier]]
+            minSignal_y = y.iloc[minima[specifier]]
+        except:
+            print("Warning: No R_min found from fit, taking simple minimum")
+            minSignal_y = min(y)
+            minSignal_x = fit_df['Time/s'].iloc[np.argmin(y)]
+
+        self.Rmax = (maxSignal_x, maxSignal_y)
+        self.Rmin = (minSignal_x, minSignal_y)
+
+        # Find the index of refraction Based on Born & Wolf
+        n1 = 1      # index of refraction of vacuum
+        n3 = 1.377  # index of refraction of MgF2 substrate, at 632.8 nm
+        k = ((n1-n3)/(n1+n3))*(np.sqrt(minSignal_y/maxSignal_y))
         
-        # refractive index at 632.8 nm
-        #n2 = (c+A)/(c-A)
-        #n2_err = c_err*2+A_err*2
-        self.refractive_index = {'value':n, 'error':n_err}
-        
-        theta = np.radians(theta_degrees)
+        n = np.sqrt(n1*n3*((1-k)/(1+k)))
+        self.refractive_index = {'value':n, 'error':None}
+
         # apply snell's law
-        # we assume the vacuum is a perfect vacuum
-        n_vacuum = 1
-        theta2 = np.arcsin(n_vacuum*np.sin(theta)/n)
+        theta = np.radians(theta_degrees)
+        theta2 = np.arcsin(n1*np.sin(theta)/n)
         
         # see equation 8 of Ioppolo et al. (2021) A&A 646, A172.
         # https://doi.org/10.1051/0004-6361/202039184
@@ -289,10 +318,28 @@ def plot_timescan(dep, ax=None, figsize=(16/2.5,9/2.5), xlim=None,
     if plot_fit and ('fit' in dep.data):
         ax.plot(dep.data['Time/s'], dep.data['fit'],
                 label="Fit", color="red")
+        # show the minimum and maximums used for the fit, if any
+        if (dep.Rmin is not None) and (dep.Rmax is not None):
+            ax.plot(dep.Rmin[0], dep.Rmin[1], marker='o', markersize=10,
+                    color='red', alpha=0.6)
+            ax.plot(dep.Rmax[0], dep.Rmax[1], marker='o', markersize=10,
+                    color='red', alpha=0.6)
+
+            xlim = ax.get_xlim()
+            x_offset = (xlim[1] - xlim[0]) * 0.02
+            ylim = ax.get_ylim()
+            y_offset = (ylim[1] - ylim[0]) * 0.04
+            ax.text(dep.Rmin[0]+x_offset, dep.Rmin[1]-y_offset*2,
+                    r"$R_{min}$", color='red')
+            ax.text(dep.Rmax[0]+x_offset, dep.Rmax[1]+y_offset/2,
+                    r"$R_{max}$", color='red')
+            # make sure the text fits in the y limits of the plot
+            ax.set_ylim(ylim[0]-y_offset*2, ylim[1]+y_offset*2)
+            
 
     ax.set_xlabel("Time (seconds)");
-    ax.set_ylabel("Ch2 Signal (volts)");
-    ax.legend();
+    ax.set_ylabel("Signal (volts)");
+    ax.legend(framealpha=0);
 
     if xlim:
         ax.set_xlim(xlim[0], xlim[1])

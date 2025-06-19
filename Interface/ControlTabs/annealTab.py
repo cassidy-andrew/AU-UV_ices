@@ -46,7 +46,7 @@ class AnnealTab():
         """
         self.parent = parent
         self.debug = debug
-        
+
         # temperature controller hardware!
         self.tempController = parent.hardwareManager.temperatureController
 
