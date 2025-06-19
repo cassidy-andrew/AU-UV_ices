@@ -3,14 +3,9 @@ import os
 import inspect
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-interfacedir = os.path.dirname(currentdir)
-maindir = os.path.dirname(interfacedir)
+maindir = os.path.dirname(currentdir)
 
 sys.path.insert(0, maindir)
-from duvet import center
-
-sys.path.insert(0, maindir+'/Tools')
-import depTools
 
 from datetime import datetime
 
@@ -60,3 +55,21 @@ from PyQt5.QtCore import *
 from PyQt5.Qt import (
     QRect
 )
+
+
+class ScrollLabel(QScrollArea):
+    def __init__(self, *args, **kwargs):
+        QScrollArea.__init__(self, *args, **kwargs)
+        self.setWidgetResizable(True)
+        content = QWidget(self)
+        self.setWidget(content)
+        self.layout = QVBoxLayout(content)
+        self.label = QLabel(content)
+        self.label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.label.setWordWrap(True)
+        #self.label.setMinimumWidth(600)
+        #self.label.setMinimumHeight(400)
+        self.layout.addWidget(self.label)
+
+    def setText(self, text):
+        self.label.setText(text)

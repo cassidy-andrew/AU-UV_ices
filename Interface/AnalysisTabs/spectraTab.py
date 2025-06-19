@@ -11,7 +11,9 @@ from duvet import center
 
 sys.path.insert(0, maindir+'/Tools')
 import specTools
-import depTools
+
+sys.path.insert(0, maindir+'Interface')
+from generalElements import ScrollLabel
 
 from datetime import datetime
 
@@ -74,25 +76,6 @@ class ScanMplCanvas(FigureCanvasQTAgg):
         self.fig, self.axes = specTools.plot_scans([], "Lambda", "Keith/nA",
             return_fig_and_ax=True)
         super(ScanMplCanvas, self).__init__(self.fig)
-
-
-class ScrollLabel(QScrollArea):
-    def __init__(self, *args, **kwargs):
-        QScrollArea.__init__(self, *args, **kwargs)
-        self.setWidgetResizable(True)
-        content = QWidget(self)
-        self.setWidget(content)
-        self.layout = QVBoxLayout(content)
-        self.label = QLabel(content)
-        self.label.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        self.label.setWordWrap(True)
-        #self.label.setMinimumWidth(600)
-        #self.label.setMinimumHeight(400)
-        self.layout.addWidget(self.label)
-
-    def setText(self, text):
-        self.label.setText(text)
-
 
 class spectrumDisplayTab():
     def __init__(self, parent, debug):

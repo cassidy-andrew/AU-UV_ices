@@ -199,4 +199,5 @@ if __name__ == "__main__":
     window = MainWindow(debug)
     #window.setFont(font)
     window.show()
-    sys.exit(app.exec())
+    rc = app.exec_()
+    sys.exit(rc)

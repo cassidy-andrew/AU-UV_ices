@@ -14,6 +14,7 @@ import depTools
 
 sys.path.insert(0, "Interface/AnalysisTabs")
 import spectraTab
+import timescanTab
 
 from datetime import datetime
 
@@ -82,11 +83,10 @@ class AnalysisTab():
         #self.annealTabWidget.setFixedWidth(500)
         self.spectrumTabObject = spectraTab.spectrumDisplayTab(self, debug)
         self.spectrumTabWidget.setLayout(self.spectrumTabObject.outerLayout)
-        self.tabs.addTab(self.spectrumTabWidget, "Photoabsorption Spectra Analysis")
+        self.tabs.addTab(self.spectrumTabWidget,
+                         "Photoabsorption Spectra Analysis")
 
         self.timescanTab = QWidget()
         self.tabs.addTab(self.timescanTab, "Timescan Analysis")
 
         self.outerLayout.addWidget(self.tabs)
-
-
