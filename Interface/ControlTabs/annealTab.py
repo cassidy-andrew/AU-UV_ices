@@ -312,20 +312,20 @@ class AnnealTab():
         self.measured_temperature = self.tempController.get_temp()
         self.mtLabel.setText(self.measured_temperature)
         # current target temperature
-        self.measured_set_point = self.tempController.get_target_temp()
-        self.mspLabel.setText(self.measured_set_point)
+        #self.measured_set_point = self.tempController.get_target_temp()
+        #self.mspLabel.setText(self.measured_set_point)
         # heater power setting / range
-        self.measured_power_setting = self.tempController.get_heater_range()
-        self.mpsLabel.setText(self.measured_power_setting)
+        #self.measured_power_setting = self.tempController.get_heater_range()
+        #self.mpsLabel.setText(self.measured_power_setting)
         # heater power percent of maximum
-        self.measured_power_level = self.tempController.get_heater_power()
-        self.plLabel.setText(self.measured_power_level)
+        #self.measured_power_level = self.tempController.get_heater_power()
+        #self.plLabel.setText(self.measured_power_level)
         # ramp rate
-        self.measured_ramp_rate = self.tempController.get_ramp_rate()
-        self.mrrLabel.setText(self.measured_ramp_rate)
+        #self.measured_ramp_rate = self.tempController.get_ramp_rate()
+        #self.mrrLabel.setText(self.measured_ramp_rate)
         # heater status
-        self.heater_status = self.tempController.get_heater_status()
-        self.mhsLabel.setText(self.heater_status)
+        #self.heater_status = self.tempController.get_heater_status()
+        #self.mhsLabel.setText(self.heater_status)
 
     def set_target_temperature(self, target):
         self.tempController.set_temp(target)
