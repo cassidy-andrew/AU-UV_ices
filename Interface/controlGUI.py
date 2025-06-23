@@ -48,7 +48,7 @@ class TimescanRecorder():
     """
     def __init__(self, parent):
         self.parent = parent
-        self.hardwareManager = self.parent.hardwareManger
+        self.hardwareManager = self.parent.hardwareManager
         self.collecting = False
 
     def start_collection(self):
