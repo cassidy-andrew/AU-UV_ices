@@ -310,7 +310,7 @@ class AnnealTab():
         """
         # measured temperature
         #self.measured_temperature = str(self.tempController.get_temp())
-        temp = self.hardwareManager.data.iloc[-1]['T (K)']
+        temp = self.parent.hardwareManager.data.iloc[-1]['T (K)']
         self.mtLabel.setText(self.measured_temperature)
         # current target temperature
         #self.measured_set_point = self.tempController.get_target_temp()
