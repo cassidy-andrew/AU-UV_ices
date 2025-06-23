@@ -76,7 +76,7 @@ class TimescanRecorder():
     def collect(self):
         if self.collecting:
             time = datetime.now()
-            temp = self.harwdareManager.temperatureController.get_temp()
+            temp = self.hardwareManager.temperatureController.get_temp()
             this_dict = {'Time':time, 'T (K)':temp}
             self.data = pd.concat([self.data, this_dict], ignore_index=True)
 
