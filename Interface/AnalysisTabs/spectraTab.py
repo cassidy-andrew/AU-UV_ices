@@ -28,7 +28,7 @@ matplotlib.use('QtAgg')
 plt.style.use('./au-uv.mplstyle')
 plt.autoscale(False)
 
-from pyqt_color_picker import ColorPickerDialog
+#from pyqt_color_picker import ColorPickerDialog
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -49,7 +49,8 @@ from PyQt5.QtWidgets import (
     QDialog,
     QScrollArea,
     QComboBox,
-    QAbstractItemView
+    QAbstractItemView,
+    QColorDialog
 )
 
 from PyQt5.QtGui import (
@@ -420,11 +421,12 @@ class guiSpectrum():
         """
         Change the color of a spectrum from a selector panel
         """
-        color = None
+        color = QColorDialog.getColor()
+        """color = None
         dialog = ColorPickerDialog()
         reply = dialog.exec()
         if reply == QDialog.Accepted:
-            color = dialog.getColor().name()
+            color = dialog.getColor().name()"""
         self.spec.change_color(color)
         self.editwindow.colorLabel.setText(self.spec.color)
         self.isOK(hide=False)

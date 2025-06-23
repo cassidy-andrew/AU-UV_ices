@@ -20,8 +20,6 @@ matplotlib.use('QtAgg')
 plt.style.use('./au-uv.mplstyle')
 plt.autoscale(False)
 
-from pyqt_color_picker import ColorPickerDialog
-
 from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,

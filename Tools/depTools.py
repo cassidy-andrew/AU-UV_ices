@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import os
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.ndimage.filters import gaussian_filter
@@ -63,11 +64,12 @@ class DepositionTimeScan:
                        'error', containting the value and error of the
                        refractive index respectively.
     """
-    def __init__(self, fname):
+    def __init__(self, fname, laser_wavelength=632.8):
         """
         Parameters required to construct the object:
         """
         # read the data
+        self.name = str(os.path.basename(fname))
         self.data = self._read_data(fname)
         # initialize other parameters
         self.deposition_rate = None
@@ -76,6 +78,7 @@ class DepositionTimeScan:
         self.refractive_index = None
         self.Rmin = None
         self.Rmax = None
+        self.laser_wavelength = laser_wavelength # nm
         
     def _read_data(self, fname):
         """
@@ -116,6 +119,15 @@ class DepositionTimeScan:
         verbose : (boolean) Whether or not to print the fitted parameters in
                   addition to the regular output. Good for debugging.
         """
+        # reset parameters
+        self.deposition_rate = None
+        self.fit_parameters = None
+        self.redchi2 = None
+        self.refractive_index = None
+        self.Rmin = None
+        self.Rmax = None
+        self.data = self.data.drop(['smoothed Ch2', 'fit'], axis=1,
+                                   errors='ignore')
         # initialize the guesses
         if guesses is None:
             guesses = [{'lower':-np.inf, 'guess':3e-6, 'upper':np.inf}, # m
@@ -215,7 +227,7 @@ class DepositionTimeScan:
         # for this. But instead of getting the thickness directly using the full
         # equation, we skip the N term and divide by the period. This gives us
         # the deposition rate (number of pattern repititions N=deptime/period).
-        d=632.8/(2*n*np.cos(theta2))
+        d=self.laser_wavelength/(2*n*np.cos(theta2))
         d_err=n_err/n
         rate=d/(2*w)
         rate_err = np.sqrt((d_err/d)**2 + (w_err/w)**2)
@@ -307,34 +319,35 @@ def plot_timescan(dep, ax=None, figsize=(16/2.5,9/2.5), xlim=None,
         fig, ax = plt.subplots(1, 1)
         fig.set_size_inches(figsize[0], figsize[1])
 
-    ax.plot(dep.data['Time/s'], dep.data['Ch2/volts'],
-            label="Data", color="black")
+    if dep is not None:
+        ax.plot(dep.data['Time/s'], dep.data['Ch2/volts'],
+                label="Data", color="black")
+        
+        if plot_smoothed and ('smoothed Ch2' in dep.data):
+            ax.plot(dep.data['Time/s'], dep.data['smoothed Ch2'],
+                    label="Smoothed Data", color="blue", linewidth=6, alpha=0.3)
     
-    if plot_smoothed and ('smoothed Ch2' in dep.data):
-        ax.plot(dep.data['Time/s'], dep.data['smoothed Ch2'],
-                label="Smoothed Data", color="blue", linewidth=6, alpha=0.3)
-
-    # plot the fit, but only if desired and it exists
-    if plot_fit and ('fit' in dep.data):
-        ax.plot(dep.data['Time/s'], dep.data['fit'],
-                label="Fit", color="red")
-        # show the minimum and maximums used for the fit, if any
-        if (dep.Rmin is not None) and (dep.Rmax is not None):
-            ax.plot(dep.Rmin[0], dep.Rmin[1], marker='o', markersize=10,
-                    color='red', alpha=0.6)
-            ax.plot(dep.Rmax[0], dep.Rmax[1], marker='o', markersize=10,
-                    color='red', alpha=0.6)
-
-            xlim = ax.get_xlim()
-            x_offset = (xlim[1] - xlim[0]) * 0.02
-            ylim = ax.get_ylim()
-            y_offset = (ylim[1] - ylim[0]) * 0.04
-            ax.text(dep.Rmin[0]+x_offset, dep.Rmin[1]-y_offset*2,
-                    r"$R_{min}$", color='red')
-            ax.text(dep.Rmax[0]+x_offset, dep.Rmax[1]+y_offset/2,
-                    r"$R_{max}$", color='red')
-            # make sure the text fits in the y limits of the plot
-            ax.set_ylim(ylim[0]-y_offset*2, ylim[1]+y_offset*2)
+        # plot the fit, but only if desired and it exists
+        if plot_fit and ('fit' in dep.data):
+            ax.plot(dep.data['Time/s'], dep.data['fit'],
+                    label="Fit", color="red")
+            # show the minimum and maximums used for the fit, if any
+            if (dep.Rmin is not None) and (dep.Rmax is not None):
+                ax.plot(dep.Rmin[0], dep.Rmin[1], marker='o', markersize=10,
+                        color='red', alpha=0.6)
+                ax.plot(dep.Rmax[0], dep.Rmax[1], marker='o', markersize=10,
+                        color='red', alpha=0.6)
+    
+                xlim = ax.get_xlim()
+                x_offset = (xlim[1] - xlim[0]) * 0.02
+                ylim = ax.get_ylim()
+                y_offset = (ylim[1] - ylim[0]) * 0.04
+                ax.text(dep.Rmin[0]+x_offset, dep.Rmin[1]-y_offset*2,
+                        r"$R_{min}$", color='red')
+                ax.text(dep.Rmax[0]+x_offset, dep.Rmax[1]+y_offset/2,
+                        r"$R_{max}$", color='red')
+                # make sure the text fits in the y limits of the plot
+                ax.set_ylim(ylim[0]-y_offset*2, ylim[1]+y_offset*2)
             
 
     ax.set_xlabel("Time (seconds)");

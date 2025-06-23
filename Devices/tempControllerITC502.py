@@ -1,4 +1,4 @@
-import serial
+from serial import Serial
 import traceback
 import os
 import sys
@@ -28,7 +28,7 @@ class TemperatureController():
 
     def _open_serial_connection(self, channel):
         try:
-            ser = serial.Serial(channel, baudrate=self.baudrate,
+            ser = Serial(channel, baudrate=self.baudrate,
                             timeout=self.read_timeout)
             ser.write_timeout = self.write_timeout
             return ser

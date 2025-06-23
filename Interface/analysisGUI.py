@@ -29,8 +29,6 @@ matplotlib.use('QtAgg')
 plt.style.use('./au-uv.mplstyle')
 plt.autoscale(False)
 
-from pyqt_color_picker import ColorPickerDialog
-
 from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -84,9 +82,11 @@ class AnalysisTab():
         self.spectrumTabObject = spectraTab.spectrumDisplayTab(self, debug)
         self.spectrumTabWidget.setLayout(self.spectrumTabObject.outerLayout)
         self.tabs.addTab(self.spectrumTabWidget,
-                         "Photoabsorption Spectra Analysis")
+                         "Photoabsorption Spectra")
 
-        self.timescanTab = QWidget()
-        self.tabs.addTab(self.timescanTab, "Timescan Analysis")
+        self.timescanTabWidget = QWidget()
+        self.timescanTabObject = timescanTab.TimescanDisplayTab(self, debug)
+        self.timescanTabWidget.setLayout(self.timescanTabObject.outerLayout)
+        self.tabs.addTab(self.timescanTabWidget, "Interferometry")
 
         self.outerLayout.addWidget(self.tabs)
