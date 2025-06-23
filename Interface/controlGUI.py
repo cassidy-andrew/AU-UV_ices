@@ -2,6 +2,8 @@ import sys
 import os
 import inspect
 
+from datetime import datetime
+
 sys.path.insert(0, "Interface/ControlTabs")
 import annealTab
 
@@ -40,12 +42,52 @@ from PyQt5.Qt import (
 
 import pyqtgraph as pg
 
+
+class TimescanRecorder():
+    """
+    """
+    def __init__(self, parent):
+        self.parent = parent
+        self.hardwareManager = self.parent.hardwareManger
+        self.collecting = False
+
+    def start_collection(self):
+        """
+        Enables collecting data
+        """
+        if self.collecting:
+            print("Already collecting!")
+            return None
+        self.data = pd.DataFrame(columns=['Time', 'T (K)'])
+        self.collecting = True
+
+    def stop_collection(self):
+        """
+        Exports the data and ends collection
+        """
+        if not self.collecting:
+            print("Already not collecting!")
+            return None
+        self.collecting = False
+        # export the data
+        self.data.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+
+    def collect(self):
+        if self.collecting:
+            time = datetime.now()
+            temp = self.harwdareManager.temperatureController.get_temp()
+            this_dict = {'Time':time, 'T (K)':temp}
+            self.data = pd.concat([self.data, this_dict], ignore_index=True)
+
+
 class ControlTab():
     def __init__(self, parentWindow, debug):
         self.parentWindow = parentWindow
         self.hardwareManager = parentWindow.hardwareManager
         self.valueFont = QFont("Consolas", 30)
         self.titleFont = QFont("Arial", 12)
+        self.TSRecorder = TimescanRecorder(self)
+        self.hardwareManager.add_refresh_function(self, self.TSRecorder.collect)
         
         self.outerLayout = QHBoxLayout()
 
@@ -119,6 +161,19 @@ class ControlTab():
         self.laserFig.setBackground(background=None)
         self.plotterLayout.addWidget(self.laserFig)
         self.laserFig.setMinimumWidth(500)
+
+        # collection buttons
+        self.collectorLayout = QHBoxLayout()
+        # start collection button
+        self.startColButton = QPushButton("Start Collection")
+        self.startColButton.clicked.connect(self.TSRecorder.start_collection)
+        self.collectorLayout.addWidget(self.startColButton)
+        # stop collection button
+        self.stopColButton = QPushButton("Stop Collection")
+        self.stopColButton.clicked.connect(self.TSRecorder.stop_collection)
+        self.collectorLayout.addWidget(self.stopColButton)
+
+        self.plotterLayout.addLayout(collectorLayout)
         
 
         self.outerLayout.addWidget(self.tabs)
