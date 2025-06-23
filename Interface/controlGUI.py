@@ -187,17 +187,19 @@ class ControlTab():
         self.laserFig.setMinimumWidth(500)
 
         # collection buttons
-        """self.collectorLayout = QHBoxLayout()
+        self.collectorLayout = QHBoxLayout()
         # start collection button
         self.startColButton = QPushButton("Start Collection")
-        self.startColButton.clicked.connect(self.TSRecorder.start_collection)
+        self.startColButton.clicked.connect(
+            self.hardwareManager.start_timescan_collection)
         self.collectorLayout.addWidget(self.startColButton)
         # stop collection button
         self.stopColButton = QPushButton("Stop Collection")
-        self.stopColButton.clicked.connect(self.TSRecorder.stop_collection)
+        self.stopColButton.clicked.connect(
+            self.hardwareManager.stop_timescan_collection)
         self.collectorLayout.addWidget(self.stopColButton)
 
-        self.plotterLayout.addLayout(self.collectorLayout)"""
+        self.plotterLayout.addLayout(self.collectorLayout)
         
 
         self.outerLayout.addWidget(self.tabs)
