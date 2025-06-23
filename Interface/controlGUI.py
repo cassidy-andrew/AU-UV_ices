@@ -87,7 +87,7 @@ class ControlTab():
         self.valueFont = QFont("Consolas", 30)
         self.titleFont = QFont("Arial", 12)
         self.TSRecorder = TimescanRecorder(self)
-        self.hardwareManager.add_refresh_function(self, self.TSRecorder.collect)
+        self.hardwareManager.add_refresh_function(self.TSRecorder.collect)
         
         self.outerLayout = QHBoxLayout()
 
