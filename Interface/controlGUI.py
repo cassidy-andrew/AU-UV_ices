@@ -78,7 +78,7 @@ class TimescanRecorder():
         if self.collecting:
             time = datetime.now()
             temp = self.hardwareManager.temperatureController.get_temp()
-            this_dict = pd.DataFrame([{'Time':time, 'T (K)':temp}])
+            this_dict = {'Time':time, 'T (K)':temp}
             self.data.loc[len(self.data)] = this_dict
 
 
