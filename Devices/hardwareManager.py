@@ -3,6 +3,9 @@ import os
 import inspect
 import json
 
+from datetime import datetime
+import pandas as pd
+
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
@@ -32,11 +35,14 @@ class HardwareManager():
         self.temperatureController = TC.TemperatureController()
         
         # a place to store the refresh functions that should be called
-        self.hardware_refresh_functions = []
+        self.hardware_refresh_functions = [self.collect_data]
 
         self.timer = QTimer()
         self.timer.timeout.connect(self._refresh)
         self.timer.start(self.polling_rate)
+
+        self.collectionStartTime = None
+        self.data = pd.DataFrame(columns=['Time', 'T (K)'])
 
     def _refresh(self):
         """
@@ -50,5 +56,35 @@ class HardwareManager():
         Add a function to the list of those needing to be refreshed
         """
         self.hardware_refresh_functions.append(function)
+
+    def collect_data(self):
+        """
+        """
+        #if self.collecting:
+        time = datetime.now()
+        temp = self.temperatureController.get_temp()
+        this_dict = {'Time':time, 'T (K)':temp}
+        self.data.loc[len(self.data)] = this_dict
+
+    def start_timescan_collection(self):
+        """
+        """
+        if self.collectionStartTime is not None:
+            print("Already collecting!")
+            return None
+        #self.data = pd.DataFrame(columns=['Time', 'T (K)'])
+        self.collecting = True
+        self.collectionStartTime = datetime.now()
+
+    def stop_timescan_collection(self):
+        """
+        """
+        """if self.collectionStartTime is None:
+            print("Already not collecting!")
+            return None
+        self.collectionStartTime = None"""
+        # export the data
+        self.data.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                         index=False)
 
    

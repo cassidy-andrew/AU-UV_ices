@@ -8,6 +8,23 @@ from datetime import datetime
 sys.path.insert(0, "Interface/ControlTabs")
 import annealTab
 
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+interfacedir = os.path.dirname(currentdir)
+maindir = os.path.dirname(interfacedir)
+
+sys.path.insert(0, maindir)
+
+import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import (
+    FigureCanvasQTAgg,
+    NavigationToolbar2QT as NavigationToolbar
+)
+matplotlib.use('QtAgg')
+plt.style.use('./au-uv.mplstyle')
+plt.autoscale(False)
+
 from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -42,6 +59,12 @@ from PyQt5.Qt import (
 )
 
 import pyqtgraph as pg
+
+
+class TSMplCanvas(FigureCanvasQTAgg):
+    def __init__(self, parent=None):
+        self.fig, self.axes = plt.subplots(1, 1)
+        super(SpecMplCanvas, self).__init__(self.fig)
 
 
 class TimescanRecorder():
@@ -81,8 +104,6 @@ class TimescanRecorder():
             this_dict = {'Time':time, 'T (K)':temp}
             self.data.loc[len(self.data)] = this_dict
 
-            self.parent.tempFig.plot(self.data['Time'], self.data['T (K)'])
-
 
 class ControlTab():
     def __init__(self, parentWindow, debug):
@@ -90,8 +111,7 @@ class ControlTab():
         self.hardwareManager = parentWindow.hardwareManager
         self.valueFont = QFont("Consolas", 30)
         self.titleFont = QFont("Arial", 12)
-        self.TSRecorder = TimescanRecorder(self)
-        self.hardwareManager.add_refresh_function(self.TSRecorder.collect)
+        #self.TSRecorder = TimescanRecorder(self)
         
         self.outerLayout = QHBoxLayout()
 
@@ -183,4 +203,11 @@ class ControlTab():
         self.outerLayout.addWidget(self.tabs)
         self.outerLayout.addLayout(self.schedulerLayout)
         self.outerLayout.addLayout(self.plotterLayout)
+
+        
+        self.hardwareManager.add_refresh_function(self.refresh_figures)
+
+    def refresh_figures(self):
+        self.tempFig.plot(self.hardwareManager.data['Time'],
+                          self.hardwareManager.data['T (K)'])
         
