@@ -421,7 +421,7 @@ class guiSpectrum():
         """
         Change the color of a spectrum from a selector panel
         """
-        color = QColorDialog.getColor()
+        color = QColorDialog.getColor().name()
         """color = None
         dialog = ColorPickerDialog()
         reply = dialog.exec()
