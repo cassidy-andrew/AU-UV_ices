@@ -162,7 +162,7 @@ class ControlTab():
         self.plotterLayout = QVBoxLayout()
 
         # temperature plot
-        self.tempTimeAxis = pg.AxisItem('bottom')
+        self.tempTimeAxis = pg.DateAxisItem('bottom')
         self.tempFig = pg.PlotWidget(self.parentWindow, title='Temperature',
                                      axisItems={'bottom':self.tempTimeAxis})
         self.tempFig.setBackground(background=None)
@@ -170,7 +170,7 @@ class ControlTab():
         self.tempFig.setMinimumWidth(500)
 
         # pressure plot
-        self.pressureTimeAxis = pg.AxisItem('bottom')
+        self.pressureTimeAxis = pg.DateAxisItem('bottom')
         self.pressureFig = pg.PlotWidget(self.parentWindow, title='Pressure',
                                     axisItems={'bottom':self.pressureTimeAxis})
         self.pressureFig.setBackground(background=None)
@@ -179,7 +179,7 @@ class ControlTab():
         self.pressureFig.setMinimumWidth(500)
 
         # laser plot
-        self.laserTimeAxis = pg.AxisItem('bottom')
+        self.laserTimeAxis = pg.DateAxisItem('bottom')
         self.laserFig = pg.PlotWidget(self.parentWindow, title='Laser Signal',
                                      axisItems={'bottom':self.laserTimeAxis})
         self.laserFig.setBackground(background=None)
