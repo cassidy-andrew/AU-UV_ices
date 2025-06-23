@@ -165,7 +165,7 @@ class ControlTab():
         #self.tempTimeAxis = pg.DateAxisItem('bottom')
         self.tempFig = pg.PlotWidget(
             self.parentWindow, title='Temperature',
-            labels={'left': 'Temperature (K)'}
+            labels={'left': 'Temperature (K)'},
             axisItems={'bottom':pg.AxisItem(orientation='bottom')}
         )
         self.tempFig.setBackground(background=None)
