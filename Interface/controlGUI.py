@@ -162,9 +162,12 @@ class ControlTab():
         self.plotterLayout = QVBoxLayout()
 
         # temperature plot
-        self.tempTimeAxis = pg.DateAxisItem('bottom')
-        self.tempFig = pg.PlotWidget(self.parentWindow, title='Temperature',
-                                     axisItems={'bottom':self.tempTimeAxis})
+        #self.tempTimeAxis = pg.DateAxisItem('bottom')
+        self.tempFig = pg.PlotWidget(
+            self.parentWindow, title='Temperature',
+            labels={'left': 'Temperature (K)'}
+            axisItems={'bottom':pg.AxisItem(orientation='bottom')}
+        )
         self.tempFig.setBackground(background=None)
         self.plotterLayout.addWidget(self.tempFig)
         self.tempFig.setMinimumWidth(500)
