@@ -72,7 +72,7 @@ class TemperatureController():
         try:
 			#ser.write("C3\n".encode('utf-8'))
             self.ser.write(command.encode('utf-8'))
-            output = _parse_output(self.ser.readline().decode('utf-8'))
+            output = self._parse_output(self.ser.readline().decode('utf-8'))
             value = output[1]
         except Exception:
             traceback.print_exc()
