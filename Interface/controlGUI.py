@@ -173,7 +173,7 @@ class ControlTab():
         self.stopColButton.clicked.connect(self.TSRecorder.stop_collection)
         self.collectorLayout.addWidget(self.stopColButton)
 
-        self.plotterLayout.addLayout(collectorLayout)
+        self.plotterLayout.addLayout(self.collectorLayout)
         
 
         self.outerLayout.addWidget(self.tabs)
