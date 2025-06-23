@@ -187,7 +187,7 @@ class ControlTab():
         self.laserFig.setMinimumWidth(500)
 
         # collection buttons
-        self.collectorLayout = QHBoxLayout()
+        """self.collectorLayout = QHBoxLayout()
         # start collection button
         self.startColButton = QPushButton("Start Collection")
         self.startColButton.clicked.connect(self.TSRecorder.start_collection)
@@ -197,7 +197,7 @@ class ControlTab():
         self.stopColButton.clicked.connect(self.TSRecorder.stop_collection)
         self.collectorLayout.addWidget(self.stopColButton)
 
-        self.plotterLayout.addLayout(self.collectorLayout)
+        self.plotterLayout.addLayout(self.collectorLayout)"""
         
 
         self.outerLayout.addWidget(self.tabs)
