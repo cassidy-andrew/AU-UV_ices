@@ -81,6 +81,8 @@ class TimescanRecorder():
             this_dict = {'Time':time, 'T (K)':temp}
             self.data.loc[len(self.data)] = this_dict
 
+            self.parent.tempFig.plot(self.data['Time'], self.data['T (K)'])
+
 
 class ControlTab():
     def __init__(self, parentWindow, debug):
