@@ -71,14 +71,15 @@ class TimescanRecorder():
             return None
         self.collecting = False
         # export the data
-        self.data.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+        self.data.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                         index=False)
 
     def collect(self):
         if self.collecting:
             time = datetime.now()
             temp = self.hardwareManager.temperatureController.get_temp()
             this_dict = pd.DataFrame([{'Time':time, 'T (K)':temp}])
-            self.data = pd.concat([self.data, this_dict], ignore_index=True)
+            self.data.loc[len(self.data)] = this_dict
 
 
 class ControlTab():
