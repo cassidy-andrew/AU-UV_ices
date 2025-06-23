@@ -5,6 +5,7 @@ import json
 
 from datetime import datetime
 import pandas as pd
+import numpy as np
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -63,6 +64,8 @@ class HardwareManager():
         #if self.collecting:
         time = datetime.now()
         temp = self.temperatureController.get_temp()
+        if temp == "No Signal":
+            temp = np.nan
         this_dict = {'Time':time, 'T (K)':temp}
         self.data.loc[len(self.data)] = this_dict
 

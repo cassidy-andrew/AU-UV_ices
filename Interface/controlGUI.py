@@ -210,6 +210,6 @@ class ControlTab():
         self.hardwareManager.add_refresh_function(self.refresh_figures)
 
     def refresh_figures(self):
-        self.tempFig.plot(self.hardwareManager.data['Time'],
-                          self.hardwareManager.data['T (K)'])
+        df = self.hardwareManager.data
+        self.tempFig.plot(df['Time'], df['T (K)'])
         
