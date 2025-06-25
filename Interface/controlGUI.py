@@ -240,5 +240,5 @@ class ControlTab():
         #self.tempFig.setData(df['Time'], df['Temperature (K)'])
         self.plot1.refresh_plot()
         self.plot2.refresh_plot()
-        aelf.plot3.refresh_plot()
+        self.plot3.refresh_plot()
         
