@@ -308,24 +308,18 @@ class AnnealTab():
         """
         Update all values from the temperature controller.
         """
+        measured_values = self.parent.hardwareManager.data.iloc[-1]
         # measured temperature
-        #self.measured_temperature = str(self.tempController.get_temp())
-        temp = self.parent.hardwareManager.data.iloc[-1]['Temperature (K)']
-        self.mtLabel.setText(str(temp))
+        self.mtLabel.setText(str(measured_values['Temperature (K)']))
         # current target temperature
-        set_point = self.parent.hardwareManager.data.iloc[-1]['Setpoint (K)']
-        self.mspLabel.setText(str(set_point))
+        self.mspLabel.setText(str(measured_values['Setpoint (K)']))
         # heater power setting / range
-        #self.measured_power_setting = self.tempController.get_heater_range()
         #self.mpsLabel.setText(self.measured_power_setting)
         # heater power percent of maximum
-        #self.measured_power_level = self.tempController.get_heater_power()
-        #self.plLabel.setText(self.measured_power_level)
+        self.plLabel.setText(str(measured_values['Heater Power (%)']))
         # ramp rate
-        #self.measured_ramp_rate = self.tempController.get_ramp_rate()
         #self.mrrLabel.setText(self.measured_ramp_rate)
         # heater status
-        #self.heater_status = self.tempController.get_heater_status()
         #self.mhsLabel.setText(self.heater_status)
 
     def set_target_temperature(self, target):

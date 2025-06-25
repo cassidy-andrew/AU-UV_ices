@@ -47,6 +47,7 @@ class HardwareManager():
         self.collectionEndTime = None
         self.data = pd.DataFrame(
             columns=['Time', 'Temperature (K)', 'Setpoint (K)',
+                     'Heater Power (%)',
                      'Main Chamber Pressure (mbar)', 'Wavelength (nm)']
         )
 
@@ -78,10 +79,12 @@ class HardwareManager():
         except Exception:
             traceback.print_exc()
         target_temp = self.temperatureController.get_target_temp()
+        power = self.temperatureController.get_heater_power()
         pressure = None
         wavelength = None
         this_dict = {'Time':time, 'Temperature (K)':temp,
                      'Setpoint (K)':target_temp,
+                     'Heater Power (%)':power,
                      'Main Chamber Pressure (mbar)':pressure,
                      'Wavelength (nm)':wavelength}
         self.data.loc[len(self.data)] = this_dict
