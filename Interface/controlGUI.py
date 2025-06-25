@@ -197,7 +197,8 @@ class ControlTab():
         # status light
         self.collectionStatusLabel = QLabel()
         self.collectionStatusLabel.setText("Not Recording")
-        self.collectionStatusLabel.setStyleSheet("background-color: grey")
+        self.collectionStatusLabel.setStyleSheet("background-color: lightgrey")
+        self.collectionStatusLabel.setAlignment(Qt.AlignCenter)
         self.collectorLayout.addWidget(self.collectionStatusLabel)
         
         self.outerLayout.addWidget(self.tabs)
@@ -219,5 +220,5 @@ class ControlTab():
     def stop_recording(self):
         self.hardwareManager.stop_timescan_collection()
         self.collectionStatusLabel.setText("Not Recording")
-        self.collectionStatusLabel.setStyleSheet("background-color: grey")
+        self.collectionStatusLabel.setStyleSheet("background-color: lightgrey")
         

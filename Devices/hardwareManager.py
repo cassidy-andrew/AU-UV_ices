@@ -46,8 +46,8 @@ class HardwareManager():
         self.collectionStartTime = None
         self.collectionEndTime = None
         self.data = pd.DataFrame(
-            columns=['Time', 'Temperature (K)', 'Main Chamber Pressure (mbar)',
-                     'Wavelength (nm)']
+            columns=['Time', 'Temperature (K)', 'Setpoint (K)'
+                     'Main Chamber Pressure (mbar)', 'Wavelength (nm)']
         )
 
     def _refresh(self):
@@ -77,9 +77,11 @@ class HardwareManager():
                 temp = np.nan
         except Exception:
             traceback.print_exc()
+        target_temp = self.temperatureController.get_target_temp()
         pressure = None
         wavelength = None
-        this_dict = {'Time':time, 'Temperature (K)':temp, 
+        this_dict = {'Time':time, 'Temperature (K)':temp,
+                     'Setpoint (K)':target_temp,
                      'Main Chamber Pressure (mbar)':pressure,
                      'Wavelength (nm)':wavelength}
         self.data.loc[len(self.data)] = this_dict

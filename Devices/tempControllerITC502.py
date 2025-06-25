@@ -69,13 +69,10 @@ class TemperatureController():
         if channel == None:
             channel = self.default_channel
             
-        command = "R1" + "\n\r"
-
-        #ser = self._open_serial_connection(channel)
+        command = "R1\n\r"
 
         try:
-			#ser.write("C3\n".encode('utf-8'))
-            self.ser.write(command.encode('utf-8'))
+			self.ser.write(command.encode('utf-8'))
             output = self._parse_output(self.ser.readline().decode('utf-8'))
             value = output[1]
         except Exception:
@@ -108,17 +105,13 @@ class TemperatureController():
         """
         if channel == None:
             channel = self.default_channel
-        
-        command = ""
-
-        ser = self._open_serial_connection(channel)
+            
+        command = "R0\n\r"
 
         try:
-            ser.write(command.encode('utf-8'))
-            line = ser.readline().decode('utf-8')
-
-            ser.close()
-            value = line
+			self.ser.write(command.encode('utf-8'))
+            output = self._parse_output(self.ser.readline().decode('utf-8'))
+            value = output[1]
         except Exception:
             traceback.print_exc()
             value = "No Signal"
