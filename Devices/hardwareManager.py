@@ -43,6 +43,7 @@ class HardwareManager():
         self.timer.start(self.polling_rate)
 
         self.collectionStartTime = None
+        self.collectionEndTime = None
         self.data = pd.DataFrame(
             columns=['Time', 'Temperature (K)', 'Main Chamber Pressure (mbar)',
                      'Wavelength (nm)']
@@ -82,19 +83,22 @@ class HardwareManager():
         if self.collectionStartTime is not None:
             print("Already collecting!")
             return None
-        #self.data = pd.DataFrame(columns=['Time', 'T (K)'])
         self.collecting = True
         self.collectionStartTime = datetime.now()
 
     def stop_timescan_collection(self):
         """
         """
-        """if self.collectionStartTime is None:
+        if self.collectionStartTime is None:
             print("Already not collecting!")
             return None
-        self.collectionStartTime = None"""
+        
         # export the data
-        self.data.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                         index=False)
+        self.collectionEndTime = datetime.now()
+        df = self.data[(self.data['Time']>self.collectionStartTime) &
+                       (self.data['Time']<self.collectionEndTime)]
+        df.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                  index=False)
+        self.collectionStartTime = None
 
    

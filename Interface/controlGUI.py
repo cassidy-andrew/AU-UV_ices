@@ -175,41 +175,13 @@ class ControlTab():
         # ------------------------------------
         self.plotterLayout = QVBoxLayout()
 
-        # temperature plot
-        #self.tempTimeAxis = pg.DateAxisItem('bottom')
-        """self.tempFig = pg.PlotWidget(
-            self.parentWindow, title='Temperature',
-            labels={'left': 'Temperature (K)'},
-            axisItems={'bottom':pg.AxisItem(orientation='bottom')}
-        )
-        self.tempFig.setBackground(background=None)
-        self.plotterLayout.addWidget(self.tempFig)
-        self.tempFig.setMinimumWidth(500)"""
+        # timescan plots
         self.plot1 = TimescanPlot(self, self.debug)
         self.plotterLayout.addLayout(self.plot1.layout)
-
         self.plot2 = TimescanPlot(self, self.debug)
         self.plotterLayout.addLayout(self.plot2.layout)
-
         self.plot3 = TimescanPlot(self, self.debug)
         self.plotterLayout.addLayout(self.plot3.layout)
-
-        """# pressure plot
-        self.pressureTimeAxis = pg.DateAxisItem('bottom')
-        self.pressureFig = pg.PlotWidget(self.parentWindow, title='Pressure',
-                                    axisItems={'bottom':self.pressureTimeAxis})
-        self.pressureFig.setBackground(background=None)
-        self.pressureFig.setLogMode(None, True)
-        self.plotterLayout.addWidget(self.pressureFig)
-        self.pressureFig.setMinimumWidth(500)
-
-        # laser plot
-        self.laserTimeAxis = pg.DateAxisItem('bottom')
-        self.laserFig = pg.PlotWidget(self.parentWindow, title='Laser Signal',
-                                     axisItems={'bottom':self.laserTimeAxis})
-        self.laserFig.setBackground(background=None)
-        self.plotterLayout.addWidget(self.laserFig)
-        self.laserFig.setMinimumWidth(500)"""
 
         # collection buttons
         self.collectorLayout = QHBoxLayout()
@@ -223,21 +195,15 @@ class ControlTab():
         self.stopColButton.clicked.connect(
             self.hardwareManager.stop_timescan_collection)
         self.collectorLayout.addWidget(self.stopColButton)
-
         self.plotterLayout.addLayout(self.collectorLayout)
         
-
         self.outerLayout.addWidget(self.tabs)
         self.outerLayout.addLayout(self.schedulerLayout)
         self.outerLayout.addLayout(self.plotterLayout)
 
-        
         self.hardwareManager.add_refresh_function(self.refresh_figures)
 
     def refresh_figures(self):
-        #df = self.hardwareManager.data
-        #self.tempFig.getPlotItem.clear()
-        #self.tempFig.setData(df['Time'], df['Temperature (K)'])
         self.plot1.refresh_plot()
         self.plot2.refresh_plot()
         self.plot3.refresh_plot()
