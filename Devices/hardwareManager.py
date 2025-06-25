@@ -46,7 +46,7 @@ class HardwareManager():
         self.collectionStartTime = None
         self.collectionEndTime = None
         self.data = pd.DataFrame(
-            columns=['Time', 'Temperature (K)', 'Setpoint (K)'
+            columns=['Time', 'Temperature (K)', 'Setpoint (K)',
                      'Main Chamber Pressure (mbar)', 'Wavelength (nm)']
         )
 
