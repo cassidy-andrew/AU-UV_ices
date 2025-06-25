@@ -43,7 +43,10 @@ class HardwareManager():
         self.timer.start(self.polling_rate)
 
         self.collectionStartTime = None
-        self.data = pd.DataFrame(columns=['Time', 'T (K)'])
+        self.data = pd.DataFrame(
+            columns=['Time', 'Temperature (K)', 'Main Chamber Pressure (mbar)',
+                     'Wavelength (nm)']
+        )
 
     def _refresh(self):
         """
@@ -66,7 +69,11 @@ class HardwareManager():
         temp = self.temperatureController.get_temp()
         if temp == "No Signal":
             temp = np.nan
-        this_dict = {'Time':time, 'T (K)':temp}
+        pressure = None
+        wavelength = None
+        this_dict = {'Time':time, 'Temperature (K)':temp, 
+                     'Main Chamber Pressure (mbar)':pressure,
+                     'Wavelength (nm)':wavelength}
         self.data.loc[len(self.data)] = this_dict
 
     def start_timescan_collection(self):

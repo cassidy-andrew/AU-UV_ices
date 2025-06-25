@@ -59,6 +59,7 @@ from PyQt5.Qt import (
 )
 
 import pyqtgraph as pg
+pg.setConfigOption('background', (255,255,255, 100))
 
 
 class TSMplCanvas(FigureCanvasQTAgg):
@@ -67,47 +68,60 @@ class TSMplCanvas(FigureCanvasQTAgg):
         super(SpecMplCanvas, self).__init__(self.fig)
 
 
-class TimescanRecorder():
+class TimescanPlot():
     """
+    Represents a plot specifically for timescan data. The control tab has three
+    of these. Each one should be configurable to show any data as a function
+    of time.
     """
-    def __init__(self, parent):
+    def __init__(self, parent, debug):
         self.parent = parent
         self.hardwareManager = self.parent.hardwareManager
-        self.collecting = False
+        self.debug = debug
+        self.yData = "Temperature (K)"
+        self.data_line = None
 
-    def start_collection(self):
-        """
-        Enables collecting data
-        """
-        if self.collecting:
-            print("Already collecting!")
-            return None
-        self.data = pd.DataFrame(columns=['Time', 'T (K)'])
-        self.collecting = True
+        self.layout = QVBoxLayout()
+    
+        # menu for selecting what is on the y axis
+        self.yMenu = QComboBox()
+        # add all the available data fields to the dropdown menu
+        for col in self.hardwareManager.data.columns.values.tolist():
+            if col != "Time":    # we skip the time column
+                self.yMenu.addItem(col)
+        self.yMenu.currentTextChanged.connect(self._update_yAxis)
 
-    def stop_collection(self):
-        """
-        Exports the data and ends collection
-        """
-        if not self.collecting:
-            print("Already not collecting!")
-            return None
-        self.collecting = False
-        # export the data
-        self.data.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                         index=False)
+        # the figure
+        self.figureWidget = pg.PlotWidget(
+            self.parent.parentWindow,
+            axisItems={'bottom':pg.AxisItem(orientation='bottom')}
+        )
+        self.figureWidget.setMinimumWidth(500)
+        #self.figureWidget.setMinimumHeight(300)
+        self.figureWidget.setTitle("")
 
-    def collect(self):
-        if self.collecting:
-            time = datetime.now()
-            temp = self.hardwareManager.temperatureController.get_temp()
-            this_dict = {'Time':time, 'T (K)':temp}
-            self.data.loc[len(self.data)] = this_dict
+        # add items to the layout
+        self.layout.addWidget(self.yMenu)
+        self.layout.addWidget(self.figureWidget)
 
+    def _update_yAxis(self):
+        self.yData = self.yMenu.currentText()
+
+    def refresh_plot(self):
+        # get the latest data from the hardware manager
+        df = self.hardwareManager.data
+        # have we plotted before?
+        if self.data_line is None:
+            self.data_line = self.figureWidget.plot((df['Time'],df[self.yData]))
+        else:
+            self.data_line.setData(df['Time'], df[self.yData])
+        self.figureWidget.setData
+        
 
 class ControlTab():
     def __init__(self, parentWindow, debug):
         self.parentWindow = parentWindow
+        self.debug = debug
         self.hardwareManager = parentWindow.hardwareManager
         self.valueFont = QFont("Consolas", 30)
         self.titleFont = QFont("Arial", 12)
@@ -163,16 +177,24 @@ class ControlTab():
 
         # temperature plot
         #self.tempTimeAxis = pg.DateAxisItem('bottom')
-        self.tempFig = pg.PlotWidget(
+        """self.tempFig = pg.PlotWidget(
             self.parentWindow, title='Temperature',
             labels={'left': 'Temperature (K)'},
             axisItems={'bottom':pg.AxisItem(orientation='bottom')}
         )
         self.tempFig.setBackground(background=None)
         self.plotterLayout.addWidget(self.tempFig)
-        self.tempFig.setMinimumWidth(500)
+        self.tempFig.setMinimumWidth(500)"""
+        self.plot1 = TimescanPlot(self, self.debug)
+        self.plotterLayout.addLayout(self.plot1.layout)
 
-        # pressure plot
+        self.plot2 = TimescanPlot(self, self.debug)
+        self.plotterLayout.addLayout(self.plot2.layout)
+
+        self.plot3 = TimescanPlot(self, self.debug)
+        self.plotterLayout.addLayout(self.plot3.layout)
+
+        """# pressure plot
         self.pressureTimeAxis = pg.DateAxisItem('bottom')
         self.pressureFig = pg.PlotWidget(self.parentWindow, title='Pressure',
                                     axisItems={'bottom':self.pressureTimeAxis})
@@ -187,7 +209,7 @@ class ControlTab():
                                      axisItems={'bottom':self.laserTimeAxis})
         self.laserFig.setBackground(background=None)
         self.plotterLayout.addWidget(self.laserFig)
-        self.laserFig.setMinimumWidth(500)
+        self.laserFig.setMinimumWidth(500)"""
 
         # collection buttons
         self.collectorLayout = QHBoxLayout()
@@ -213,6 +235,10 @@ class ControlTab():
         self.hardwareManager.add_refresh_function(self.refresh_figures)
 
     def refresh_figures(self):
-        df = self.hardwareManager.data
-        self.tempFig.plot(df['Time'], df['T (K)'])
+        #df = self.hardwareManager.data
+        #self.tempFig.getPlotItem.clear()
+        #self.tempFig.setData(df['Time'], df['Temperature (K)'])
+        self.plot1.refresh_plot()
+        self.plot2.refresh_plot()
+        aelf.plot3.refresh_plot()
         

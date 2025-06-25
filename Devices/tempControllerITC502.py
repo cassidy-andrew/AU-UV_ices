@@ -25,9 +25,13 @@ class TemperatureController():
         self.write_timeout = 2    # seconds
         self.baudrate = 9600    # see pages 10 and 76 of the manual
         self.default_channel = config_file['temperature_controller_channel']
-		
-        self.ser = serial.Serial(self.default_channel, baudrate=self.baudrate,
-                                 timeout=self.read_timeout)
+
+        try:
+            self.ser = serial.Serial(self.default_channel,
+                                     baudrate=self.baudrate,
+                                     timeout=self.read_timeout)
+        except Exception:
+            traceback.print_exc()
 
     def _open_serial_connection_no(self, channel):
         try:
