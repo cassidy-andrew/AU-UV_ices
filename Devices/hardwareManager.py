@@ -71,8 +71,8 @@ class HardwareManager():
         #if self.collecting:
         time = datetime.now()
         temp = self.temperatureController.get_temp()
-        if temp == "No Signal":
-            temp = np.nan
+        #if temp == "No Signal":
+        #    temp = np.nan
         try:
             if np.mean(self.data['Temperature (K)'].iloc[-5:-1])-temp > 50:
                 # disable large swings in temperature due to noise
@@ -88,6 +88,10 @@ class HardwareManager():
                      'Heater Power (%)':power,
                      'Main Chamber Pressure (mbar)':pressure,
                      'Wavelength (nm)':wavelength}
+        # replace bad values with np.nan
+        for key in this_dict:
+            if this_dict[key] == "No Signal":
+                this_dict[key] = np.nan
         self.data.loc[len(self.data)] = this_dict
 
         # is the dataframe too big???
