@@ -70,6 +70,9 @@ class HardwareManager():
         temp = self.temperatureController.get_temp()
         if temp == "No Signal":
             temp = np.nan
+        elif self.data['Temeperature (K)'].iloc[-1]-temp > 50:
+            # disable large swings in temperature due to noise
+            temp = np.nan
         pressure = None
         wavelength = None
         this_dict = {'Time':time, 'Temperature (K)':temp, 
