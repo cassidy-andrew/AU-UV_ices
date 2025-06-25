@@ -74,7 +74,7 @@ class MainWindow(QWidget):
         self.changelogFile = "./Logs/"+current_time+".log"
 
         # create the hardware manager
-        self.hardwareManager = hardwareManager.HardwareManager()
+        self.hardwareManager = hardwareManager.HardwareManager(self.debug)
 
         self.log("Started DUVET!")
         if self.debug:

@@ -31,7 +31,8 @@ class HardwareManager():
     This class also contains a timer, which periodically asks the hardware for
     updates.
     """
-    def __init__(self):
+    def __init__(self, debug):
+        self.debug = debug
         self.polling_rate = config_file['polling_rate']
 
         self.temperatureController = TC.TemperatureController()
@@ -118,5 +119,10 @@ class HardwareManager():
         df.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                   index=False)
         self.collectionStartTime = None
+
+        if self.debug:
+            self.data.to_csv(
+                f"DEBUG{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                index=False)
 
    
