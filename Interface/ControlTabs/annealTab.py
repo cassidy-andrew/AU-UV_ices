@@ -314,7 +314,7 @@ class AnnealTab():
         self.mtLabel.setText(str(temp))
         # current target temperature
         set_point = self.parent.hardwareManager.data.iloc[-1]['Setpoint (K)']
-        self.mspLabel.setText(set_point)
+        self.mspLabel.setText(str(set_point))
         # heater power setting / range
         #self.measured_power_setting = self.tempController.get_heater_range()
         #self.mpsLabel.setText(self.measured_power_setting)
