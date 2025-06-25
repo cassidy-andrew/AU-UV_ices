@@ -72,7 +72,7 @@ class HardwareManager():
         if temp == "No Signal":
             temp = np.nan
         try:
-            if self.data['Temperature (K)'].iloc[-1]-temp > 50:
+            if np.mean(self.data['Temperature (K)'].iloc[-5:-1])-temp > 50:
                 # disable large swings in temperature due to noise
                 temp = np.nan
         except Exception:
@@ -83,6 +83,12 @@ class HardwareManager():
                      'Main Chamber Pressure (mbar)':pressure,
                      'Wavelength (nm)':wavelength}
         self.data.loc[len(self.data)] = this_dict
+
+        # is the dataframe too big???
+        if len(self.data) > 86400:
+            # if so, drop the oldest hour of data
+            self.data.drop(index=self.data.index[:3600], inplace=True)
+            self.data.reset_index(inplace=True)
 
     def start_timescan_collection(self):
         """

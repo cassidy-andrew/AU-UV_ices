@@ -186,16 +186,19 @@ class ControlTab():
         # collection buttons
         self.collectorLayout = QHBoxLayout()
         # start collection button
-        self.startColButton = QPushButton("Start Collection")
-        self.startColButton.clicked.connect(
-            self.hardwareManager.start_timescan_collection)
+        self.startColButton = QPushButton("Start Recording")
+        self.startColButton.clicked.connect(self.start_recording)
         self.collectorLayout.addWidget(self.startColButton)
         # stop collection button
-        self.stopColButton = QPushButton("Stop Collection")
-        self.stopColButton.clicked.connect(
-            self.hardwareManager.stop_timescan_collection)
+        self.stopColButton = QPushButton("Stop Recording")
+        self.stopColButton.clicked.connect(self.stop_recording)
         self.collectorLayout.addWidget(self.stopColButton)
         self.plotterLayout.addLayout(self.collectorLayout)
+        # status light
+        self.collectionStatusLabel = QLabel()
+        self.collectionStatusLabel.setText("Not Recording")
+        self.collectionStatusLabel.setStyleSheet("background-color: grey")
+        self.collectorLayout.addWidget(self.collectionStatusLabel)
         
         self.outerLayout.addWidget(self.tabs)
         self.outerLayout.addLayout(self.schedulerLayout)
@@ -207,4 +210,14 @@ class ControlTab():
         self.plot1.refresh_plot()
         self.plot2.refresh_plot()
         self.plot3.refresh_plot()
+
+    def start_recording(self):
+        self.hardwareManager.start_timescan_collection()
+        self.collectionStatusLabel.setText("Recording!")
+        self.collectionStatusLabel.setStyleSheet("background-color: lightgreen")
+
+    def stop_recording(self):
+        self.hardwareManager.stop_timescan_collection()
+        self.collectionStatusLabel.setText("Not Recording")
+        self.collectionStatusLabel.setStyleSheet("background-color: grey")
         
