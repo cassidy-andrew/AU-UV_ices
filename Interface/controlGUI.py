@@ -112,7 +112,7 @@ class TimescanPlot():
         df = self.hardwareManager.data
         # have we plotted before?
         if self.data_line is None:
-            self.data_line = self.figureWidget.plot((df['Time'],df[self.yData]))
+            self.data_line = self.figureWidget.plot(df['Time'],df[self.yData])
         else:
             self.data_line.setData(df['Time'], df[self.yData])
         self.figureWidget.setData
