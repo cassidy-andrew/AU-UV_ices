@@ -72,7 +72,7 @@ class HardwareManager():
         if temp == "No Signal":
             temp = np.nan
         try:
-            elif self.data['Temperature (K)'].iloc[-1]-temp > 50:
+            if self.data['Temperature (K)'].iloc[-1]-temp > 50:
                 # disable large swings in temperature due to noise
                 temp = np.nan
         except Exception:
