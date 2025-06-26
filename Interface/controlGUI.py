@@ -94,7 +94,7 @@ class TimescanPlot():
         # the figure
         self.figureWidget = pg.PlotWidget(
             self.parent.parentWindow,
-            axisItems={'bottom':pg.AxisItem(orientation='bottom')}
+            axisItems={'bottom':pg.TimeAxisItem(orientation='bottom')}
         )
         self.figureWidget.setMinimumWidth(500)
         #self.figureWidget.setMinimumHeight(300)
@@ -112,9 +112,11 @@ class TimescanPlot():
         df = self.hardwareManager.data
         # have we plotted before?
         if self.data_line is None:
-            self.data_line = self.figureWidget.plot(df['Time'],df[self.yData])
+            self.data_line = self.figureWidget.plot(
+                [x.timestamp() for x in df['Time']], df[self.yData])
         else:
-            self.data_line.setData(df['Time'], df[self.yData])
+            self.data_line.setData(
+                [x.timestamp() for x in df['Time']], df[self.yData])
         self.figureWidget.setData
         
 
