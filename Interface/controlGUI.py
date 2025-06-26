@@ -79,8 +79,8 @@ class TimescanPlot():
         self.hardwareManager = self.parent.hardwareManager
         self.debug = debug
         self.yData = "Temperature (K)"
-        self.data_line1 = None
-        self.data_line2 = None
+        self.data_line1 = self.figureWidget.plot([], [])
+        self.data_line2 = self.figureWidget.plot([], []) # None
 
         self.layout = QVBoxLayout()
     
@@ -116,26 +116,30 @@ class TimescanPlot():
         # get the latest data from the hardware manager
         df = self.hardwareManager.data
         # have we plotted before?
-        if self.data_line1 is None:
+        """if self.data_line1 is None:
             if self.yData == 'Temperature (K)':
                 self.data_line1 = self.figureWidget.plot(
-                    [x.timestamp() for x in df['Time']], df['Temperature (K)'])
+                    [x.timestamp() for x in df['Time']], df['Temperature (K)'],
+                    pen=pg.mkPen('black', width=2))
                 self.data_line2 = self.figureWidget.plot(
                     [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
                     pen=pg.mkPen('red', width=2))
             else:
                 self.data_line1 = self.figureWidget.plot(
-                    [x.timestamp() for x in df['Time']], df[self.yData])
+                    [x.timestamp() for x in df['Time']], df[self.yData],
+                    pen=pg.mkPen('black', width=2))
+        else:"""
+        if self.yData == 'Temperature (K)':
+            self.data_line1.setData(
+                [x.timestamp() for x in df['Time']], df['Temperature (K)'],
+                pen=pg.mkPen('black', width=2))
+            self.data_line2.setData(
+                [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
+                pen=pg.mkPen('red', width=2))
         else:
-            if self.yData == 'Temperature (K)':
-                self.data_line1.setData(
-                    [x.timestamp() for x in df['Time']], df['Temperature (K)'])
-                self.data_line2.setData(
-                    [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
-                    pen=pg.mkPen('red', width=2))
-            else:
-                self.data_line1.setData(
-                    [x.timestamp() for x in df['Time']], df[self.yData])
+            self.data_line1.setData(
+                [x.timestamp() for x in df['Time']], df[self.yData],
+                pen=pg.mkPen('black', width=2))
 
         self.figureWidget.setData
         
