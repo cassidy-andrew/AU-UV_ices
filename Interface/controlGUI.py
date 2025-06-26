@@ -74,18 +74,18 @@ class TimescanPlot():
     of these. Each one should be configurable to show any data as a function
     of time.
     """
-    def __init__(self, parent, debug):
+    def __init__(self, parent, debug, yData="Temperatures (K)"):
         self.parent = parent
         self.hardwareManager = self.parent.hardwareManager
         self.debug = debug
-        self.yData = "Temperatures (K)"
+        self.yData = yData
 
         # what can we plot, and in what style?
         self.yItems = {
             'Sample T (K)':{'pen':pg.mkPen('black', width=1)},
             'Setpoint T (K)':{'pen':pg.mkPen('red', width=1)},
             'Heater Power (%)':{'pen':pg.mkPen('black', width=1)},
-            'MC Pressure (%)':{'pen':pg.mkPen('black', width=1)},
+            'MC Pressure (mbar)':{'pen':pg.mkPen('black', width=1)},
             'Wavelength (nm)':{'pen':pg.mkPen('black', width=1)},
         }
 
@@ -200,9 +200,9 @@ class ControlTab():
         self.plotterLayout = QVBoxLayout()
 
         # timescan plots
-        self.plot1 = TimescanPlot(self, self.debug)
+        self.plot1 = TimescanPlot(self, self.debug, yData="Temperatures (K)")
         self.plotterLayout.addLayout(self.plot1.layout)
-        self.plot2 = TimescanPlot(self, self.debug)
+        self.plot2 = TimescanPlot(self, self.debug, yData="Heater Power (%)")
         self.plotterLayout.addLayout(self.plot2.layout)
         self.plot3 = TimescanPlot(self, self.debug)
         self.plotterLayout.addLayout(self.plot3.layout)
