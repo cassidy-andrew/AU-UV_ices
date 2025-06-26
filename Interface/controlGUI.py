@@ -109,12 +109,14 @@ class TimescanPlot():
 
     def _update_yAxis(self):
         self.yData = self.yMenu.currentText()
+        self.data_line1.clear()
+        self.data_line2.clear()
 
     def refresh_plot(self):
         # get the latest data from the hardware manager
         df = self.hardwareManager.data
         # have we plotted before?
-        if (self.data_line1 is None) or (self.data_line2 is None):
+        if self.data_line1 is None:
             if self.yData == 'Temperature (K)':
                 self.data_line1 = self.figureWidget.plot(
                     [x.timestamp() for x in df['Time']], df['Temperature (K)'])
@@ -122,9 +124,6 @@ class TimescanPlot():
                     [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
                     pen=pg.mkPen('red', width=2))
             else:
-                if self.data_line2 is not None:
-                    self.data_line2.clear()
-                    self.data_line2 = None
                 self.data_line1 = self.figureWidget.plot(
                     [x.timestamp() for x in df['Time']], df[self.yData])
         else:
@@ -135,9 +134,6 @@ class TimescanPlot():
                     [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
                     pen=pg.mkPen('red', width=2))
             else:
-                if self.data_line2 is not None:
-                    self.data_line2.clear()
-                    self.data_line2 = None
                 self.data_line1.setData(
                     [x.timestamp() for x in df['Time']], df[self.yData])
 
