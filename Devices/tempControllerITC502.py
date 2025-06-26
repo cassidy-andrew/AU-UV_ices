@@ -138,61 +138,6 @@ class TemperatureController():
             value = "No Signal"
         return value
 
-    def set_ramp_rate(self, target, channel=None):
-        """
-        """
-        if channel == None:
-            channel = self.default_channel
-
-        ser = self._open_serial_connection(channel)
-
-        try:
-            ser.write(command.encode('utf-8'))
-            ser.close()
-            return f"set target temperature to {target}"
-        except Exception:
-            traceback.print_exc()
-            return "Failed to set ramp rate"
-
-    def get_heater_range(self, channel=None):
-        """
-        """
-        if channel == None:
-            channel = self.default_channel
-
-        command = ""
-
-        ser = self._open_serial_connection(channel)
-
-        try:
-            ser.write(command.encode('utf-8'))
-            line = ser.readline().decode('utf-8')
-
-            ser.close()
-            value = line
-        except Exception:
-            traceback.print_exc()
-            value = "No Signal"
-        return value
-
-    def set_heater_range(self, target, channel=None):
-        """
-        """
-        if channel == None:
-            channel = self.default_channel
-
-        command = ""
-
-        ser = self._open_serial_connection(channel)
-
-        try:
-            ser.write(command.encode('utf-8'))
-            ser.close()
-            return f"set target temperature to {target}"
-        except Exception:
-            traceback.print_exc()
-            return "Failed to set heater range"
-
     def get_heater_power(self, channel=None):
         """
         """
@@ -200,6 +145,60 @@ class TemperatureController():
             channel = self.default_channel
             
         command = "R5\n\r"
+
+        try:
+            self.ser.write(command.encode('utf-8'))
+            output = self._parse_output(self.ser.readline().decode('utf-8'))
+            value = output[1]
+        except Exception:
+            traceback.print_exc()
+            value = "No Signal"
+        return value
+
+    def get_P(self, channel=None):
+        """
+        PROPORTIONAL BAND
+        """
+        if channel == None:
+            channel = self.default_channel
+            
+        command = "R8\n\r"
+
+        try:
+            self.ser.write(command.encode('utf-8'))
+            output = self._parse_output(self.ser.readline().decode('utf-8'))
+            value = output[1]
+        except Exception:
+            traceback.print_exc()
+            value = "No Signal"
+        return value
+
+    def get_I(self, channel=None):
+        """
+        INTEGRAL ACTION TIME
+        """
+        if channel == None:
+            channel = self.default_channel
+            
+        command = "R9\n\r"
+
+        try:
+            self.ser.write(command.encode('utf-8'))
+            output = self._parse_output(self.ser.readline().decode('utf-8'))
+            value = output[1]
+        except Exception:
+            traceback.print_exc()
+            value = "No Signal"
+        return value
+
+    def get_D(self, channel=None):
+        """
+        DERIVATIVE ACTION TIME
+        """
+        if channel == None:
+            channel = self.default_channel
+            
+        command = "R10\n\r"
 
         try:
             self.ser.write(command.encode('utf-8'))

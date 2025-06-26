@@ -192,6 +192,57 @@ class AnnealTab():
         self.outerLayout.addLayout(self.powerLevelLayout, 3, 0)
 
         # -----------------------------------------
+        # PID Values
+        # -----------------------------------------
+        self.pidPLayout = QVBoxLayout()
+        # measured PID P title
+        self.pidPLabelTitle = QLabel("Proportional Band (%)")
+        self.pidPLabelTitle.setFont(self.titleFont)
+        self.pidPLabelTitle.setAlignment(Qt.AlignHCenter)
+        self.pidPLayout.addWidget(self.pidPLabelTitle)
+        # measured PID P label
+        self.measured_pidP = "No Signal Yet"
+        self.pidPLabel = QLabel(self.measured_pidP)
+        self.pidPLabel.setFont(self.valueFont)
+        self.pidPLabel.setAlignment(Qt.AlignHCenter)
+        self.pidPLayout.addWidget(self.pidPLabel)
+        # add it to the layout
+        self.pidPLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addLayout(self.pidPLayout, 4, 0)
+
+        self.pidILayout = QVBoxLayout()
+        # measured PID I title
+        self.pidILabelTitle = QLabel("Integral Action Time (min)")
+        self.pidILabelTitle.setFont(self.titleFont)
+        self.pidILabelTitle.setAlignment(Qt.AlignHCenter)
+        self.pidILayout.addWidget(self.pidILabelTitle)
+        # measured PID I label
+        self.measured_pidI = "No Signal Yet"
+        self.pidILabel = QLabel(self.measured_pidI)
+        self.pidILabel.setFont(self.valueFont)
+        self.pidILabel.setAlignment(Qt.AlignHCenter)
+        self.pidILayout.addWidget(self.pidILabel)
+        # add it to the layout
+        self.pidILayout.addItem(self.verticalSpacer)
+        self.outerLayout.addLayout(self.pidILayout, 5, 0)
+
+        self.pidDLayout = QVBoxLayout()
+        # measured PID D title
+        self.pidDLabelTitle = QLabel("Derivative Action Time (min)")
+        self.pidDLabelTitle.setFont(self.titleFont)
+        self.pidDLabelTitle.setAlignment(Qt.AlignHCenter)
+        self.pidDLayout.addWidget(self.pidDLabelTitle)
+        # measured PID D label
+        self.measured_pidD = "No Signal Yet"
+        self.pidDLabel = QLabel(self.measured_pidD)
+        self.pidDLabel.setFont(self.valueFont)
+        self.pidDLabel.setAlignment(Qt.AlignHCenter)
+        self.pidDLayout.addWidget(self.pidDLabel)
+        # add it to the layout
+        self.pidDLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addLayout(self.pidDLayout, 6, 0)
+
+        # -----------------------------------------
         # Ramp Rate
         # -----------------------------------------
         self.measuredRRLayout = QVBoxLayout()
@@ -317,6 +368,10 @@ class AnnealTab():
         #self.mpsLabel.setText(self.measured_power_setting)
         # heater power percent of maximum
         self.plLabel.setText(str(measured_values['Heater Power (%)']))
+        # PID values
+        self.pidPLabel.setText(str(measured_values['ITC502_P (%)']))
+        self.pidILabel.setText(str(measured_values['ITC502_I (min)']))
+        self.pidDLabel.setText(str(measured_values['ITC502_D (min)']))
         # ramp rate
         #self.mrrLabel.setText(self.measured_ramp_rate)
         # heater status

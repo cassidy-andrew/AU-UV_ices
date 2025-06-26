@@ -144,7 +144,7 @@ class TimescanPlot():
             self.data_line1.setData(
                 [x.timestamp() for x in df['Time']], df[self.yDataName],
                 pen=self.yItems[self.yDataName]['pen'], name=self.yDataName)
-            self.figureLegend.addItem(self.data_line1, self.yDataName)
+            #self.figureLegend.addItem(self.data_line1, self.yDataName)
         
 
 class ControlTab():

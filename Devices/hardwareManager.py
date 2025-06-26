@@ -49,7 +49,8 @@ class HardwareManager():
         self.data = pd.DataFrame(
             columns=['Time', 'Sample T (K)', 'Setpoint T (K)',
                      'Heater Power (%)',
-                     'MC Pressure (mbar)', 'Wavelength (nm)']
+                     'MC Pressure (mbar)', 'Wavelength (nm)',
+                     'ITC502_P (%)', 'ITC502_I (min)', 'ITC502_D (min)']
         )
 
     def _refresh(self):
@@ -83,12 +84,18 @@ class HardwareManager():
         power = self.temperatureController.get_heater_power()
         pressure = None
         wavelength = None
+        ITC502_P = self.temperatureController.get_P()
+        ITC502_I = self.temperatureController.get_I()
+        ITC502_D = self.temperatureController.get_D()
         this_dict = {'Time':time,
                      'Sample T (K)':temp,
                      'Setpoint T (K)':target_temp,
                      'Heater Power (%)':power,
                      'MC Pressure (mbar)':pressure,
-                     'Wavelength (nm)':wavelength}
+                     'Wavelength (nm)':wavelength,
+                     'ITC502_P (%)':ITC502_P,
+                     'ITC502_I (min)':ITC502_I,
+                     'ITC502_D (min)':ITC502_D,}
         # replace bad values with np.nan
         for key in this_dict:
             if this_dict[key] == "No Signal":
