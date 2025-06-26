@@ -149,7 +149,7 @@ class spectrumDisplayTab():
         # ---------------------------
         self.eb_clear = QPushButton("Clear Plot")
         self.eb_clear.pressed.connect(self.clear_plot)
-        self.bottomLayout.addWidget(self.eb_clear)
+        #self.bottomLayout.addWidget(self.eb_clear)
         
         self.eb_sdata = QPushButton("Export Highlighted Data")
         self.eb_sdata.pressed.connect(

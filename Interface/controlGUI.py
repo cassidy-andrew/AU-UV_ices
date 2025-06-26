@@ -139,7 +139,7 @@ class ControlTab():
         #self.annealTabWidget.setFixedWidth(500)
         self.annealTabObject = annealTab.AnnealTab(self, debug)
         self.annealTabWidget.setLayout(self.annealTabObject.outerLayout)
-        self.tabs.addTab(self.annealTabWidget, "Anneal")
+        self.tabs.addTab(self.annealTabWidget, "Temperature")
 
         self.acquisitionTab = QWidget()
         self.tabs.addTab(self.acquisitionTab, "Acquire Spectrum")

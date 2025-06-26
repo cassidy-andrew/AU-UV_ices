@@ -67,7 +67,7 @@ class AnnealTab():
         self.measuredTempLayout.addItem(self.verticalSpacer)
         
         # measured temperature display title
-        self.mtLabelTitle = QLabel("Measured Temperature (K)")
+        self.mtLabelTitle = QLabel("Sample Temperature (K)")
         self.mtLabelTitle.setFont(self.titleFont)
         self.mtLabelTitle.setAlignment(Qt.AlignHCenter)
         self.measuredTempLayout.addWidget(self.mtLabelTitle)
@@ -106,7 +106,7 @@ class AnnealTab():
         self.targetTempLayout.addWidget(self.tempLineEdit)
         
         self.targetTempLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.targetTempLayout, 0, 1)
+        #self.outerLayout.addLayout(self.targetTempLayout, 0, 1)
 
         # -----------------------------------------
         # Current set point
@@ -114,7 +114,7 @@ class AnnealTab():
         self.measuredSetPointLayout = QVBoxLayout()
         
         # measured set point display title
-        self.mspLabelTitle = QLabel("Current Target Temperature (K)")
+        self.mspLabelTitle = QLabel("Setpoint Temperature (K)")
         self.mspLabelTitle.setFont(self.titleFont)
         self.mspLabelTitle.setAlignment(Qt.AlignHCenter)
         self.measuredSetPointLayout.addWidget(self.mspLabelTitle)
@@ -148,7 +148,7 @@ class AnnealTab():
         self.powerSettingLayout.addWidget(self.mpsLabel)
         
         self.powerSettingLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.powerSettingLayout, 2, 0)
+        #self.outerLayout.addLayout(self.powerSettingLayout, 2, 0)
 
         self.powerTargetLayout = QVBoxLayout()
 
@@ -168,7 +168,7 @@ class AnnealTab():
         self.powerTargetLayout.addWidget(self.targetPowerComboBox)
         
         self.powerTargetLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.powerTargetLayout, 2, 1)
+        #self.outerLayout.addLayout(self.powerTargetLayout, 2, 1)
 
         # -----------------------------------------
         # Power Level
@@ -176,7 +176,7 @@ class AnnealTab():
         self.powerLevelLayout = QVBoxLayout()
 
         # measured power level title
-        self.plLabelTitle = QLabel("Power Level")
+        self.plLabelTitle = QLabel("Power Level (%)")
         self.plLabelTitle.setFont(self.titleFont)
         self.plLabelTitle.setAlignment(Qt.AlignHCenter)
         self.powerLevelLayout.addWidget(self.plLabelTitle)
@@ -210,7 +210,7 @@ class AnnealTab():
         self.measuredRRLayout.addWidget(self.mrrLabel)
         
         self.measuredRRLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.measuredRRLayout, 4, 0)
+        #self.outerLayout.addLayout(self.measuredRRLayout, 4, 0)
 
         self.targetRRLayout = QVBoxLayout()
 
@@ -233,7 +233,7 @@ class AnnealTab():
         self.targetRRLayout.addWidget(self.rrLineEdit)
         
         self.targetRRLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.targetRRLayout, 4, 1)
+        #self.outerLayout.addLayout(self.targetRRLayout, 4, 1)
 
         # -----------------------------------------
         # Heater Status
@@ -254,7 +254,7 @@ class AnnealTab():
         self.measuredHeaterStatusLayout.addWidget(self.mhsLabel)
         
         self.measuredHeaterStatusLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.measuredHeaterStatusLayout, 5, 0)
+        #self.outerLayout.addLayout(self.measuredHeaterStatusLayout, 5, 0)
 
         # -----------------------------------------
         # OFF button
@@ -274,7 +274,7 @@ class AnnealTab():
         self.OFFButton.setStyleSheet("background-color : red")
         self.OFFLayout.addWidget(self.OFFButton)
         self.OFFLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.OFFLayout, 6, 1)
+        #self.outerLayout.addLayout(self.OFFLayout, 6, 1)
 
         self.OFFWithQueueLayout = QVBoxLayout()
 
@@ -282,7 +282,7 @@ class AnnealTab():
         self.OFFWQTitle = QLabel("Turn the Heater Off (Adds to Queue)")
         self.OFFWQTitle.setFont(self.titleFont)
         self.OFFWQTitle.setAlignment(Qt.AlignHCenter)
-        self.OFFWithQueueLayout.addWidget(self.OFFWQTitle)
+        #self.OFFWithQueueLayout.addWidget(self.OFFWQTitle)
 
         # OFF with queue button
         self.OFFWQButton = QPushButton("OFF")
@@ -290,7 +290,7 @@ class AnnealTab():
         self.OFFWQButton.setFont(self.valueFont)
         self.OFFWithQueueLayout.addWidget(self.OFFWQButton)
         self.OFFWithQueueLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.OFFWithQueueLayout, 5, 1)
+        #self.outerLayout.addLayout(self.OFFWithQueueLayout, 5, 1)
 
         # -----------------------------------------
         # Configuration & Logistics
