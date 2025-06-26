@@ -122,9 +122,11 @@ class TimescanPlot():
                     [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
                     pen=pg.mkPen('red', width=2))
             else:
+                if self.data_line2 is not None:
+                    self.data_line2.clear()
+                    self.data_line2 = None
                 self.data_line1 = self.figureWidget.plot(
                     [x.timestamp() for x in df['Time']], df[self.yData])
-                self.data_line2 = None
         else:
             if self.yData == 'Temperature (K)':
                 self.data_line1.setData(
@@ -133,9 +135,12 @@ class TimescanPlot():
                     [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
                     pen=pg.mkPen('red', width=2))
             else:
+                if self.data_line2 is not None:
+                    self.data_line2.clear()
+                    self.data_line2 = None
                 self.data_line1.setData(
                     [x.timestamp() for x in df['Time']], df[self.yData])
-                self.data_line2 = None
+
         self.figureWidget.setData
         
 
