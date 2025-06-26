@@ -78,7 +78,7 @@ class TimescanPlot():
         self.parent = parent
         self.hardwareManager = self.parent.hardwareManager
         self.debug = debug
-        self.yData = yData
+        self.yDataName = yData
 
         # what can we plot, and in what style?
         self.yItems = {
@@ -97,7 +97,7 @@ class TimescanPlot():
         # add all the available data fields to the dropdown menu
         for col in self.yItems:
             self.yMenu.addItem(col)
-        self.yMenu.setCurrentText(self.yData)
+        self.yMenu.setCurrentText(self.yDataName)
         self.yMenu.currentTextChanged.connect(self._update_yAxis)
 
         # the figure
@@ -120,7 +120,7 @@ class TimescanPlot():
         self.layout.addWidget(self.figureWidget)
 
     def _update_yAxis(self):
-        self.yData = self.yMenu.currentText()
+        self.yDataName = self.yMenu.currentText()
         self.data_line1.clear()
         self.data_line2.clear()
 
@@ -129,22 +129,22 @@ class TimescanPlot():
         df = self.hardwareManager.data
         self.figureLegend.clear()
         
-        if self.yData == 'Temperatures (K)':
+        if self.yDataName == 'Temperatures (K)':
             y1 = 'Sample T (K)'
             self.data_line1.setData(
                 [x.timestamp() for x in df['Time']], df[y1],
                 pen=self.yItems[y1]['pen'], name=y1)
-            self.figureLegend.addItem(self.data_line1)
+            self.figureLegend.addItem(self.data_line1, y1)
             y2 = 'Setpoint T (K)'
             self.data_line2.setData(
                 [x.timestamp() for x in df['Time']], df[y2],
                 pen=self.yItems[y2]['pen'], name=y2)
-            self.figureLegend.addItem(self.data_line2)
+            self.figureLegend.addItem(self.data_line2, y2)
         else:
             self.data_line1.setData(
-                [x.timestamp() for x in df['Time']], df[self.yData],
-                pen=self.yItems[self.yData]['pen'], name=self.yData)
-            self.figureLegend.addItem(self.data_line1)
+                [x.timestamp() for x in df['Time']], df[self.yDataName],
+                pen=self.yItems[self.yDataName]['pen'], name=self.yDataName)
+            self.figureLegend.addItem(self.data_line1, self.yDataName)
         
 
 class ControlTab():
