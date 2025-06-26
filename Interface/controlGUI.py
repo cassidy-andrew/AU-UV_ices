@@ -79,8 +79,6 @@ class TimescanPlot():
         self.hardwareManager = self.parent.hardwareManager
         self.debug = debug
         self.yData = "Temperature (K)"
-        self.data_line1 = self.figureWidget.plot([], [])
-        self.data_line2 = self.figureWidget.plot([], []) # None
 
         self.layout = QVBoxLayout()
     
@@ -102,6 +100,9 @@ class TimescanPlot():
         self.figureWidget.setTitle("")
         self.figureWidget.getAxis('left').setTextPen('black')
         self.figureWidget.getAxis('bottom').setTextPen('black')
+
+        self.data_line1 = self.figureWidget.plot([], [])
+        self.data_line2 = self.figureWidget.plot([], []) # None
 
         # add items to the layout
         self.layout.addWidget(self.yMenu)
