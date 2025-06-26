@@ -47,9 +47,9 @@ class HardwareManager():
         self.collectionStartTime = None
         self.collectionEndTime = None
         self.data = pd.DataFrame(
-            columns=['Time', 'Temperature (K)', 'Setpoint (K)',
+            columns=['Time', 'Sample T (K)', 'Setpoint T (K)',
                      'Heater Power (%)',
-                     'Main Chamber Pressure (mbar)', 'Wavelength (nm)']
+                     'MC Pressure (mbar)', 'Wavelength (nm)']
         )
 
     def _refresh(self):
@@ -74,7 +74,7 @@ class HardwareManager():
         #if temp == "No Signal":
         #    temp = np.nan
         try:
-            if np.mean(self.data['Temperature (K)'].iloc[-5:-1])-temp > 50:
+            if np.mean(self.data['Sample T (K)'].iloc[-5:-1])-temp > 50:
                 # disable large swings in temperature due to noise
                 temp = np.nan
         except Exception:
@@ -83,10 +83,11 @@ class HardwareManager():
         power = self.temperatureController.get_heater_power()
         pressure = None
         wavelength = None
-        this_dict = {'Time':time, 'Temperature (K)':temp,
-                     'Setpoint (K)':target_temp,
+        this_dict = {'Time':time,
+                     'Sample T (K)':temp,
+                     'Setpoint T (K)':target_temp,
                      'Heater Power (%)':power,
-                     'Main Chamber Pressure (mbar)':pressure,
+                     'MC Pressure (mbar)':pressure,
                      'Wavelength (nm)':wavelength}
         # replace bad values with np.nan
         for key in this_dict:

@@ -78,16 +78,25 @@ class TimescanPlot():
         self.parent = parent
         self.hardwareManager = self.parent.hardwareManager
         self.debug = debug
-        self.yData = "Temperature (K)"
+        self.yData = "Temperatures (K)"
+
+        # what can we plot, and in what style?
+        self.yItems = {
+            'Sample T (K)':{'pen':pg.mkPen('black', width=1)},
+            'Setpoint T (K)':{'pen':pg.mkPen('red', width=1)},
+            'Heater Power (%)':{'pen':pg.mkPen('black', width=1)},
+            'MC Pressure (%)':{'pen':pg.mkPen('black', width=1)},
+            'Wavelength (nm)':{'pen':pg.mkPen('black', width=1)},
+        }
 
         self.layout = QVBoxLayout()
     
         # menu for selecting what is on the y axis
         self.yMenu = QComboBox()
+        self.yMenu.addItem('Temperatures (K)')
         # add all the available data fields to the dropdown menu
-        for col in self.hardwareManager.data.columns.values.tolist():
-            if col != "Time":    # we skip the time column
-                self.yMenu.addItem(col)
+        for col in self.yItems:
+            self.yMenu.addItem(col)
         self.yMenu.currentTextChanged.connect(self._update_yAxis)
 
         # the figure
@@ -117,33 +126,20 @@ class TimescanPlot():
     def refresh_plot(self):
         # get the latest data from the hardware manager
         df = self.hardwareManager.data
-        # have we plotted before?
-        """if self.data_line1 is None:
-            if self.yData == 'Temperature (K)':
-                self.data_line1 = self.figureWidget.plot(
-                    [x.timestamp() for x in df['Time']], df['Temperature (K)'],
-                    pen=pg.mkPen('black', width=2))
-                self.data_line2 = self.figureWidget.plot(
-                    [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
-                    pen=pg.mkPen('red', width=2))
-            else:
-                self.data_line1 = self.figureWidget.plot(
-                    [x.timestamp() for x in df['Time']], df[self.yData],
-                    pen=pg.mkPen('black', width=2))
-        else:"""
-        if self.yData == 'Temperature (K)':
+        
+        if self.yData == 'Temperatures (K)':
+            y1 = 'Sample T (K)'
             self.data_line1.setData(
-                [x.timestamp() for x in df['Time']], df['Temperature (K)'],
-                pen=pg.mkPen('black', width=1), label="Sample T (K)")
+                [x.timestamp() for x in df['Time']], df[y1],
+                pen=self.yItems[y1]['pen'], label=y1)
+            y2 = 'Setpoint T (K)'
             self.data_line2.setData(
-                [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
-                pen=pg.mkPen('red', width=1), label="Setpoint T (K)")
+                [x.timestamp() for x in df['Time']], df[y2],
+                pen=self.yItems[y2]['pen'], label=y2)
         else:
             self.data_line1.setData(
                 [x.timestamp() for x in df['Time']], df[self.yData],
-                pen=pg.mkPen('black', width=1), label=self.yData)
-
-        #self.figureWidget.setData
+                pen=self.yItems[self.yData]['pen'], label=self.yData)
         
 
 class ControlTab():
