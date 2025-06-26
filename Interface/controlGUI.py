@@ -94,7 +94,7 @@ class TimescanPlot():
         # the figure
         self.figureWidget = pg.PlotWidget(
             self.parent.parentWindow,
-            axisItems={'bottom':pg.TimeAxisItem(orientation='bottom')}
+            axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
         )
         self.figureWidget.setMinimumWidth(500)
         #self.figureWidget.setMinimumHeight(300)
