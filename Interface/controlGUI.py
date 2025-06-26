@@ -142,7 +142,7 @@ class TimescanPlot():
                 [x.timestamp() for x in df['Time']], df[self.yData],
                 pen=pg.mkPen('black', width=1), name=self.yData)
 
-        self.figureWidget.setData
+        #self.figureWidget.setData
         
 
 class ControlTab():
