@@ -79,7 +79,8 @@ class TimescanPlot():
         self.hardwareManager = self.parent.hardwareManager
         self.debug = debug
         self.yData = "Temperature (K)"
-        self.data_line = None
+        self.data_line1 = None
+        self.data_line2 = None
 
         self.layout = QVBoxLayout()
     
@@ -99,6 +100,8 @@ class TimescanPlot():
         self.figureWidget.setMinimumWidth(500)
         #self.figureWidget.setMinimumHeight(300)
         self.figureWidget.setTitle("")
+        self.figureWidget.getAxis('left').setTextPen('black')
+        self.figureWidget.getAxis('bottom').setTextPen('black')
 
         # add items to the layout
         self.layout.addWidget(self.yMenu)
@@ -111,12 +114,26 @@ class TimescanPlot():
         # get the latest data from the hardware manager
         df = self.hardwareManager.data
         # have we plotted before?
-        if self.data_line is None:
-            self.data_line = self.figureWidget.plot(
-                [x.timestamp() for x in df['Time']], df[self.yData])
+        if self.data_line1 is None:
+            if self.yData == 'Temperature (K)':
+                self.data_line1 = self.figureWidget.plot(
+                    [x.timestamp() for x in df['Time']], df['Temperature (K)'])
+                self.data_line2 = self.figureWidget.plot(
+                    [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
+                    symbolBrush=('red'))
+            else:
+                self.data_line1 = self.figureWidget.plot(
+                    [x.timestamp() for x in df['Time']], df[self.yData])
         else:
-            self.data_line.setData(
-                [x.timestamp() for x in df['Time']], df[self.yData])
+            if self.yData == 'Temperature (K)':
+                self.data_line1.setData(
+                    [x.timestamp() for x in df['Time']], df['Temperature (K)'])
+                self.data_line2.setData(
+                    [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
+                    symbolBrush=('red'))
+            else:
+                self.data_line1.setData(
+                    [x.timestamp() for x in df['Time']], df[self.yData])
         self.figureWidget.setData
         
 
