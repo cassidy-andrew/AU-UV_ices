@@ -134,14 +134,14 @@ class TimescanPlot():
         if self.yData == 'Temperature (K)':
             self.data_line1.setData(
                 [x.timestamp() for x in df['Time']], df['Temperature (K)'],
-                pen=pg.mkPen('black', width=1), name="Sample T (K)")
+                pen=pg.mkPen('black', width=1), label="Sample T (K)")
             self.data_line2.setData(
                 [x.timestamp() for x in df['Time']], df['Setpoint (K)'],
-                pen=pg.mkPen('red', width=1), name="Setpoint T (K)")
+                pen=pg.mkPen('red', width=1), label="Setpoint T (K)")
         else:
             self.data_line1.setData(
                 [x.timestamp() for x in df['Time']], df[self.yData],
-                pen=pg.mkPen('black', width=1), name=self.yData)
+                pen=pg.mkPen('black', width=1), label=self.yData)
 
         #self.figureWidget.setData
         
