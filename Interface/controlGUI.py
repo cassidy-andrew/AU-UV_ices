@@ -105,15 +105,15 @@ class TimescanPlot():
             self.parent.parentWindow,
             axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
         )
-        self.figureWidget.addLegend()
+        self.figureLegend = self.figureWidget.addLegend()
         self.figureWidget.setMinimumWidth(500)
         #self.figureWidget.setMinimumHeight(300)
         self.figureWidget.setTitle("")
         self.figureWidget.getAxis('left').setTextPen('black')
         self.figureWidget.getAxis('bottom').setTextPen('black')
 
-        self.data_line1 = self.figureWidget.plot([], [], name="")
-        self.data_line2 = self.figureWidget.plot([], [], name="") # None
+        self.data_line1 = self.figureWidget.plot([], [])
+        self.data_line2 = self.figureWidget.plot([], []) # None
 
         # add items to the layout
         self.layout.addWidget(self.yMenu)
