@@ -100,6 +100,7 @@ class TimescanPlot():
         self.figureWidget.setTitle("")
         self.figureWidget.getAxis('left').setTextPen('black')
         self.figureWidget.getAxis('bottom').setTextPen('black')
+        self.figureWidget.addLegend()
 
         self.data_line1 = self.figureWidget.plot([], [])
         self.data_line2 = self.figureWidget.plot([], []) # None
