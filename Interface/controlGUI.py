@@ -112,8 +112,8 @@ class TimescanPlot():
         self.figureWidget.getAxis('left').setTextPen('black')
         self.figureWidget.getAxis('bottom').setTextPen('black')
 
-        self.data_line1 = self.figureWidget.plot([], [], label="")
-        self.data_line2 = self.figureWidget.plot([], [], label="") # None
+        self.data_line1 = self.figureWidget.plot([], [], name="")
+        self.data_line2 = self.figureWidget.plot([], [], name="") # None
 
         # add items to the layout
         self.layout.addWidget(self.yMenu)
@@ -132,15 +132,15 @@ class TimescanPlot():
             y1 = 'Sample T (K)'
             self.data_line1.setData(
                 [x.timestamp() for x in df['Time']], df[y1],
-                pen=self.yItems[y1]['pen'], label=y1)
+                pen=self.yItems[y1]['pen'], name=y1)
             y2 = 'Setpoint T (K)'
             self.data_line2.setData(
                 [x.timestamp() for x in df['Time']], df[y2],
-                pen=self.yItems[y2]['pen'], label=y2)
+                pen=self.yItems[y2]['pen'], name=y2)
         else:
             self.data_line1.setData(
                 [x.timestamp() for x in df['Time']], df[self.yData],
-                pen=self.yItems[self.yData]['pen'], label=self.yData)
+                pen=self.yItems[self.yData]['pen'], name=self.yData)
         
 
 class ControlTab():
