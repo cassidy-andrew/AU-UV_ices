@@ -51,8 +51,10 @@ class AnnealTab():
         self.tempController = parent.hardwareManager.temperatureController
 
         # define fonts
-        self.valueFont = QFont("Consolas", 15)
-        self.titleFont = QFont("Arial", 10)
+        self.valueFontA = QFont("Consolas", 30)
+        self.titleFontA = QFont("Arial", 15)
+        self.valueFontB = QFont("Consolas", 15)
+        self.titleFontB = QFont("Arial", 10)
 
         # where we hold all the smaller UI elements
         self.outerLayout = QGridLayout()
@@ -68,14 +70,14 @@ class AnnealTab():
         
         # measured temperature display title
         self.mtLabelTitle = QLabel("Sample Temperature (K)")
-        self.mtLabelTitle.setFont(self.titleFont)
+        self.mtLabelTitle.setFont(self.titleFontA)
         self.mtLabelTitle.setAlignment(Qt.AlignHCenter)
         self.measuredTempLayout.addWidget(self.mtLabelTitle)
 
         # measured temperature display value
         self.measured_temperature = "No Signal Yet"
         self.mtLabel = QLabel(self.measured_temperature)
-        self.mtLabel.setFont(self.valueFont)
+        self.mtLabel.setFont(self.valueFontA)
         self.mtLabel.setAlignment(Qt.AlignHCenter)
         self.measuredTempLayout.addWidget(self.mtLabel)
         
@@ -87,7 +89,7 @@ class AnnealTab():
 
         # target temperature display title
         self.targetTitle = QLabel("Set Target Temperature (K)")
-        self.targetTitle.setFont(self.titleFont)
+        self.targetTitle.setFont(self.titleFontB)
         self.targetTitle.setAlignment(Qt.AlignHCenter)
         self.targetTempLayout.addWidget(self.targetTitle)
 
@@ -97,7 +99,7 @@ class AnnealTab():
         self.tempLineEdit.setRange(0.0, 999.0)
         self.tempLineEdit.setDecimals(1)
         self.tempLineEdit.setSingleStep(1)
-        self.tempLineEdit.setFont(self.valueFont)
+        self.tempLineEdit.setFont(self.valueFontB)
         self.tempLineEdit.setValue(self.target_temperature)
         self.tempLineEdit.editingFinished.connect(
             lambda: self.set_target_temperature(self.tempLineEdit.text())
@@ -115,14 +117,14 @@ class AnnealTab():
         
         # measured set point display title
         self.mspLabelTitle = QLabel("Setpoint Temperature (K)")
-        self.mspLabelTitle.setFont(self.titleFont)
+        self.mspLabelTitle.setFont(self.titleFontA)
         self.mspLabelTitle.setAlignment(Qt.AlignHCenter)
         self.measuredSetPointLayout.addWidget(self.mspLabelTitle)
 
         # measured temperature display value
         self.measured_set_point = "No Signal Yet"
         self.mspLabel = QLabel(self.measured_temperature)
-        self.mspLabel.setFont(self.valueFont)
+        self.mspLabel.setFont(self.valueFontA)
         self.mspLabel.setAlignment(Qt.AlignHCenter)
         self.measuredSetPointLayout.addWidget(self.mspLabel)
         
@@ -136,14 +138,14 @@ class AnnealTab():
         
         # measured power setting title
         self.mpsLabelTitle = QLabel("Power Setting")
-        self.mpsLabelTitle.setFont(self.titleFont)
+        self.mpsLabelTitle.setFont(self.titleFontB)
         self.mpsLabelTitle.setAlignment(Qt.AlignHCenter)
         self.powerSettingLayout.addWidget(self.mpsLabelTitle)
 
         # measured power setting value
         self.measured_power_setting = "No Signal Yet"
         self.mpsLabel = QLabel(self.measured_power_setting)
-        self.mpsLabel.setFont(self.valueFont)
+        self.mpsLabel.setFont(self.valueFontB)
         self.mpsLabel.setAlignment(Qt.AlignHCenter)
         self.powerSettingLayout.addWidget(self.mpsLabel)
         
@@ -154,7 +156,7 @@ class AnnealTab():
 
         # target power setting title
         self.targetPowerLabel = QLabel("Set Power Setting")
-        self.targetPowerLabel.setFont(self.titleFont)
+        self.targetPowerLabel.setFont(self.titleFontB)
         self.targetPowerLabel.setAlignment(Qt.AlignHCenter)
         self.powerTargetLayout.addWidget(self.targetPowerLabel)
 
@@ -163,7 +165,7 @@ class AnnealTab():
         self.targetPowerComboBox.addItem("LOW")
         self.targetPowerComboBox.addItem("MEDIUM")
         self.targetPowerComboBox.addItem("HIGH")
-        self.targetPowerComboBox.setFont(self.valueFont)
+        self.targetPowerComboBox.setFont(self.valueFontB)
         #self.targetPowerComboBox.currentTextChanged.connect()
         self.powerTargetLayout.addWidget(self.targetPowerComboBox)
         
@@ -177,14 +179,14 @@ class AnnealTab():
 
         # measured power level title
         self.plLabelTitle = QLabel("Power Level (%)")
-        self.plLabelTitle.setFont(self.titleFont)
+        self.plLabelTitle.setFont(self.titleFontB)
         self.plLabelTitle.setAlignment(Qt.AlignHCenter)
         self.powerLevelLayout.addWidget(self.plLabelTitle)
 
         # measured power level label
         self.measured_power_level = "No Signal Yet"
         self.plLabel = QLabel(self.measured_power_level)
-        self.plLabel.setFont(self.valueFont)
+        self.plLabel.setFont(self.valueFontB)
         self.plLabel.setAlignment(Qt.AlignHCenter)
         self.powerLevelLayout.addWidget(self.plLabel)
         
@@ -197,13 +199,13 @@ class AnnealTab():
         self.pidPLayout = QVBoxLayout()
         # measured PID P title
         self.pidPLabelTitle = QLabel("Proportional Band (%)")
-        self.pidPLabelTitle.setFont(self.titleFont)
+        self.pidPLabelTitle.setFont(self.titleFontB)
         self.pidPLabelTitle.setAlignment(Qt.AlignHCenter)
         self.pidPLayout.addWidget(self.pidPLabelTitle)
         # measured PID P label
         self.measured_pidP = "No Signal Yet"
         self.pidPLabel = QLabel(self.measured_pidP)
-        self.pidPLabel.setFont(self.valueFont)
+        self.pidPLabel.setFont(self.valueFontB)
         self.pidPLabel.setAlignment(Qt.AlignHCenter)
         self.pidPLayout.addWidget(self.pidPLabel)
         # add it to the layout
@@ -213,13 +215,13 @@ class AnnealTab():
         self.pidILayout = QVBoxLayout()
         # measured PID I title
         self.pidILabelTitle = QLabel("Integral Action Time (min)")
-        self.pidILabelTitle.setFont(self.titleFont)
+        self.pidILabelTitle.setFont(self.titleFontB)
         self.pidILabelTitle.setAlignment(Qt.AlignHCenter)
         self.pidILayout.addWidget(self.pidILabelTitle)
         # measured PID I label
         self.measured_pidI = "No Signal Yet"
         self.pidILabel = QLabel(self.measured_pidI)
-        self.pidILabel.setFont(self.valueFont)
+        self.pidILabel.setFont(self.valueFontB)
         self.pidILabel.setAlignment(Qt.AlignHCenter)
         self.pidILayout.addWidget(self.pidILabel)
         # add it to the layout
@@ -229,13 +231,13 @@ class AnnealTab():
         self.pidDLayout = QVBoxLayout()
         # measured PID D title
         self.pidDLabelTitle = QLabel("Derivative Action Time (min)")
-        self.pidDLabelTitle.setFont(self.titleFont)
+        self.pidDLabelTitle.setFont(self.titleFontB)
         self.pidDLabelTitle.setAlignment(Qt.AlignHCenter)
         self.pidDLayout.addWidget(self.pidDLabelTitle)
         # measured PID D label
         self.measured_pidD = "No Signal Yet"
         self.pidDLabel = QLabel(self.measured_pidD)
-        self.pidDLabel.setFont(self.valueFont)
+        self.pidDLabel.setFont(self.valueFontB)
         self.pidDLabel.setAlignment(Qt.AlignHCenter)
         self.pidDLayout.addWidget(self.pidDLabel)
         # add it to the layout
@@ -249,14 +251,14 @@ class AnnealTab():
         
         # measured ramp rate display title
         self.mrrLabelTitle = QLabel("Ramp Rate (K/min)")
-        self.mrrLabelTitle.setFont(self.titleFont)
+        self.mrrLabelTitle.setFont(self.titleFontB)
         self.mrrLabelTitle.setAlignment(Qt.AlignHCenter)
         self.measuredRRLayout.addWidget(self.mrrLabelTitle)
 
         # measured ramp rate display value
         self.measured_ramp_rate = "No Signal Yet"
         self.mrrLabel = QLabel(self.measured_ramp_rate)
-        self.mrrLabel.setFont(self.valueFont)
+        self.mrrLabel.setFont(self.valueFontB)
         self.mrrLabel.setAlignment(Qt.AlignHCenter)
         self.measuredRRLayout.addWidget(self.mrrLabel)
         
@@ -267,7 +269,7 @@ class AnnealTab():
 
         # target ramp rate display title
         self.trrTitle = QLabel("Set Ramp Rate (K/min)")
-        self.trrTitle.setFont(self.titleFont)
+        self.trrTitle.setFont(self.titleFontB)
         self.trrTitle.setAlignment(Qt.AlignHCenter)
         self.targetRRLayout.addWidget(self.trrTitle)
 
@@ -277,7 +279,7 @@ class AnnealTab():
         self.rrLineEdit.setRange(0.0, 100.0)
         self.rrLineEdit.setDecimals(3)
         self.rrLineEdit.setSingleStep(0.5)
-        self.rrLineEdit.setFont(self.valueFont)
+        self.rrLineEdit.setFont(self.valueFontB)
         self.rrLineEdit.setValue(self.target_ramp_rate)
         #self.rrLineEdit.editingFinished.connect()
         self.rrLineEdit.setAlignment(Qt.AlignHCenter)
@@ -293,14 +295,14 @@ class AnnealTab():
 
         # measured heater status display title
         self.mhsLabelTitle = QLabel("Heater Status")
-        self.mhsLabelTitle.setFont(self.titleFont)
+        self.mhsLabelTitle.setFont(self.titleFontB)
         self.mhsLabelTitle.setAlignment(Qt.AlignHCenter)
         self.measuredHeaterStatusLayout.addWidget(self.mhsLabelTitle)
 
         # measured  heater status display value
         self.measured_heater_status = "No Signal Yet"
         self.mhsLabel = QLabel(self.measured_heater_status)
-        self.mhsLabel.setFont(self.valueFont)
+        self.mhsLabel.setFont(self.valueFontB)
         self.mhsLabel.setAlignment(Qt.AlignHCenter)
         self.measuredHeaterStatusLayout.addWidget(self.mhsLabel)
         
@@ -314,14 +316,14 @@ class AnnealTab():
 
         # OFF title
         self.OFFTitle = QLabel("Turn the Heater Off (Skips Queue)")
-        self.OFFTitle.setFont(self.titleFont)
+        self.OFFTitle.setFont(self.titleFontB)
         self.OFFTitle.setAlignment(Qt.AlignHCenter)
         self.OFFLayout.addWidget(self.OFFTitle)
 
         # OFF button
         self.OFFButton = QPushButton("OFF")
         self.OFFButton.pressed.connect(self.heater_off)
-        self.OFFButton.setFont(self.valueFont)
+        self.OFFButton.setFont(self.valueFontB)
         self.OFFButton.setStyleSheet("background-color : red")
         self.OFFLayout.addWidget(self.OFFButton)
         self.OFFLayout.addItem(self.verticalSpacer)
@@ -331,14 +333,14 @@ class AnnealTab():
 
         # OFF with queue title
         self.OFFWQTitle = QLabel("Turn the Heater Off (Adds to Queue)")
-        self.OFFWQTitle.setFont(self.titleFont)
+        self.OFFWQTitle.setFont(self.titleFontB)
         self.OFFWQTitle.setAlignment(Qt.AlignHCenter)
         #self.OFFWithQueueLayout.addWidget(self.OFFWQTitle)
 
         # OFF with queue button
         self.OFFWQButton = QPushButton("OFF")
         #self.OFFWQButton.pressed.connect()
-        self.OFFWQButton.setFont(self.valueFont)
+        self.OFFWQButton.setFont(self.valueFontB)
         self.OFFWithQueueLayout.addWidget(self.OFFWQButton)
         self.OFFWithQueueLayout.addItem(self.verticalSpacer)
         #self.outerLayout.addLayout(self.OFFWithQueueLayout, 5, 1)
