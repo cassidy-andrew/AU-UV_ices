@@ -61,14 +61,15 @@ def center(window):
     window.move(frameGm.topLeft())
 
 
-class Worker(QRunnable):
+class Worker(QObject):
     def __init__(self, hardwareManager):
         super().__init__()
         self.hardwareManager = hardwareManager
-    
-    @pyqtSlot()
+
     def run(self):
-        self.hardwareManager._refresh()
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.hardwareManager._refresh)
+        self.timer.start(self.hardwareManager.polling_rate)
 
 
 class MainWindow(QWidget):
@@ -86,17 +87,18 @@ class MainWindow(QWidget):
         self.changelogFile = "./Logs/"+current_time+".log"
 
         # create the hardware manager, which gets its own thread
-        #self.hardwareThread = QThread()
         self.hardwareManager = hardwareManager.HardwareManager(self.debug)
+        self.hardwareThread = QThread()
+        self.hardwareWorker = Worker(self.hardwareManager)
+        self.hardwareThread.started.connect(self.hardwareWorker.run)
+        self.hardwareThread.start()
         #self.hardwareManager.moveToThread(self.hardwareThread)
         #self.hardwareThread.start()
         #self.threadpool = QThreadPool()
         #self.worker = Worker(self.hardwareManager)
         #self.threadpool.start(self.worker)
 
-        #self.timer = QTimer()
-        #self.timer.timeout.connect(self.worker.run)
-        #self.timer.start(self.hardwareManager.polling_rate)
+        
 
         self.log("Started DUVET!")
         if self.debug:

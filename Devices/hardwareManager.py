@@ -53,9 +53,9 @@ class HardwareManager():
         )
         #self._refresh()
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self._refresh)
-        self.timer.start(self.polling_rate)
+        #self.timer = QTimer()
+        #self.timer.timeout.connect(self._refresh)
+        #self.timer.start(self.polling_rate)
 
     def _refresh(self):
         """
