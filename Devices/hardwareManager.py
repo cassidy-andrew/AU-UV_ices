@@ -19,7 +19,7 @@ import tempControllerITC502 as TC
 
 from PyQt5.QtCore import QTimer, QObject
 
-class HardwareManager(QObject):
+class HardwareManager():
     """
     This class interfaces with all the hardware. Hardware should be represented
     in its own modules, one for each physical controller box. Those modules are
@@ -34,7 +34,7 @@ class HardwareManager(QObject):
     """
     def __init__(self, debug):
         
-        super().__init__()
+        #super().__init__()
         self.debug = debug
         self.polling_rate = config_file['polling_rate']
 

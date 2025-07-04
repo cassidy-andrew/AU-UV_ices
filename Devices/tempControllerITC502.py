@@ -21,8 +21,8 @@ class TemperatureController():
     the serial interface rather than the GPIB connection.
     """
     def __init__(self):
-        self.read_timeout = 0.05    # seconds
-        self.write_timeout = 2    # seconds
+        self.read_timeout = 0.01    # seconds
+        self.write_timeout = 0.01    # seconds
         self.baudrate = 9600    # see pages 10 and 76 of the manual
         self.default_channel = config_file['temperature_controller_channel']
 
