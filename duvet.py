@@ -37,6 +37,8 @@ from PyQt5.QtWidgets import (
     QDesktopWidget
 )
 
+from PyQt5.QtCore import QThread
+
 def excepthook(exc_type, exc_value, exc_tb):
     """
     Catch errors
@@ -73,8 +75,11 @@ class MainWindow(QWidget):
         current_time = now.strftime("%Y-%m-%d_%H%M%S")
         self.changelogFile = "./Logs/"+current_time+".log"
 
-        # create the hardware manager
+        # create the hardware manager, which gets its own thread
+        self.hardwareThread = QThread()
         self.hardwareManager = hardwareManager.HardwareManager(self.debug)
+        self.hardwareManager.moveToThread(self.hardwareThread)
+        self.hardwareThread.start()
 
         self.log("Started DUVET!")
         if self.debug:

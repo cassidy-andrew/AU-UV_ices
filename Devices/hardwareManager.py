@@ -3,6 +3,7 @@ import os
 import traceback
 import inspect
 import json
+import time
 
 from datetime import datetime
 import pandas as pd
@@ -16,9 +17,9 @@ with open("config.json") as f:
 
 import tempControllerITC502 as TC
 
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QObject
 
-class HardwareManager():
+class HardwareManager(QObject):
     """
     This class interfaces with all the hardware. Hardware should be represented
     in its own modules, one for each physical controller box. Those modules are
@@ -32,6 +33,8 @@ class HardwareManager():
     updates.
     """
     def __init__(self, debug):
+        
+        super().__init__()
         self.debug = debug
         self.polling_rate = config_file['polling_rate']
 
@@ -39,10 +42,6 @@ class HardwareManager():
         
         # a place to store the refresh functions that should be called
         self.hardware_refresh_functions = [self.collect_data]
-
-        self.timer = QTimer()
-        self.timer.timeout.connect(self._refresh)
-        self.timer.start(self.polling_rate)
 
         self.collectionStartTime = None
         self.collectionEndTime = None
@@ -52,6 +51,11 @@ class HardwareManager():
                      'MC Pressure (mbar)', 'Wavelength (nm)',
                      'ITC502_P (%)', 'ITC502_I (min)', 'ITC502_D (min)']
         )
+        #self._refresh()
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self._refresh)
+        self.timer.start(self.polling_rate)
 
     def _refresh(self):
         """
