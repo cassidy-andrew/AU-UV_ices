@@ -96,11 +96,7 @@ class HardwareManager():
         for key in this_dict:
             if key == 'Time':
                 pass
-            elif (
-                (key!= 'Setpoint T (K)') and this_dict[key] == target_temp
-            ) or (
-                np.abs(this_dict[key]-np.mean(self.data[key].iloc[-5:-1]))>50
-            ):
+            elif (key!= 'Setpoint T (K)') and (this_dict[key] == target_temp):
                 # for some reason we got the setpoint, is it an error?
                 try:
                     sigma = np.std(self.data[key].iloc[-5:-1])
