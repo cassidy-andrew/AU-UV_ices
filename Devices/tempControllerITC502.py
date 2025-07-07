@@ -59,7 +59,8 @@ class TemperatureController():
             written = self.ser.write(command.encode('utf-8'))
             time.sleep(0.002)
             # read the output
-            output = self.ser.readline().decode('utf-8')
+            read = self.ser.readline()
+            output = read.decode('utf-8')
             time.sleep(0.002)
             #output = self._parse_output(read.decode('utf-8'))
             prefix = output[0]
@@ -69,9 +70,9 @@ class TemperatureController():
             else:
                 sign = -1
             value = sign*float(output[2:])/10
-            print(f"wrote {written} bytes, got {output} with value {value}")
+            print(f"wrote {written} bytes, got {read} with value {value}")
         except Exception:
-            print(f"wrote {written} bytes, got {output}")
+            print(f"wrote {written} bytes, got {read}")
             traceback.print_exc()
             value = "No Signal"
         return value
