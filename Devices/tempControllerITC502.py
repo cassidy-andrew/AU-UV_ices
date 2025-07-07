@@ -57,7 +57,7 @@ class TemperatureController():
         try:
             # write the command
             written = self.ser.write(command.encode('utf-8'))
-            sleep(0.001)
+            time.sleep(0.001)
             # read the output
             read = self.ser.readline()
             output = self._parse_output(read.decode('utf-8'))
