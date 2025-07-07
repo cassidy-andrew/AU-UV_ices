@@ -38,7 +38,7 @@ class HardwareManager():
         self.debug = debug
         self.polling_rate = config_file['polling_rate']
 
-        self.temperatureController = TC.TemperatureController()
+        self.temperatureController = TC.TemperatureController(debug=self.debug)
         
         # a place to store the refresh functions that should be called
         self.hardware_refresh_functions = [self.collect_data]
@@ -98,15 +98,19 @@ class HardwareManager():
                 if this_dict[key] == target_temp:
                     # for some reason we got the setpoint, is it an error?
                     try:
-                        sigma = np.std(self.data[key].iloc[-3:-1])
-                        if np.abs(this_dict[key]-self.data[key].iloc[-1]) >= 5*sigma:
-                            print("Bad value!")
+                        sigma = np.std(self.data[key].iloc[-5:-1])
+                        diff = np.abs(this_dict[key]-self.data[key].iloc[-1])
+                        if diff >= 5*sigma:
+                            if self.debug:
+                                print("Bad value!")
                             this_dict[key] = np.nan
                     except:
-                        print("Bad value!")
+                        if self.debug:
+                            print("Bad value!")
                         this_dict[key] = np.nan
             if this_dict[key] == "No Signal":
-                print("Bad value!")
+                if self.debug:
+                    print("Bad value!")
                 this_dict[key] = np.nan
         self.data.loc[len(self.data)] = this_dict
 

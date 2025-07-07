@@ -21,7 +21,8 @@ class TemperatureController():
     Until I have access to the hardware to test with, I assume we are using
     the serial interface rather than the GPIB connection.
     """
-    def __init__(self):
+    def __init__(self, debug):
+        self.debug = debug
         self.read_timeout = 0.03   # seconds
         self.write_timeout = 0.03    # seconds
         self.baudrate = 9600    # see pages 10 and 76 of the manual
@@ -30,8 +31,8 @@ class TemperatureController():
         try:
             self.ser = serial.Serial(self.default_channel,
                                      baudrate=self.baudrate,
-                                     timeout=self.read_timeout,
-                                     write_timeout=self.write_timeout,
+                                     #timeout=self.read_timeout,
+                                     #write_timeout=self.write_timeout,
                                      bytesize=serial.EIGHTBITS,
                                      stopbits=serial.STOPBITS_ONE,
                                      parity=serial.PARITY_NONE)
@@ -73,10 +74,12 @@ class TemperatureController():
                 else:
                     sign = -1
                 value = sign*float(output[2:])/10
-            print(f"wrote {written} bytes, got {read} with value {value}")
+            if self.debug:
+                print(f"wrote {written} bytes, got {read} with value {value}")
         except Exception:
-            print(f"wrote {written} bytes, got {read}")
-            traceback.print_exc()
+            if self.debug:
+                print(f"wrote {written} bytes, got {read}")
+                traceback.print_exc()
             value = "No Signal"
         return value
 
