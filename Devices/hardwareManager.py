@@ -79,7 +79,7 @@ class HardwareManager():
         #if temp == "No Signal":
         #    temp = np.nan
         try:
-            if np.mean(self.data['Sample T (K)'].iloc[-5:-1])-temp > 50:
+            if np.abs(np.mean(self.data['Sample T (K)'].iloc[-5:-1])-temp) > 50:
                 # disable large swings in temperature due to noise
                 temp = np.nan
         except Exception:

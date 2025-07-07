@@ -234,7 +234,11 @@ class ControlTab():
         self.outerLayout.addLayout(self.schedulerLayout)
         self.outerLayout.addLayout(self.plotterLayout)
 
-        self.hardwareManager.add_refresh_function(self.refresh_figures)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.refresh_figures)
+        self.timer.start(self.hardwareManager.polling_rate)
+
+        #self.hardwareManager.add_refresh_function(self.refresh_figures)
 
     def refresh_figures(self):
         self.plot1.refresh_plot()
