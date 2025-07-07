@@ -97,7 +97,7 @@ class HardwareManager():
             if (
                 (key!= 'Setpoint T (K)') and this_dict[key] == target_temp
             ) or (
-                this_dict[key] == 0
+                (this_dict[key] == 0) and (type(this_dict[key].iloc[-1])==type(0.0))
             ):
                 # for some reason we got the setpoint, is it an error?
                 try:
