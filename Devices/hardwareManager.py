@@ -94,9 +94,7 @@ class HardwareManager():
                      'ITC502_D (min)':ITC502_D,}
         # replace bad values with np.nan
         for key in this_dict:
-            if key == 'Setpoint T (K)':
-                continue
-            else:
+            if key != 'Setpoint T (K)':
                 if this_dict[key] == target_temp:
                     # for some reason we got the setpoint, is it an error?
                     try:
