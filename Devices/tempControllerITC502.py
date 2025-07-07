@@ -59,8 +59,8 @@ class TemperatureController():
             written = self.ser.write(command.encode('utf-8'))
             time.sleep(0.001)
             # read the output
-            read = self.ser.readline()
-            output = self._parse_output(read.decode('utf-8'))
+            output = self.ser.readline().decode('utf-8')
+            #output = self._parse_output(read.decode('utf-8'))
             prefix = output[0]
             sign_symbol = output[1]
             if sign_symbol == '+':
