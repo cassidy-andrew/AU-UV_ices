@@ -94,7 +94,9 @@ class HardwareManager():
                      'ITC502_D (min)':ITC502_D,}
         # replace bad values with np.nan
         for key in this_dict:
-            if (
+            if key == 'Time':
+                pass
+            elif (
                 (key!= 'Setpoint T (K)') and this_dict[key] == target_temp
             ) or (
                 np.abs(this_dict[key]-np.mean(self.data[key].iloc[-5:-1]))>50
