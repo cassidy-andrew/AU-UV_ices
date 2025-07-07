@@ -47,10 +47,7 @@ class TemperatureController():
             sign = 1
         else:
             sign = -1
-        try:
-            number = sign*float(line[2:])/10
-        except:
-            number = None
+        number = sign*float(line[2:])/10
         return prefix, number
 
     def get_temp(self, channel=None):
@@ -145,6 +142,7 @@ class TemperatureController():
             written = self.ser.write(command.encode('utf-8'))
             output = self._parse_output(self.ser.readline().decode('utf-8'))
             value = output[1]
+            print(f"wrote {written} bytes for value {value}")
         except Exception:
             print(f"wrote {written} bytes")
             traceback.print_exc()
