@@ -32,7 +32,7 @@ class TemperatureController():
             self.ser = serial.Serial(self.default_channel,
                                      baudrate=self.baudrate,
                                      timeout=self.read_timeout,
-                                     #write_timeout=self.write_timeout,
+                                     write_timeout=self.write_timeout,
                                      bytesize=serial.EIGHTBITS,
                                      stopbits=serial.STOPBITS_ONE,
                                      parity=serial.PARITY_NONE)

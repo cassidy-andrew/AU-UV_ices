@@ -98,8 +98,6 @@ class MainWindow(QWidget):
         #self.worker = Worker(self.hardwareManager)
         #self.threadpool.start(self.worker)
 
-        
-
         self.log("Started DUVET!")
         if self.debug:
             self.log("Debug mode is ON. Exciting!")
