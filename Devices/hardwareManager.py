@@ -101,7 +101,7 @@ class HardwareManager():
                     # for some reason we got the setpoint, is it an error?
                     try:
                         sigma = np.std(self.data[key].iloc[-3:-1])
-                        if this_dict[key]-self.data[key].iloc[-1] >= 5*sigma:
+                        if np.abs(this_dict[key]-self.data[key].iloc[-1]) >= 5*sigma:
                             print("Bad value!")
                             this_dict[key] = np.nan
                     except:
