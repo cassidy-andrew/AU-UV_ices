@@ -29,23 +29,13 @@ class TemperatureController():
         try:
             self.ser = serial.Serial(self.default_channel,
                                      baudrate=self.baudrate,
-                                     timeout=self.read_timeout)
+                                     timeout=self.read_timeout,
+                                     write_timeout=self.write_timeout,
+                                     bytesize=serial.EIGHTBITS,
+                                     stopbits=serial.STOPBITS_ONE,
+                                     parity=serial.PARITY_NONE)
         except Exception:
             traceback.print_exc()
-
-    def _open_serial_connection_no(self, channel):
-        try:
-            ser = serial.Serial(channel, baudrate=self.baudrate,
-                            timeout=self.read_timeout)
-            ser.write_timeout = self.write_timeout
-            #print("attempting v command...")
-            #ser.write("V\n\r".encode('utf-8'))
-            #line = ser.readline().decode('utf-8')
-            #print(line)
-            return ser
-        except Exception:
-            traceback.print_exc()
-            return None
 
     def _parse_output(self, line):
         """
@@ -57,7 +47,10 @@ class TemperatureController():
             sign = 1
         else:
             sign = -1
-        number = sign*float(line[2:])/10
+        try:
+            number = sign*float(line[2:])/10
+        except:
+            number = None
         return prefix, number
 
     def get_temp(self, channel=None):
