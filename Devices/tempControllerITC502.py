@@ -140,9 +140,10 @@ class TemperatureController():
 
         try:
             written = self.ser.write(command.encode('utf-8'))
-            output = self._parse_output(self.ser.readline().decode('utf-8'))
+            read = self.ser.readline()
+            output = self._parse_output(read.decode('utf-8'))
             value = output[1]
-            print(f"wrote {written} bytes for value {value}")
+            print(f"wrote {written} bytes for value {read} with value {value}")
         except Exception:
             print(f"wrote {written} bytes")
             traceback.print_exc()
