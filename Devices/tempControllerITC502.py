@@ -4,6 +4,7 @@ import os
 import sys
 import inspect
 import json
+import time
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -50,25 +51,38 @@ class TemperatureController():
         number = sign*float(line[2:])/10
         return prefix, number
 
+    def _send_command(self, command, debug=False):
+        written = 0
+        read = None
+        try:
+            # write the command
+            written = self.ser.write(command.encode('utf-8'))
+            sleep(0.001)
+            # read the output
+            read = self.ser.readline()
+            output = self._parse_output(read.decode('utf-8'))
+            prefix = output[0]
+            sign_symbol = output[1]
+            if sign_symbol == '+':
+                sign = 1
+            else:
+                sign = -1
+            value = sign*float(line[2:])/10
+            print(f"wrote {written} bytes, got {read} with value {value}")
+        except Exception:
+            print(f"wrote {written} bytes, got {read}")
+            traceback.print_exc()
+            value = "No Signal"
+        return value
+
     def get_temp(self, channel=None):
         """
         See page 44 of the manual for the Rn command, which reads the value of
         some parameter specified by a number n 0-9. For reading the temperature,
         n = 1, 2, or 3 corresponding to sensors 1, 2, or 3.
         """
-        if channel == None:
-            channel = self.default_channel
-            
         command = "R1\n\r"
-
-        try:
-            written = self.ser.write(command.encode('utf-8'))
-            output = self._parse_output(self.ser.readline().decode('utf-8'))
-            value = output[1]
-        except Exception:
-            print(f"wrote {written} bytes")
-            traceback.print_exc()
-            value = "No Signal"
+        value = self._send_command(command, debug=False)
         return value
 
     def set_temp(self, target, channel=None):
@@ -76,157 +90,48 @@ class TemperatureController():
         See page 47 of the manual, which specifies the syntax for setting the
         temperature.
         """
-        if channel == None:
-            channel = self.default_channel
-            
         command = "T" + str(target) + "\n\r"
-
-        ser = self._open_serial_connection(channel)
-
-        try:
-            ser.write(command.encode('utf-8'))
-            ser.close()
-            return f"set target temperature to {target}"
-        except Exception:
-            traceback.print_exc()
-            return "Failed to set target temperature"
 
     def get_target_temp(self, channel=None):
         """
         """
-        if channel == None:
-            channel = self.default_channel
-            
         command = "R0\n\r"
-
-        try:
-            written = self.ser.write(command.encode('utf-8'))
-            output = self._parse_output(self.ser.readline().decode('utf-8'))
-            value = output[1]
-        except Exception:
-            print(f"wrote {written} bytes")
-            traceback.print_exc()
-            value = "No Signal"
-        return value
-
-    def get_ramp_rate(self, channel=None):
-        """
-        """
-        if channel == None:
-            channel = self.default_channel
-
-        command = ""
-
-        ser = self._open_serial_connection(channel)
-
-        try:
-            ser.write(command.encode('utf-8'))
-            line = ser.readline().decode('utf-8')
-
-            ser.close()
-            value = line
-        except Exception:
-            traceback.print_exc()
-            value = "No Signal"
+        value = self._send_command(command, debug=False)
         return value
 
     def get_heater_power(self, channel=None):
         """
-        """
-        if channel == None:
-            channel = self.default_channel
-            
+        """            
         command = "R5\n\r"
-
-        try:
-            written = self.ser.write(command.encode('utf-8'))
-            read = self.ser.readline()
-            output = self._parse_output(read.decode('utf-8'))
-            value = output[1]
-            print(f"wrote {written} bytes and got line {read} with value {value}")
-        except Exception:
-            print(f"wrote {written} bytes and got line {read}")
-            traceback.print_exc()
-            value = "No Signal"
+        value = self._send_command(command, debug=False)
         return value
 
     def get_P(self, channel=None):
         """
         PROPORTIONAL BAND
         """
-        if channel == None:
-            channel = self.default_channel
-            
         command = "R8\n\r"
-
-        try:
-            written = self.ser.write(command.encode('utf-8'))
-            output = self._parse_output(self.ser.readline().decode('utf-8'))
-            value = output[1]
-        except Exception:
-            print(f"wrote {written} bytes")
-            traceback.print_exc()
-            value = "No Signal"
+        value = self._send_command(command, debug=False)
         return value
 
     def get_I(self, channel=None):
         """
         INTEGRAL ACTION TIME
         """
-        if channel == None:
-            channel = self.default_channel
-            
         command = "R9\n\r"
-
-        try:
-            written = self.ser.write(command.encode('utf-8'))
-            output = self._parse_output(self.ser.readline().decode('utf-8'))
-            value = output[1]
-        except Exception:
-            print(f"wrote {written} bytes")
-            traceback.print_exc()
-            value = "No Signal"
+        value = self._send_command(command, debug=False)
         return value
 
     def get_D(self, channel=None):
         """
         DERIVATIVE ACTION TIME
         """
-        if channel == None:
-            channel = self.default_channel
-            
         command = "R10\n\r"
-
-        try:
-            written = self.ser.write(command.encode('utf-8'))
-            output = self._parse_output(self.ser.readline().decode('utf-8'))
-            value = output[1]
-        except Exception:
-            print(f"wrote {written} bytes")
-            traceback.print_exc()
-            value = "No Signal"
+        value = self._send_command(command, debug=False)
         return value
 
-    def get_heater_status(self, channel=None):
-        if channel == None:
-            channel = self.default_channel
-
+    def get_heater_status_no(self, channel=None):
         command = "X\n\r"
-
-        ser = self._open_serial_connection(channel)
-
-        try:
-            ser.write(command.encode('utf-8'))
-            line = ser.readline().decode('utf-8')
-            ser.close()
-            # ok time to interpret. see page 46 of the manual
-            sweep_status = line[line.index('S')+1:line.index('S')+3]
-            if sweep_status[0] == '0':
-                value = "stopped"
-            else:
-                value = "heating"
-        except Exception:
-            traceback.print_exc()
-            value = "No Signal"
+        value = self._send_command(command, debug=False)
         return value
         
