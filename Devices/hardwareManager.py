@@ -76,14 +76,6 @@ class HardwareManager():
         #if self.collecting:
         time = datetime.now()
         temp = self.temperatureController.get_temp()
-        #if temp == "No Signal":
-        #    temp = np.nan
-        try:
-            if np.abs(np.mean(self.data['Sample T (K)'].iloc[-5:-1])-temp) > 50:
-                # disable large swings in temperature due to noise
-                temp = np.nan
-        except Exception:
-            traceback.print_exc()
         target_temp = self.temperatureController.get_target_temp()
         power = self.temperatureController.get_heater_power()
         pressure = None
@@ -107,7 +99,7 @@ class HardwareManager():
             else:
                 if this_dict[key] == target_temp:
                     # for some reason we got the setpoint, is it an error?
-                    sigma = np.std(self.data[key].iloc[-5:-1])
+                    sigma = np.std(self.data[key].iloc[-3:-1])
                     if this_dict[key]-self.data[key].iloc[-1] >= 5*sigma:
                         print("Bad value!")
                         this_dict[key] = np.nan
