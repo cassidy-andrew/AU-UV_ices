@@ -67,7 +67,7 @@ class TemperatureController():
                 sign = 1
             else:
                 sign = -1
-            value = sign*float(line[2:])/10
+            value = sign*float(output[2:output.find("/r")])/10
             print(f"wrote {written} bytes, got {read} with value {value}")
         except Exception:
             print(f"wrote {written} bytes, got {read}")
