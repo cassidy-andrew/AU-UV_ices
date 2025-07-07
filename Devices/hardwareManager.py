@@ -97,7 +97,7 @@ class HardwareManager():
             if (
                 (key!= 'Setpoint T (K)') and this_dict[key] == target_temp
             ) or (
-                (this_dict[key] == 0) and (type(this_dict[key].iloc[-1])==type(0.0))
+                np.abs(this_dict[key]-np.mean(self.data[key].iloc[-5:-1]))>50
             ):
                 # for some reason we got the setpoint, is it an error?
                 try:
