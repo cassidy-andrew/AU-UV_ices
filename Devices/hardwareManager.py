@@ -99,11 +99,16 @@ class HardwareManager():
             else:
                 if this_dict[key] == target_temp:
                     # for some reason we got the setpoint, is it an error?
-                    sigma = np.std(self.data[key].iloc[-3:-1])
-                    if this_dict[key]-self.data[key].iloc[-1] >= 5*sigma:
+                    try:
+                        sigma = np.std(self.data[key].iloc[-3:-1])
+                        if this_dict[key]-self.data[key].iloc[-1] >= 5*sigma:
+                            print("Bad value!")
+                            this_dict[key] = np.nan
+                    except:
                         print("Bad value!")
                         this_dict[key] = np.nan
             if this_dict[key] == "No Signal":
+                print("Bad value!")
                 this_dict[key] = np.nan
         self.data.loc[len(self.data)] = this_dict
 
