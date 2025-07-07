@@ -82,11 +82,11 @@ class TimescanPlot():
 
         # what can we plot, and in what style?
         self.yItems = {
-            'Sample T (K)':{'pen':pg.mkPen('black', width=1)},
-            'Setpoint T (K)':{'pen':pg.mkPen('red', width=1)},
-            'Heater Power (%)':{'pen':pg.mkPen('black', width=1)},
-            'MC Pressure (mbar)':{'pen':pg.mkPen('black', width=1)},
-            'Wavelength (nm)':{'pen':pg.mkPen('black', width=1)},
+            'Sample T (K)':{'pen':pg.mkPen('black', width=2)},
+            'Setpoint T (K)':{'pen':pg.mkPen('red', width=2)},
+            'Heater Power (%)':{'pen':pg.mkPen('black', width=2)},
+            'MC Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
+            'Wavelength (nm)':{'pen':pg.mkPen('black', width=2)},
         }
 
         self.layout = QVBoxLayout()
