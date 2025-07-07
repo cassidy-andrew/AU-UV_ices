@@ -143,9 +143,9 @@ class TemperatureController():
             read = self.ser.readline()
             output = self._parse_output(read.decode('utf-8'))
             value = output[1]
-            print(f"wrote {written} bytes for value {read} with value {value}")
+            print(f"wrote {written} bytes and got line {read} with value {value}")
         except Exception:
-            print(f"wrote {written} bytes")
+            print(f"wrote {written} bytes and got line {read}")
             traceback.print_exc()
             value = "No Signal"
         return value
