@@ -107,6 +107,7 @@ class HardwareManager():
                         if (diff > 5*sigma) or (np.abs(this_dict[key]-mean)>50):
                             if self.debug:
                                 print(f"Bad value! diff={diff}, sigma={sigma}")
+                                print(goodData.iloc[-5:-1])
                             this_dict[key] = np.nan
                     except Exception:
                         traceback.print_exc()
