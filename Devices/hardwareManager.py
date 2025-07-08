@@ -106,10 +106,9 @@ class HardwareManager():
                         if self.debug:
                             print("Bad value!")
                         this_dict[key] = np.nan
-                except:
-                    if self.debug:
-                        print("Bad value!")
-                    this_dict[key] = np.nan
+                except Exception:
+                    traceback.print_exc()
+                    #this_dict[key] = np.nan
             if this_dict[key] == "No Signal":
                 if self.debug:
                     print("Bad value!")
