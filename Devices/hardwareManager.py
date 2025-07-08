@@ -100,7 +100,7 @@ class HardwareManager():
                 elif (key!= 'Setpoint T (K)') and (this_dict[key]==target_temp):
                     # for some reason we got the setpoint, is it an error?
                     try:
-                        goodData = self.data[key].notna()
+                        goodData = self.data[self.data[key].notna()][key]
                         sigma = np.std(goodData.iloc[-5:-1])
                         mean = np.mean(goodData.iloc[-5:-1])
                         diff = np.abs(this_dict[key]-goodData.iloc[-1])
