@@ -97,16 +97,16 @@ class HardwareManager():
             for key in this_dict:
                 if key == 'Time':
                     pass
-                elif (key!= 'Setpoint T (K)') and (this_dict[key] == target_temp):
+                elif (key!= 'Setpoint T (K)') and (this_dict[key]==target_temp):
                     # for some reason we got the setpoint, is it an error?
                     try:
                         goodData = self.data[key].notna()
                         sigma = np.std(goodData.iloc[-5:-1])
                         mean = np.mean(goodData.iloc[-5:-1])
                         diff = np.abs(this_dict[key]-goodData.iloc[-1])
-                        if (diff >= 5*sigma) or np.abs(this_dict[key]-mean)>50:
+                        if (diff > 5*sigma) or (np.abs(this_dict[key]-mean)>50):
                             if self.debug:
-                                print("Bad value!")
+                                print(f"Bad value! diff={diff}, sigma={sigma}")
                             this_dict[key] = np.nan
                     except Exception:
                         traceback.print_exc()
