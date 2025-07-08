@@ -96,7 +96,7 @@ class HardwareManager():
         for key in this_dict:
             if key == 'Time':
                 pass
-            elif (key!= 'Setpoint T (K)') and (this_dict[key] == target_temp):
+            """elif (key!= 'Setpoint T (K)') and (this_dict[key] == target_temp):
                 # for some reason we got the setpoint, is it an error?
                 try:
                     sigma = np.std(self.data[key].iloc[-5:-1])
@@ -108,7 +108,7 @@ class HardwareManager():
                         this_dict[key] = np.nan
                 except Exception:
                     traceback.print_exc()
-                    #this_dict[key] = np.nan
+                    #this_dict[key] = np.nan"""
             if this_dict[key] == "No Signal":
                 if self.debug:
                     print("Bad value!")
