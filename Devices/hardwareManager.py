@@ -93,26 +93,28 @@ class HardwareManager():
                      'ITC502_I (min)':ITC502_I,
                      'ITC502_D (min)':ITC502_D,}
         # replace bad values with np.nan
-        for key in this_dict:
-            if key == 'Time':
-                pass
-            """elif (key!= 'Setpoint T (K)') and (this_dict[key] == target_temp):
-                # for some reason we got the setpoint, is it an error?
-                try:
-                    sigma = np.std(self.data[key].iloc[-5:-1])
-                    mean = np.mean(self.data[key].iloc[-5:-1])
-                    diff = np.abs(this_dict[key]-self.data[key].iloc[-1])
-                    if (diff >= 5*sigma) or np.abs(this_dict[key]-mean)>50:
-                        if self.debug:
-                            print("Bad value!")
+        if len(self.data) >= 10:
+            for key in this_dict:
+                if key == 'Time':
+                    pass
+                elif (key!= 'Setpoint T (K)') and (this_dict[key] == target_temp):
+                    # for some reason we got the setpoint, is it an error?
+                    try:
+                        goodData = self.data[key].notna()
+                        sigma = np.std(goodData.iloc[-5:-1])
+                        mean = np.mean(goodData.iloc[-5:-1])
+                        diff = np.abs(this_dict[key]-goodData.iloc[-1])
+                        if (diff >= 5*sigma) or np.abs(this_dict[key]-mean)>50:
+                            if self.debug:
+                                print("Bad value!")
+                            this_dict[key] = np.nan
+                    except Exception:
+                        traceback.print_exc()
                         this_dict[key] = np.nan
-                except Exception:
-                    traceback.print_exc()
-                    #this_dict[key] = np.nan"""
-            if this_dict[key] == "No Signal":
-                if self.debug:
-                    print("Bad value!")
-                this_dict[key] = np.nan
+                if this_dict[key] == "No Signal":
+                    if self.debug:
+                        print("Bad value!")
+                    this_dict[key] = np.nan
         self.data.loc[len(self.data)] = this_dict
 
         # is the dataframe too big???
