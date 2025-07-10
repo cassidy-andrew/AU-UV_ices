@@ -114,7 +114,7 @@ class HardwareManager():
                         sigma = np.std(lnnvs)
                         mean = np.mean(lnnvs)
                         diff = np.abs(this_dict[key]-lnnvs[-1])
-                        if (diff > 5*sigma) or (np.abs(this_dict[key]-mean)>50):
+                        if (diff > 5*sigma and diff > 0.2) or (np.abs(this_dict[key]-mean)>50):
                             if self.debug:
                                 print(f"Bad value! diff={diff}, sigma={sigma}")
                             this_dict[key] = np.nan

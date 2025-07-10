@@ -81,6 +81,8 @@ class TemperatureController():
                 print(f"wrote {written} bytes, got {read}")
                 traceback.print_exc()
             value = "No Signal"
+        self.ser.reset_input_buffer()
+        self.ser.reset_output_buffer()
         return value
 
     def get_temp(self, channel=None):
