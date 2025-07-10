@@ -145,7 +145,7 @@ class TimescanPlot():
             y2Data = [row[y1] for row in data]
             #print("y2Data")
             #print(y2Data)
-            self.data_line1.setData(xData, y2Data,
+            self.data_line2.setData(xData, y2Data,
                                     pen=self.yItems[y2]['pen'], name=y2)
             self.figureLegend.addItem(self.data_line2, y2)
             """self.data_line1.setData(
