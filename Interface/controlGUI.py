@@ -126,12 +126,23 @@ class TimescanPlot():
 
     def refresh_plot(self):
         # get the latest data from the hardware manager
-        df = self.hardwareManager.data
+        #df = self.hardwareManager.data
+        data = self.hardwareManager.buffer
         self.figureLegend.clear()
-        
+
+        xData = [row['Time'] for row in data]
         if self.yDataName == 'Temperatures (K)':
             y1 = 'Sample T (K)'
-            self.data_line1.setData(
+            y1Data = [row[y1] for row in data]
+            self.data_line1.setData(xData, y1Data,
+                                    pen=self.yItems[y1]['pen'], name=y1)
+            self.figureLegend.addItem(self.data_line1, y1)
+            y2 = 'Setpoint T (K)'
+            y2Data = [row[y1] for row in data]
+            self.data_line1.setData(xData, y2Data,
+                                    pen=self.yItems[y2]['pen'], name=y2)
+            self.figureLegend.addItem(self.data_line2, y2)
+            """self.data_line1.setData(
                 [x.timestamp() for x in df['Time']], df[y1],
                 pen=self.yItems[y1]['pen'], name=y1)
             self.figureLegend.addItem(self.data_line1, y1)
@@ -139,11 +150,15 @@ class TimescanPlot():
             self.data_line2.setData(
                 [x.timestamp() for x in df['Time']], df[y2],
                 pen=self.yItems[y2]['pen'], name=y2)
-            self.figureLegend.addItem(self.data_line2, y2)
+            self.figureLegend.addItem(self.data_line2, y2)"""
         else:
-            self.data_line1.setData(
+            yData = [row[self.yDataName] for row in data]
+            self.data_line1.setData(xData, yData,
+                                    pen=self.yItems[self.yDataName]['pen'],
+                                    name=self.yDataName)
+            """self.data_line1.setData(
                 [x.timestamp() for x in df['Time']], df[self.yDataName],
-                pen=self.yItems[self.yDataName]['pen'], name=self.yDataName)
+                pen=self.yItems[self.yDataName]['pen'], name=self.yDataName)"""
             #self.figureLegend.addItem(self.data_line1, self.yDataName)
         
 

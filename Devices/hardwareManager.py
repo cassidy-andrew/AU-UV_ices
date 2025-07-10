@@ -5,6 +5,8 @@ import inspect
 import json
 import time
 
+from collections import deque
+
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -45,12 +47,14 @@ class HardwareManager():
 
         self.collectionStartTime = None
         self.collectionEndTime = None
-        self.data = pd.DataFrame(
+        self.buffer = deque(maxlen=84000)
+        self.data = None
+        """self.data = pd.DataFrame(
             columns=['Time', 'Sample T (K)', 'Setpoint T (K)',
                      'Heater Power (%)',
                      'MC Pressure (mbar)', 'Wavelength (nm)',
                      'ITC502_P (%)', 'ITC502_I (min)', 'ITC502_D (min)']
-        )
+        )"""
         #self._refresh()
 
         #self.timer = QTimer()
@@ -92,8 +96,37 @@ class HardwareManager():
                      'ITC502_P (%)':ITC502_P,
                      'ITC502_I (min)':ITC502_I,
                      'ITC502_D (min)':ITC502_D,}
-        # replace bad values with np.nan
-        if len(self.data) >= 10:
+        # replace bad values with np.nan, but skip the first 10 so we know how
+        # to even identify them
+        if len(self.buffer) >= 10:
+            for key in this_dict:
+                if key == 'Time':
+                    pass
+                elif (key!= 'Setpoint T (K)') and (this_dict[key]==target_temp):
+                    # for some reason we got the setpoint, is it an error?
+                    arr = [row[key] for row in self.buffer]
+                    mask = ~np.isnan(arr)
+                    # last non-nan indicies
+                    lnnis = np.flatnonzero(mask)[-5:1]
+                    # last non-nan values
+                    lnnvs = arr[lnnis]
+                    sigma = np.std(lnnvs)
+                    mean = np.mean(lnnvs)
+                    diff = np.abs(this_dict[key]-lnnvs[-1])
+                    if (diff > 5*sigma) or (np.abs(this_dict[key]-mean)>50):
+                            if self.debug:
+                                print(f"Bad value! diff={diff}, sigma={sigma}")
+                                print(goodData.iloc[-5:-1])
+                            this_dict[key] = np.nan
+                    except Exception:
+                        traceback.print_exc()
+                        this_dict[key] = np.nan
+                if this_dict[key] == "No Signal":
+                    if self.debug:
+                        print("Bad value!")
+                    this_dict[key] = np.nan
+        self.buffer.append(this_dict)
+        """if len(self.data) >= 10:
             for key in this_dict:
                 if key == 'Time':
                     pass
@@ -116,13 +149,13 @@ class HardwareManager():
                     if self.debug:
                         print("Bad value!")
                     this_dict[key] = np.nan
-        self.data.loc[len(self.data)] = this_dict
+        self.data.loc[len(self.data)] = this_dict"""
 
         # is the dataframe too big???
-        if len(self.data) > 86400:
+        """if len(self.data) > 86400:
             # if so, drop the oldest hour of data
             self.data.drop(index=self.data.index[:3600], inplace=True)
-            self.data.reset_index(inplace=True)
+            self.data.reset_index(inplace=True)"""
 
     def start_timescan_collection(self):
         """
@@ -142,6 +175,7 @@ class HardwareManager():
         
         # export the data
         self.collectionEndTime = datetime.now()
+        self.data = pd.DataFrame.from_dict(self.buffer)
         df = self.data[(self.data['Time']>self.collectionStartTime) &
                        (self.data['Time']<self.collectionEndTime)]
         df.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
