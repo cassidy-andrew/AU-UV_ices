@@ -361,7 +361,8 @@ class AnnealTab():
         """
         Update all values from the temperature controller.
         """
-        measured_values = self.parent.hardwareManager.data.iloc[-1]
+        #measured_values = self.parent.hardwareManager.data.iloc[-1]
+        measured_values = self.parent.hardwareManager.buffer[-1]
         # measured temperature
         self.mtLabel.setText(str(measured_values['Sample T (K)']))
         # current target temperature
