@@ -103,20 +103,20 @@ class HardwareManager():
                 if key == 'Time':
                     pass
                 elif (key!= 'Setpoint T (K)') and (this_dict[key]==target_temp):
-                    # for some reason we got the setpoint, is it an error?
-                    arr = [row[key] for row in self.buffer]
-                    mask = ~np.isnan(arr)
-                    # last non-nan indicies
-                    lnnis = np.flatnonzero(mask)[-5:1]
-                    # last non-nan values
-                    lnnvs = arr[lnnis]
-                    sigma = np.std(lnnvs)
-                    mean = np.mean(lnnvs)
-                    diff = np.abs(this_dict[key]-lnnvs[-1])
-                    if (diff > 5*sigma) or (np.abs(this_dict[key]-mean)>50):
+                    try:
+                        # for some reason we got the setpoint, is it an error?
+                        arr = np.array([row[key] for row in self.buffer])
+                        mask = ~np.isnan(arr)
+                        # last non-nan indicies
+                        lnnis = np.flatnonzero(mask)[-5:-1]
+                        # last non-nan values
+                        lnnvs = arr[lnnis]
+                        sigma = np.std(lnnvs)
+                        mean = np.mean(lnnvs)
+                        diff = np.abs(this_dict[key]-lnnvs[-1])
+                        if (diff > 5*sigma) or (np.abs(this_dict[key]-mean)>50):
                             if self.debug:
                                 print(f"Bad value! diff={diff}, sigma={sigma}")
-                                print(goodData.iloc[-5:-1])
                             this_dict[key] = np.nan
                     except Exception:
                         traceback.print_exc()
