@@ -130,7 +130,7 @@ class TimescanPlot():
         data = self.hardwareManager.buffer
         self.figureLegend.clear()
 
-        xData = [row['Time'] for row in data]
+        xData = [datetime.timestamp(row['Time']) for row in data]
         print("xData")
         print(xData)
         if self.yDataName == 'Temperatures (K)':
