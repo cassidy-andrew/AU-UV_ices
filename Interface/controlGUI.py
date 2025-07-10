@@ -131,14 +131,20 @@ class TimescanPlot():
         self.figureLegend.clear()
 
         xData = [row['Time'] for row in data]
+        print("xData")
+        print(xData)
         if self.yDataName == 'Temperatures (K)':
             y1 = 'Sample T (K)'
             y1Data = [row[y1] for row in data]
+            print("y1Data")
+            print(y1Data)
             self.data_line1.setData(xData, y1Data,
                                     pen=self.yItems[y1]['pen'], name=y1)
             self.figureLegend.addItem(self.data_line1, y1)
             y2 = 'Setpoint T (K)'
             y2Data = [row[y1] for row in data]
+            print("y2Data")
+            print(y2Data)
             self.data_line1.setData(xData, y2Data,
                                     pen=self.yItems[y2]['pen'], name=y2)
             self.figureLegend.addItem(self.data_line2, y2)
@@ -153,6 +159,8 @@ class TimescanPlot():
             self.figureLegend.addItem(self.data_line2, y2)"""
         else:
             yData = [row[self.yDataName] for row in data]
+            print("yData")
+            print(yData)
             self.data_line1.setData(xData, yData,
                                     pen=self.yItems[self.yDataName]['pen'],
                                     name=self.yDataName)
