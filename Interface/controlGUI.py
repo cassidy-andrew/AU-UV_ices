@@ -142,7 +142,7 @@ class TimescanPlot():
                                     pen=self.yItems[y1]['pen'], name=y1)
             self.figureLegend.addItem(self.data_line1, y1)
             y2 = 'Setpoint T (K)'
-            y2Data = [row[y1] for row in data]
+            y2Data = [row[y2] for row in data]
             #print("y2Data")
             #print(y2Data)
             self.data_line2.setData(xData, y2Data,
