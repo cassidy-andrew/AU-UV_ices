@@ -122,6 +122,11 @@ class TimescanPlot():
 
     def _update_yAxis(self):
         self.yDataName = self.yMenu.currentText()
+        # pressure should be on a log scale
+        if "pressure" in self.yDataName.lower():
+            self.figureWidget.setLogMode(False, True)
+        else:
+            self.figureWidget.setLogMode(False, False)
         self.data_line1.clear()
         self.data_line2.clear()
 
