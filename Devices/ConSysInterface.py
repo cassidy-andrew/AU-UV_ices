@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import numpy.ctypeslib as ctl
 import traceback
 import ctypes
@@ -50,12 +51,18 @@ class ConSysInterface():
         """
         V = self.CSAPI.GetValue(self.LShandle1, 0)
 
-        if V < 0.774:
+        """if V < 0.774:
             P = "under range"
         elif V > 10:
             P = "over range"
         else:
-            P = 10**((V-7.75)/0.75)
+            P = 10**((V-7.75)/0.75)"""
+        if V < 0.774:
+            V = 0.774
+        elif V > 10:
+            V = 10
+        
+        P = 10**((V-7.75)/0.75)
 
         return P
 
@@ -77,9 +84,15 @@ class ConSysInterface():
             # cold cathode
             P = 10**(4*(V-9))
         elif V < 1.5:
-            P = "under range"
+            # under range, give the lowest value
+            P = 10**(1.5-7.5)
+        elif V > 9.75:
+            # over range, give the highest value
+            P = 10**(4*(9.75-9))
         else:
-            P = "over range"
+            # between the hot and cold cathode regions. Not sure how to handle
+            # this so give none I guess...
+            P = np.nan
 
         return P
 
