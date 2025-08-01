@@ -17,9 +17,6 @@ class TemperatureController():
     This class represents the Oxford Instruments ITC502 temperature
     controller and associated functions. It is used to both read values
     from, and send commands to, the temperature controller hardware.
-
-    Until I have access to the hardware to test with, I assume we are using
-    the serial interface rather than the GPIB connection.
     """
     def __init__(self, debug):
         self.debug = debug

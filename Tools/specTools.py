@@ -1271,14 +1271,14 @@ def plot_fit(spec, xlim=None, ylim=None, plot_peaks=False,
         else:
             rymax = spec.data['residuals'].max()*1.4
         axr.set_ylim(rymin, rymax)
-        axr.legend(loc=legend_loc_r)
+        axr.legend(loc=legend_loc_r, framealpha=0)
         if res_lims is not None:
             axr.set_ylim(res_lims[0], res_lims[1])
     else:
         axr = None
         
     #ax1.grid()
-    ax1.legend(loc=legend_loc)
+    ax1.legend(loc=legend_loc, framealpha=0)
     
     fig.tight_layout()
     fig.subplots_adjust(hspace=0.1)
@@ -1317,7 +1317,7 @@ def plot_scans(scans, xaxis, yaxis, xlim=None, ylim=None, figsize=(8, 4.5),
     if do_legend:
         handels, labels = get_handles([ax])
         if handels:
-            ax.legend()
+            ax.legend(framealpha=0)
     
     if save_path:
         plt.savefig(save_path, bbox_inches='tight')

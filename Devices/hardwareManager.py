@@ -11,13 +11,16 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+currentdir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe()))
+)
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 with open("config.json") as f:
     config_file = json.load(f)
 
 import tempControllerITC502 as TC
+import ConSysInterface as CSI
 
 from PyQt5.QtCore import QTimer, QObject
 
@@ -41,6 +44,7 @@ class HardwareManager():
         self.polling_rate = config_file['polling_rate']
 
         self.temperatureController = TC.TemperatureController(debug=self.debug)
+        self.ConSysInterface = CSI.ConSysInterface(debug=self.debug)
         
         # a place to store the refresh functions that should be called
         self.hardware_refresh_functions = [self.collect_data]
@@ -49,17 +53,6 @@ class HardwareManager():
         self.collectionEndTime = None
         self.buffer = deque(maxlen=84000)
         self.data = None
-        """self.data = pd.DataFrame(
-            columns=['Time', 'Sample T (K)', 'Setpoint T (K)',
-                     'Heater Power (%)',
-                     'MC Pressure (mbar)', 'Wavelength (nm)',
-                     'ITC502_P (%)', 'ITC502_I (min)', 'ITC502_D (min)']
-        )"""
-        #self._refresh()
-
-        #self.timer = QTimer()
-        #self.timer.timeout.connect(self._refresh)
-        #self.timer.start(self.polling_rate)
 
     def _refresh(self):
         """
@@ -114,7 +107,8 @@ class HardwareManager():
                         sigma = np.std(lnnvs)
                         mean = np.mean(lnnvs)
                         diff = np.abs(this_dict[key]-lnnvs[-1])
-                        if (diff > 5*sigma and diff > 0.2) or (np.abs(this_dict[key]-mean)>50):
+                        if (diff > 5*sigma and diff > 0.2) or \
+                           (np.abs(this_dict[key]-mean)>50):
                             if self.debug:
                                 print(f"Bad value! diff={diff}, sigma={sigma}")
                             this_dict[key] = np.nan
@@ -126,36 +120,6 @@ class HardwareManager():
                         print("Bad value!")
                     this_dict[key] = np.nan
         self.buffer.append(this_dict)
-        """if len(self.data) >= 10:
-            for key in this_dict:
-                if key == 'Time':
-                    pass
-                elif (key!= 'Setpoint T (K)') and (this_dict[key]==target_temp):
-                    # for some reason we got the setpoint, is it an error?
-                    try:
-                        goodData = self.data[self.data[key].notna()][key]
-                        sigma = np.std(goodData.iloc[-5:-1])
-                        mean = np.mean(goodData.iloc[-5:-1])
-                        diff = np.abs(this_dict[key]-goodData.iloc[-1])
-                        if (diff > 5*sigma) or (np.abs(this_dict[key]-mean)>50):
-                            if self.debug:
-                                print(f"Bad value! diff={diff}, sigma={sigma}")
-                                print(goodData.iloc[-5:-1])
-                            this_dict[key] = np.nan
-                    except Exception:
-                        traceback.print_exc()
-                        this_dict[key] = np.nan
-                if this_dict[key] == "No Signal":
-                    if self.debug:
-                        print("Bad value!")
-                    this_dict[key] = np.nan
-        self.data.loc[len(self.data)] = this_dict"""
-
-        # is the dataframe too big???
-        """if len(self.data) > 86400:
-            # if so, drop the oldest hour of data
-            self.data.drop(index=self.data.index[:3600], inplace=True)
-            self.data.reset_index(inplace=True)"""
 
     def start_timescan_collection(self):
         """

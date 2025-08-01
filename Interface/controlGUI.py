@@ -126,48 +126,26 @@ class TimescanPlot():
 
     def refresh_plot(self):
         # get the latest data from the hardware manager
-        #df = self.hardwareManager.data
         data = self.hardwareManager.buffer
         self.figureLegend.clear()
 
         xData = [datetime.timestamp(row['Time']) for row in data]
-        #print("xData")
-        #print(xData)
         if self.yDataName == 'Temperatures (K)':
             y1 = 'Sample T (K)'
             y1Data = [row[y1] for row in data]
-            #print("y1Data")
-            #print(y1Data)
             self.data_line1.setData(xData, y1Data,
                                     pen=self.yItems[y1]['pen'], name=y1)
             self.figureLegend.addItem(self.data_line1, y1)
             y2 = 'Setpoint T (K)'
             y2Data = [row[y2] for row in data]
-            #print("y2Data")
-            #print(y2Data)
             self.data_line2.setData(xData, y2Data,
                                     pen=self.yItems[y2]['pen'], name=y2)
             self.figureLegend.addItem(self.data_line2, y2)
-            """self.data_line1.setData(
-                [x.timestamp() for x in df['Time']], df[y1],
-                pen=self.yItems[y1]['pen'], name=y1)
-            self.figureLegend.addItem(self.data_line1, y1)
-            y2 = 'Setpoint T (K)'
-            self.data_line2.setData(
-                [x.timestamp() for x in df['Time']], df[y2],
-                pen=self.yItems[y2]['pen'], name=y2)
-            self.figureLegend.addItem(self.data_line2, y2)"""
         else:
             yData = [row[self.yDataName] for row in data]
-            #print("yData")
-            #print(yData)
             self.data_line1.setData(xData, yData,
                                     pen=self.yItems[self.yDataName]['pen'],
                                     name=self.yDataName)
-            """self.data_line1.setData(
-                [x.timestamp() for x in df['Time']], df[self.yDataName],
-                pen=self.yItems[self.yDataName]['pen'], name=self.yDataName)"""
-            #self.figureLegend.addItem(self.data_line1, self.yDataName)
         
 
 class ControlTab():
@@ -177,7 +155,6 @@ class ControlTab():
         self.hardwareManager = parentWindow.hardwareManager
         self.valueFont = QFont("Consolas", 30)
         self.titleFont = QFont("Arial", 12)
-        #self.TSRecorder = TimescanRecorder(self)
         
         self.outerLayout = QHBoxLayout()
 
@@ -260,8 +237,6 @@ class ControlTab():
         self.timer = QTimer()
         self.timer.timeout.connect(self.refresh_figures)
         self.timer.start(self.hardwareManager.polling_rate)
-
-        #self.hardwareManager.add_refresh_function(self.refresh_figures)
 
     def refresh_figures(self):
         self.plot1.refresh_plot()

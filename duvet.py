@@ -55,16 +55,18 @@ def center(window):
     https://stackoverflow.com/questions/20243637/pyqt4-center-window-on-active-screen
     """
     frameGm = window.frameGeometry()
-    screen = QApplication.desktop().screenNumber(QApplication.desktop().cursor().pos())
+    screen = QApplication.desktop().screenNumber(
+        QApplication.desktop().cursor().pos())
     centerPoint = QApplication.desktop().screenGeometry(screen).center()
     frameGm.moveCenter(centerPoint)
     window.move(frameGm.topLeft())
 
 
 class Worker(QObject):
-    def __init__(self, hardwareManager):
+    def __init__(self, debug):
         super().__init__()
-        self.hardwareManager = hardwareManager
+        self.debug = debug
+        self.hardwareManager = hardwareManager.HardwareManager(self.debug)
 
     def run(self):
         self.timer = QTimer()
@@ -87,16 +89,13 @@ class MainWindow(QWidget):
         self.changelogFile = "./Logs/"+current_time+".log"
 
         # create the hardware manager, which gets its own thread
-        self.hardwareManager = hardwareManager.HardwareManager(self.debug)
+        #self.hardwareManager = hardwareManager.HardwareManager(self.debug)
         self.hardwareThread = QThread()
-        self.hardwareWorker = Worker(self.hardwareManager)
+        #self.hardwareWorker = Worker(self.hardwareManager)
+        self.hardwareWorker = Worker(self.debug)
         self.hardwareThread.started.connect(self.hardwareWorker.run)
         self.hardwareThread.start()
-        #self.hardwareManager.moveToThread(self.hardwareThread)
-        #self.hardwareThread.start()
-        #self.threadpool = QThreadPool()
-        #self.worker = Worker(self.hardwareManager)
-        #self.threadpool.start(self.worker)
+        self.hardwareManager = self.hardwareWorker.hardwareManager
 
         self.log("Started DUVET!")
         if self.debug:
@@ -186,6 +185,9 @@ class MainWindow(QWidget):
             if reply2 == QMessageBox.Yes:
                 self.log("Quitting DUVET")
                 self._save_log()
+                self.log("Closing ConSys API")
+                self.hardwareManager.ConSysInterface.close()
+                self.log("ConSys API closed")
                 event.accept()
             else:
                 hahaBox = QMessageBox()
@@ -209,17 +211,18 @@ if __name__ == "__main__":
         
     # intialize error catching
     sys.excepthook = excepthook
-    
-    # set our font
-    font = QtGui.QFont("Arial", 11)
-    #instance = QApplication.instance()
-    #instance.setFont(font)
 
     # contruct the application
     app = QApplication(sys.argv)
+
+    # set our font
+    font = QtGui.QFont("Arial", 11)
     app.setFont(font)
+
+    # create and show the main window
     window = MainWindow(debug)
-    #window.setFont(font)
     window.show()
+
+    # execute the application
     rc = app.exec_()
     sys.exit(rc)
