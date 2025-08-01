@@ -2,7 +2,7 @@ import os
 import numpy.ctypeslib as ctl
 import traceback
 import ctypes
-from cytpes import *
+from ctypes import *
 
 class ConSysInterface():
     def __init__(self, debug):
