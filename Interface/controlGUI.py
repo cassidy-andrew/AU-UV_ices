@@ -120,7 +120,6 @@ class TimescanPlot():
                            'left': scientificAxisItem(orientation='left')}
             )
             self.figureWidget.setLogMode(False, True)
-            self.figureWidget.getAxis('left').setTickSpacing(5., 1.)
         else:
             self.figureWidget = pg.PlotWidget(
                 self.parent.parentWindow,
@@ -150,13 +149,11 @@ class TimescanPlot():
                 'left': scientificAxisItem(orientation='left')
             })
             self.figureWidget.setLogMode(False, True)
-            self.figureWidget.getAxis('left').setTickSpacing(5., 1.)
         else:
             self.figureWidget.setLogMode(False, False)
             self.figureWidget.setAxisItems(axisItems={
                 'left': scientificAxisItem(orientation='left')
             })
-            self.figureWidget.getAxis('left').setTickSpacing(None, None)
         self.data_line1.clear()
         self.data_line2.clear()
 
