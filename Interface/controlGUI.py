@@ -284,8 +284,12 @@ class ControlTab():
         self.outerLayout.addLayout(self.schedulerLayout)
         self.outerLayout.addLayout(self.plotterLayout)"""
         self.splitter.addWidget(self.tabs)
-        self.splitter.addLayout(self.schedulerLayout)
-        self.splitter.addLayout(self.plotterLayout)
+        self.schedulerWrapperWidget = QWidget()
+        self.schedulerWrapperWidget.setLayout(self.schedulerLayout)
+        self.splitter.addWidget(self.schedulerWrapperWidget)
+        self.plotterWrapperWidget = QWidget()
+        self.plotterWrapperWidget.setLayout(self.plotterLayout)
+        self.splitter.addWidget(self.plotterWrapperWidget)
 
         self.outerLayout.addWidget(self.splitter)
 
