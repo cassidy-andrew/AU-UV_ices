@@ -53,6 +53,7 @@ class HardwareManager():
         self.collectionEndTime = None
         #self.buffer = deque(maxlen=84000)
         self.buffer = {'Time':deque(maxlen=84000),
+                       'Timestamp':deque(maxlen=84000),
                        'Sample T (K)':deque(maxlen=84000),
                        'Setpoint T (K)':deque(maxlen=84000),
                        'Heater Power (%)':deque(maxlen=84000),
@@ -92,6 +93,7 @@ class HardwareManager():
         MC_Pressure = self.ConSysInterface.get_MC_pressure()
         DL_Pressure = self.ConSysInterface.get_DL_pressure()
         this_dict = {'Time':time,
+                     'Timestamp':datetime.timestamp(time)
                      'Sample T (K)':temp,
                      'Setpoint T (K)':target_temp,
                      'Heater Power (%)':power,

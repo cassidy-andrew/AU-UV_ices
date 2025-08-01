@@ -171,7 +171,7 @@ class TimescanPlot():
         self.figureLegend.clear()
 
         #xData = [datetime.timestamp(row['Time']) for row in data]
-        xData = list(data['Time'])
+        xData = list(data['Timestamp'])
         if self.yDataName == 'Temperatures (K)':
             y1 = 'Sample T (K)'
             #y1Data = [row[y1] for row in data]
