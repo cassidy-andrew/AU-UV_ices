@@ -376,10 +376,6 @@ class AnnealTab():
         #self.mrrLabel.setText(self.measured_ramp_rate)
         # heater status
         #self.mhsLabel.setText(self.heater_status)
-        self.mcpLabel.setText(
-            f"{measured_values['MC Pressure (mbar)']:.2e}")
-        self.dlpLabel.setText(
-            f"{measured_values['DL Pressure (mbar)']:.2e}")
 
     def heater_off(self):
         """

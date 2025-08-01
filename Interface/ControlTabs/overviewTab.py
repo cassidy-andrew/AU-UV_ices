@@ -78,14 +78,14 @@ class OverviewTab():
         
         # display title
         self.mcpLabelTitle = QLabel("Main Chamber Pressure (mbar)")
-        self.mcpLabelTitle.setFont(self.titleFontB)
+        self.mcpLabelTitle.setFont(self.titleFontA)
         self.mcpLabelTitle.setAlignment(Qt.AlignHCenter)
         self.mcpLayout.addWidget(self.mcpLabelTitle)
 
         # display value
         self.mcp = "No Signal Yet"
         self.mcpLabel = QLabel(self.mcp)
-        self.mcpLabel.setFont(self.valueFontB)
+        self.mcpLabel.setFont(self.valueFontA)
         self.mcpLabel.setAlignment(Qt.AlignHCenter)
         self.mcpLayout.addWidget(self.mcpLabel)
         
@@ -100,14 +100,14 @@ class OverviewTab():
         
         # display title
         self.dlpLabelTitle = QLabel("Dosing Line Pressure (mbar)")
-        self.dlpLabelTitle.setFont(self.titleFontB)
+        self.dlpLabelTitle.setFont(self.titleFontA)
         self.dlpLabelTitle.setAlignment(Qt.AlignHCenter)
         self.dlpLayout.addWidget(self.dlpLabelTitle)
 
         # display value
         self.dlp = "No Signal Yet"
         self.dlpLabel = QLabel(self.dlp)
-        self.dlpLabel.setFont(self.valueFontB)
+        self.dlpLabel.setFont(self.valueFontA)
         self.dlpLabel.setAlignment(Qt.AlignHCenter)
         self.dlpLayout.addWidget(self.dlpLabel)
         
