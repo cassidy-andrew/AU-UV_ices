@@ -47,9 +47,6 @@ class AnnealTab():
         self.parent = parent
         self.debug = debug
 
-        # temperature controller hardware!
-        self.tempController = parent.hardwareManager.temperatureController
-
         # define fonts
         self.valueFontA = QFont("Consolas", 30)
         self.titleFontA = QFont("Arial", 15)
@@ -101,9 +98,9 @@ class AnnealTab():
         self.tempLineEdit.setSingleStep(1)
         self.tempLineEdit.setFont(self.valueFontB)
         self.tempLineEdit.setValue(self.target_temperature)
-        self.tempLineEdit.editingFinished.connect(
-            lambda: self.set_target_temperature(self.tempLineEdit.text())
-            )
+        #self.tempLineEdit.editingFinished.connect(
+        #    lambda: self.set_target_temperature(self.tempLineEdit.text())
+        #    )
         self.tempLineEdit.setAlignment(Qt.AlignHCenter)
         self.targetTempLayout.addWidget(self.tempLineEdit)
         
@@ -310,45 +307,6 @@ class AnnealTab():
         #self.outerLayout.addLayout(self.measuredHeaterStatusLayout, 5, 0)
 
         # -----------------------------------------
-        # Pressure
-        # -----------------------------------------
-        self.mcpLayout = QVBoxLayout()
-        
-        # display title
-        self.mcpLabelTitle = QLabel("Main Chamber Pressure (mbar)")
-        self.mcpLabelTitle.setFont(self.titleFontB)
-        self.mcpLabelTitle.setAlignment(Qt.AlignHCenter)
-        self.mcpLayout.addWidget(self.mcpLabelTitle)
-
-        # display value
-        self.mcp = "No Signal Yet"
-        self.mcpLabel = QLabel(self.mcp)
-        self.mcpLabel.setFont(self.valueFontB)
-        self.mcpLabel.setAlignment(Qt.AlignHCenter)
-        self.mcpLayout.addWidget(self.mcpLabel)
-        
-        self.mcpLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.mcpLayout, 7, 0)
-
-        self.dlpLayout = QVBoxLayout()
-        
-        # display title
-        self.dlpLabelTitle = QLabel("Dosing Line Pressure (mbar)")
-        self.dlpLabelTitle.setFont(self.titleFontB)
-        self.dlpLabelTitle.setAlignment(Qt.AlignHCenter)
-        self.dlpLayout.addWidget(self.dlpLabelTitle)
-
-        # display value
-        self.dlp = "No Signal Yet"
-        self.dlpLabel = QLabel(self.dlp)
-        self.dlpLabel.setFont(self.valueFontB)
-        self.dlpLabel.setAlignment(Qt.AlignHCenter)
-        self.dlpLayout.addWidget(self.dlpLabel)
-        
-        self.dlpLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.dlpLayout, 7, 1)
-
-        # -----------------------------------------
         # OFF button
         # -----------------------------------------
         self.OFFLayout = QVBoxLayout()
@@ -422,9 +380,6 @@ class AnnealTab():
             f"{measured_values['MC Pressure (mbar)']:.2e}")
         self.dlpLabel.setText(
             f"{measured_values['DL Pressure (mbar)']:.2e}")
-
-    def set_target_temperature(self, target):
-        self.tempController.set_temp(target)
 
     def heater_off(self):
         """

@@ -7,6 +7,7 @@ from datetime import datetime
 
 sys.path.insert(0, "Interface/ControlTabs")
 import annealTab
+import overviewTab
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 interfacedir = os.path.dirname(currentdir)
@@ -204,6 +205,12 @@ class ControlTab():
         self.tabs = QTabWidget()
         self.tabs.setFixedWidth(500)
 
+        self.overviewTabWidget = QWidget()
+        #self.annealTabWidget.setFixedWidth(500)
+        self.overviewTabObject = overviewTab.OverviewTab(self, debug)
+        self.overviewTabWidget.setLayout(self.OverviewTabObject.outerLayout)
+        self.tabs.addTab(self.overviewTabWidget, "Overview")
+
         self.annealTabWidget = QWidget()
         #self.annealTabWidget.setFixedWidth(500)
         self.annealTabObject = annealTab.AnnealTab(self, debug)
@@ -212,9 +219,6 @@ class ControlTab():
 
         self.acquisitionTab = QWidget()
         self.tabs.addTab(self.acquisitionTab, "Acquire Spectrum")
-
-        self.timescanTab = QWidget()
-        self.tabs.addTab(self.timescanTab, "Acquire Timescan")
 
         # ------------------------------------
         # Scheduler
