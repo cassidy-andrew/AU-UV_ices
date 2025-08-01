@@ -310,6 +310,27 @@ class AnnealTab():
         #self.outerLayout.addLayout(self.measuredHeaterStatusLayout, 5, 0)
 
         # -----------------------------------------
+        # Pressure
+        # -----------------------------------------
+        self.mcpLayout = QVBoxLayout()
+        
+        # display title
+        self.mcpLabelTitle = QLabel("Main Chamber (MC) Pressure (mbar)")
+        self.mcpLabelTitle.setFont(self.titleFontA)
+        self.mcpLabelTitle.setAlignment(Qt.AlignHCenter)
+        self.mcpLayout.addWidget(self.mcpLabelTitle)
+
+        # display value
+        self.mcp = "No Signal Yet"
+        self.mcpLabel = QLabel(self.mcp)
+        self.mcpLabel.setFont(self.valueFontA)
+        self.mcpLabel.setAlignment(Qt.AlignHCenter)
+        self.mcpLayout.addWidget(self.mcpLabel)
+        
+        self.mcpLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addLayout(self.mcpLayout, 7, 0)
+
+        # -----------------------------------------
         # OFF button
         # -----------------------------------------
         self.OFFLayout = QVBoxLayout()
@@ -379,6 +400,8 @@ class AnnealTab():
         #self.mrrLabel.setText(self.measured_ramp_rate)
         # heater status
         #self.mhsLabel.setText(self.heater_status)
+        self.mcpLabel.setText(
+            f"{str(measured_values['MC Pressure (mbar)'])}:.2e")
 
     def set_target_temperature(self, target):
         self.tempController.set_temp(target)
