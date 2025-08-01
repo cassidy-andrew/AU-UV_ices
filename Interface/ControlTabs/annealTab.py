@@ -419,9 +419,9 @@ class AnnealTab():
         # heater status
         #self.mhsLabel.setText(self.heater_status)
         self.mcpLabel.setText(
-            f"{str(measured_values['MC Pressure (mbar)']):.2e}")
+            f"{measured_values['MC Pressure (mbar)']:.2e}")
         self.dlpLabel.setText(
-            f"{str(measured_values['DL Pressure (mbar)']):.2e}")
+            f"{measured_values['DL Pressure (mbar)']:.2e}")
 
     def set_target_temperature(self, target):
         self.tempController.set_temp(target)
