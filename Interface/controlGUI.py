@@ -128,10 +128,10 @@ class TimescanPlot():
         self.figureLegend = self.figureWidget.addLegend()
         self.figureWidget.setMinimumWidth(500)
         #self.figureWidget.setMinimumHeight(300)
-        self.figureWidget.setTickSpacing(5., 1.)
         self.figureWidget.setTitle("")
         self.figureWidget.getAxis('left').setTextPen('black')
         self.figureWidget.getAxis('bottom').setTextPen('black')
+        self.figureWidget.getAxis('left').setTickSpacing(5., 1.)
 
         self.data_line1 = self.figureWidget.plot([], [])
         self.data_line2 = self.figureWidget.plot([], []) # None
