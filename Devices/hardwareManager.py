@@ -93,8 +93,9 @@ class HardwareManager():
                      'ITC502_D (min)':ITC502_D,}
         # replace bad values with np.nan, but skip the first 10 so we know how
         # to even identify them
-        if len(self.buffer) >= 10:
-            for key in this_dict:
+        
+        for key in this_dict:
+            if len(self.buffer) >= 10:
                 if key == 'Time':
                     pass
                 elif (key!= 'Setpoint T (K)') and (this_dict[key]==target_temp):
@@ -117,10 +118,10 @@ class HardwareManager():
                     except Exception:
                         traceback.print_exc()
                         this_dict[key] = np.nan
-                if this_dict[key] == "No Signal":
-                    if self.debug:
-                        print("Bad value!")
-                    this_dict[key] = np.nan
+            if this_dict[key] == "No Signal":
+                if self.debug:
+                    print("Bad value!")
+                this_dict[key] = np.nan
         self.buffer.append(this_dict)
 
     def start_timescan_collection(self):
