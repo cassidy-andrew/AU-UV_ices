@@ -208,7 +208,7 @@ class ControlTab():
         self.overviewTabWidget = QWidget()
         #self.annealTabWidget.setFixedWidth(500)
         self.overviewTabObject = overviewTab.OverviewTab(self, debug)
-        self.overviewTabWidget.setLayout(self.OverviewTabObject.outerLayout)
+        self.overviewTabWidget.setLayout(self.overviewTabObject.outerLayout)
         self.tabs.addTab(self.overviewTabWidget, "Overview")
 
         self.annealTabWidget = QWidget()
