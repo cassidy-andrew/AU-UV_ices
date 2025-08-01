@@ -50,7 +50,8 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import (
     QPalette,
     QColor,
-    QFont
+    QFont,
+    QSplitter
 )
 
 from PyQt5.QtCore import *
@@ -202,6 +203,7 @@ class ControlTab():
         self.titleFont = QFont("Arial", 12)
         
         self.outerLayout = QHBoxLayout()
+        self.splitter = QSplitter(Qt.Horizontal)
 
         # ------------------------------------
         # functional item tabs
@@ -278,9 +280,14 @@ class ControlTab():
         self.collectionStatusLabel.setAlignment(Qt.AlignCenter)
         self.collectorLayout.addWidget(self.collectionStatusLabel)
         
-        self.outerLayout.addWidget(self.tabs)
+        """self.outerLayout.addWidget(self.tabs)
         self.outerLayout.addLayout(self.schedulerLayout)
-        self.outerLayout.addLayout(self.plotterLayout)
+        self.outerLayout.addLayout(self.plotterLayout)"""
+        self.splitter.addWidget(self.tabs)
+        self.splitter.addLayout(self.schedulerLayout)
+        self.splitter.addLayout(self.plotterLayout)
+
+        self.outerLayout.addWidget(self.splitter)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.refresh_figures)
