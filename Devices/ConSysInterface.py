@@ -13,7 +13,7 @@ class ConSysInterface():
         self.libname = "CSAPI.dll"
         self.libdir = "C:/Program Files/ConSys/"
         try:
-            self.CSAPI = ctl.load_library(libdir+libname, libdir)
+            self.CSAPI = ctl.load_library(self.libdir+self.libname, self.libdir)
             # set our data types for the functions we will use
             self.CSAPI.RegisterParameterStringEx1.restype = c_long
             self.CSAPI.RegisterParameterStringEx1.argtypes = [c_char_p, c_int,
