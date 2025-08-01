@@ -171,23 +171,23 @@ class TimescanPlot():
         self.figureLegend.clear()
 
         #xData = [datetime.timestamp(row['Time']) for row in data]
-        xData = data['Time']
+        xData = list(data['Time'])
         if self.yDataName == 'Temperatures (K)':
             y1 = 'Sample T (K)'
             #y1Data = [row[y1] for row in data]
-            y1Data = data[y1]
+            y1Data = list(data[y1])
             self.data_line1.setData(xData, y1Data,
                                     pen=self.yItems[y1]['pen'], name=y1)
             self.figureLegend.addItem(self.data_line1, y1)
             y2 = 'Setpoint T (K)'
             #y2Data = [row[y2] for row in data]
-            y2Data = data[y2]
+            y2Data = list(data[y2])
             self.data_line2.setData(xData, y2Data,
                                     pen=self.yItems[y2]['pen'], name=y2)
             self.figureLegend.addItem(self.data_line2, y2)
         else:
             #yData = [row[self.yDataName] for row in data]
-            yData = data[self.yDataName]
+            yData = list(data[self.yDataName])
             self.data_line1.setData(xData, yData,
                                     pen=self.yItems[self.yDataName]['pen'],
                                     name=self.yDataName)
