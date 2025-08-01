@@ -115,7 +115,7 @@ class HardwareManager():
                     try:
                         # for some reason we got the setpoint, is it an error?
                         #arr = np.array([row[key] for row in self.buffer])
-                        arr = np.array(self.buffer[key][-100:])
+                        arr = np.array(self.buffer[key])
                         mask = ~np.isnan(arr)
                         # last non-nan indicies
                         lnnis = np.flatnonzero(mask)[-5:-1]
