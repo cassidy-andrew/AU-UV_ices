@@ -93,7 +93,7 @@ class HardwareManager():
         MC_Pressure = self.ConSysInterface.get_MC_pressure()
         DL_Pressure = self.ConSysInterface.get_DL_pressure()
         this_dict = {'Time':time,
-                     'Timestamp':datetime.timestamp(time)
+                     'Timestamp':datetime.timestamp(time),
                      'Sample T (K)':temp,
                      'Setpoint T (K)':target_temp,
                      'Heater Power (%)':power,
