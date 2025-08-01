@@ -76,7 +76,8 @@ class scientificAxisItem(pg.AxisItem):
         super().__init__(*args, **kwargs)
 
     def tickStrings(self, values, scale, spacing):
-        return [f'{v:.2e}' for v in values]
+        
+        return [f'{10**v:.2e}' for v in values]
 
 
 class TimescanPlot():
