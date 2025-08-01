@@ -316,7 +316,7 @@ class AnnealTab():
         
         # display title
         self.mcpLabelTitle = QLabel("Main Chamber Pressure (mbar)")
-        self.mcpLabelTitle.setFont(self.titleFonBA)
+        self.mcpLabelTitle.setFont(self.titleFontB)
         self.mcpLabelTitle.setAlignment(Qt.AlignHCenter)
         self.mcpLayout.addWidget(self.mcpLabelTitle)
 
