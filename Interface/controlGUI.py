@@ -113,18 +113,23 @@ class TimescanPlot():
         self.yMenu.setCurrentText(self.yDataName)
         self.yMenu.currentTextChanged.connect(self._update_yAxis)
 
-        if "pressure" in self.yDataName.lower():
-            self.figureWidget = pg.PlotWidget(
-                self.parent.parentWindow,
-                axisItems={'bottom':pg.DateAxisItem(orientation='bottom'),
-                           'left': scientificAxisItem(orientation='left')}
-            )
-            self.figureWidget.setLogMode(False, True)
-        else:
-            self.figureWidget = pg.PlotWidget(
+        self.figureWidget = pg.PlotWidget(
                 self.parent.parentWindow,
                 axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
             )
+
+        if "pressure" in self.yDataName.lower():
+            """self.figureWidget = pg.PlotWidget(
+                self.parent.parentWindow,
+                axisItems={'bottom':pg.DateAxisItem(orientation='bottom'),
+                           'left': scientificAxisItem(orientation='left')}
+            )"""
+            self.figureWidget.setLogMode(False, True)
+        """else:
+            self.figureWidget = pg.PlotWidget(
+                self.parent.parentWindow,
+                axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
+            )"""
         self.figureLegend = self.figureWidget.addLegend()
         self.figureWidget.setMinimumWidth(500)
         #self.figureWidget.setMinimumHeight(300)
@@ -144,16 +149,20 @@ class TimescanPlot():
         self.yDataName = self.yMenu.currentText()
         # pressure should be on a log scale
         if "pressure" in self.yDataName.lower():
-            self.figureWidget.setAxisItems(axisItems={
+            """self.figureWidget.setAxisItems(axisItems={
                 'bottom':pg.DateAxisItem(orientation='bottom'),
                 'left': scientificAxisItem(orientation='left')
-            })
+            })"""
+            self.data_line1.setLogMode(False, True)
+            self.data_line2.setLogMode(False, True)
             self.figureWidget.setLogMode(False, True)
         else:
+            self.data_line1.setLogMode(False, False)
+            self.data_line2.setLogMode(False, False)
             self.figureWidget.setLogMode(False, False)
-            self.figureWidget.setAxisItems(axisItems={
+            """self.figureWidget.setAxisItems(axisItems={
                 'left': scientificAxisItem(orientation='left')
-            })
+            })"""
         self.data_line1.clear()
         self.data_line2.clear()
 
