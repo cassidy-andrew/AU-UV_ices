@@ -51,7 +51,17 @@ class HardwareManager():
 
         self.collectionStartTime = None
         self.collectionEndTime = None
-        self.buffer = deque(maxlen=84000)
+        #self.buffer = deque(maxlen=84000)
+        self.buffer = {'Time':deque(maxlen=84000),
+                       'Sample T (K)':deque(maxlen=84000),
+                       'Setpoint T (K)':deque(maxlen=84000),
+                       'Heater Power (%)':deque(maxlen=84000),
+                       'MC Pressure (mbar)':deque(maxlen=84000),
+                       'DL Pressure (mbar)':deque(maxlen=84000),
+                       'Wavelength (nm)':deque(maxlen=84000),
+                       'ITC502_P (%)':deque(maxlen=84000),
+                       'ITC502_I (min)':deque(maxlen=84000),
+                       'ITC502_D (min)':deque(maxlen=84000),}
         self.data = None
 
     def _refresh(self):
@@ -95,13 +105,15 @@ class HardwareManager():
         # to even identify them
         
         for key in this_dict:
-            if len(self.buffer) >= 10:
+            #if len(self.buffer) >= 10:
+            if len(self.buffer[key]) >= 10:
                 if key == 'Time':
                     pass
                 elif (key!= 'Setpoint T (K)') and (this_dict[key]==target_temp):
                     try:
                         # for some reason we got the setpoint, is it an error?
-                        arr = np.array([row[key] for row in self.buffer])
+                        #arr = np.array([row[key] for row in self.buffer])
+                        arr = np.array(self.buffer[key][-100:])
                         mask = ~np.isnan(arr)
                         # last non-nan indicies
                         lnnis = np.flatnonzero(mask)[-5:-1]
@@ -122,7 +134,9 @@ class HardwareManager():
                 if self.debug:
                     print("Bad value!")
                 this_dict[key] = np.nan
-        self.buffer.append(this_dict)
+            # add the data to the buffer
+            self.buffer[key].append(this_dict[key])
+        #self.buffer.append(this_dict)
 
     def start_timescan_collection(self):
         """
