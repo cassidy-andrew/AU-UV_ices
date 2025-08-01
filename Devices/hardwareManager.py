@@ -75,16 +75,18 @@ class HardwareManager():
         temp = self.temperatureController.get_temp()
         target_temp = self.temperatureController.get_target_temp()
         power = self.temperatureController.get_heater_power()
-        pressure = None
         wavelength = None
         ITC502_P = self.temperatureController.get_P()
         ITC502_I = self.temperatureController.get_I()
         ITC502_D = self.temperatureController.get_D()
+        MC_Pressure = self.ConSysInterface.get_MC_pressure()
+        DL_Pressure = self.ConSysInterface.get_DL_pressure()
         this_dict = {'Time':time,
                      'Sample T (K)':temp,
                      'Setpoint T (K)':target_temp,
                      'Heater Power (%)':power,
-                     'MC Pressure (mbar)':pressure,
+                     'MC Pressure (mbar)':MC_Pressure,
+                     'DL Pressure (mbar)':DL_Pressure,
                      'Wavelength (nm)':wavelength,
                      'ITC502_P (%)':ITC502_P,
                      'ITC502_I (min)':ITC502_I,

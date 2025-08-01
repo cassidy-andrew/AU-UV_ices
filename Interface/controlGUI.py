@@ -86,6 +86,7 @@ class TimescanPlot():
             'Setpoint T (K)':{'pen':pg.mkPen('red', width=2)},
             'Heater Power (%)':{'pen':pg.mkPen('black', width=2)},
             'MC Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
+            'DL Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
             'Wavelength (nm)':{'pen':pg.mkPen('black', width=2)},
         }
 
