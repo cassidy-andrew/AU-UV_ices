@@ -68,6 +68,17 @@ class TSMplCanvas(FigureCanvasQTAgg):
         super(SpecMplCanvas, self).__init__(self.fig)
 
 
+class scientificAxisItem(pg.AxisItem):
+    """
+    https://stackoverflow.com/questions/59768880/how-to-format-y-axis-displayed-numbers-in-pyqtgraph
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def tickStrings(self, values, scale, spacing):
+        return [f'{v:.2e}' for v in values]
+
+
 class TimescanPlot():
     """
     Represents a plot specifically for timescan data. The control tab has three
@@ -101,11 +112,17 @@ class TimescanPlot():
         self.yMenu.setCurrentText(self.yDataName)
         self.yMenu.currentTextChanged.connect(self._update_yAxis)
 
-        # the figure
-        self.figureWidget = pg.PlotWidget(
-            self.parent.parentWindow,
-            axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
-        )
+        if "pressure" in self.yDataName.lower():
+            self.figureWidget = pg.PlotWidget(
+                self.parent.parentWindow,
+                axisItems={'bottom':pg.DateAxisItem(orientation='bottom'),
+                           'left': scientificAxisItem(orientation='left')}
+            )
+        else:
+            self.figureWidget = pg.PlotWidget(
+                self.parent.parentWindow,
+                axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
+            )
         self.figureLegend = self.figureWidget.addLegend()
         self.figureWidget.setMinimumWidth(500)
         #self.figureWidget.setMinimumHeight(300)
@@ -117,16 +134,23 @@ class TimescanPlot():
         self.data_line2 = self.figureWidget.plot([], []) # None
 
         # add items to the layout
-        self.layout.addWidget(self.yMenu)
         self.layout.addWidget(self.figureWidget)
+        self.layout.addWidget(self.yMenu)
 
     def _update_yAxis(self):
         self.yDataName = self.yMenu.currentText()
         # pressure should be on a log scale
         if "pressure" in self.yDataName.lower():
             self.figureWidget.setLogMode(False, True)
+            self.figureWidget.setAxisItems(axisItems={
+                'bottom':pg.DateAxisItem(orientation='bottom'),
+                'left': scientificAxisItem(orientation='left')
+            })
         else:
             self.figureWidget.setLogMode(False, False)
+            self.figureWidget.setAxisItems(axisItems={
+                'left': scientificAxisItem(orientation='left')
+            })
         self.data_line1.clear()
         self.data_line2.clear()
 
@@ -213,9 +237,9 @@ class ControlTab():
         # timescan plots
         self.plot1 = TimescanPlot(self, self.debug, yData="Temperatures (K)")
         self.plotterLayout.addLayout(self.plot1.layout)
-        self.plot2 = TimescanPlot(self, self.debug, yData="Heater Power (%)")
+        self.plot2 = TimescanPlot(self, self.debug, yData="MC Pressure (mbar)")
         self.plotterLayout.addLayout(self.plot2.layout)
-        self.plot3 = TimescanPlot(self, self.debug)
+        self.plot3 = TimescanPlot(self, self.debug, yData="DL Pressure (mbar)")
         self.plotterLayout.addLayout(self.plot3.layout)
 
         # collection buttons
