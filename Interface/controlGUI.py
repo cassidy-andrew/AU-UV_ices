@@ -176,6 +176,7 @@ class TimescanPlot():
             y1 = 'Sample T (K)'
             #y1Data = [row[y1] for row in data]
             y1Data = list(data[y1])
+            print(y1Data)
             self.data_line1.setData(xData, y1Data,
                                     pen=self.yItems[y1]['pen'], name=y1)
             self.figureLegend.addItem(self.data_line1, y1)
