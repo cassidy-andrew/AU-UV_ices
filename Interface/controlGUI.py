@@ -134,8 +134,9 @@ class TimescanPlot():
         self.data_line2 = self.figureWidget.plot([], []) # None
 
         # add items to the layout
-        self.layout.addWidget(self.figureWidget)
         self.layout.addWidget(self.yMenu)
+        self.layout.addWidget(self.figureWidget)
+
 
     def _update_yAxis(self):
         self.yDataName = self.yMenu.currentText()
