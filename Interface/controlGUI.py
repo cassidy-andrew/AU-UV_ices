@@ -45,13 +45,13 @@ from PyQt5.QtWidgets import (
     QDialog,
     QScrollArea,
     QComboBox,
-    QAbstractItemView
+    QAbstractItemView,
+    QSplitter
 )
 from PyQt5.QtGui import (
     QPalette,
     QColor,
-    QFont,
-    QSplitter
+    QFont
 )
 
 from PyQt5.QtCore import *
