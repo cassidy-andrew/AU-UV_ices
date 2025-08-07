@@ -40,7 +40,8 @@ class Photosensor():
     def get_output(self):
         line = self.ser.readline().decode('utf-8').strip()
         values = line.split(',')
-        measurement_raw = int("0x"+values[0], 0)
+        print(values)
+        measurement_raw = int(values[0], 0)
         volts = measurement_raw *5/32767
         
         return volts
