@@ -135,9 +135,9 @@ class OverviewTab():
         """
         #measured_values = self.parent.hardwareManager.buffer[-1]
         measured_values = {}
-        if len(self.parent.hardwareManager.buffer) == 0:
-            return None
         for key in self.parent.hardwareManager.buffer:
+            if len(self.parent.hardwareManager.buffer[key]) == 0:
+                continue
             measured_values[key] = self.parent.hardwareManager.buffer[key][-1]
         # measured temperature
         self.mtLabel.setText(str(measured_values['Sample T (K)']))
