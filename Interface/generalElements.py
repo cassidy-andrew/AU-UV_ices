@@ -44,13 +44,18 @@ class bigNumbersViewWindow(QWidget):
         self.titleFontA = QFont("Arial", 30)
         self.valueFontA = QFont("Consolas", 60)
 
+        # this is good for making things a little easier to read
+        self.verticalSpacer = QSpacerItem(10, 10)   # x, y
+
         self.outerLayout = QGridLayout()
 
         # -----------------------------------------
         # Measured Temperature
         # -----------------------------------------
-        self.measuredTempLayout = QVBoxLayout()
-        #self.measuredTempLayout.addItem(self.verticalSpacer)
+        self.mtContainer = QWidget()
+        self.mtContainer.setStyleSheet("background-color:yellow")
+        self.measuredTempLayout = QVBoxLayout(self.mtContainer)
+        self.measuredTempLayout.addItem(self.verticalSpacer)
         
         # measured temperature display title
         self.mtLabelTitle = QLabel("Sample Temperature (K)")
@@ -65,13 +70,14 @@ class bigNumbersViewWindow(QWidget):
         self.mtLabel.setAlignment(Qt.AlignHCenter)
         self.measuredTempLayout.addWidget(self.mtLabel)
         
-        #self.measuredTempLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.measuredTempLayout, 0, 0)
+        self.measuredTempLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addWidget(self.mtContainer, 0, 0)
 
         # -----------------------------------------
         # Current set point
         # -----------------------------------------
         self.measuredSetPointLayout = QVBoxLayout()
+        self.measuredSetPointLayout.addItem(self.verticalSpacer)
         
         # measured set point display title
         self.mspLabelTitle = QLabel("Setpoint Temperature (K)")
@@ -86,7 +92,7 @@ class bigNumbersViewWindow(QWidget):
         self.mspLabel.setAlignment(Qt.AlignHCenter)
         self.measuredSetPointLayout.addWidget(self.mspLabel)
         
-        #self.measuredSetPointLayout.addItem(self.verticalSpacer)
+        self.measuredSetPointLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.measuredSetPointLayout, 0, 1)
 
         # -----------------------------------------
@@ -107,7 +113,7 @@ class bigNumbersViewWindow(QWidget):
         self.mcpLabel.setAlignment(Qt.AlignHCenter)
         self.mcpLayout.addWidget(self.mcpLabel)
         
-        #self.mcpLayout.addItem(self.verticalSpacer)
+        self.mcpLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.mcpLayout, 1, 0)
 
         # -----------------------------------------
@@ -129,7 +135,7 @@ class bigNumbersViewWindow(QWidget):
         self.dlpLabel.setAlignment(Qt.AlignHCenter)
         self.dlpLayout.addWidget(self.dlpLabel)
         
-        #self.dlpLayout.addItem(self.verticalSpacer)
+        self.dlpLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.dlpLayout, 1, 1)
 
         self.setLayout(self.outerLayout)
