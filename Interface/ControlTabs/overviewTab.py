@@ -122,13 +122,16 @@ class OverviewTab():
         self.outerLayout.setRowStretch(self.outerLayout.rowCount(), 1)
 
         # configure update timer to refresh the data
-        self.parent.hardwareManager.add_refresh_function(
-            self.refresh_controller
-        )
+        #self.parent.hardwareManager.add_refresh_function(
+        #    self.refresh_controller
+        #)
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.refresh)
+        self.timer.start(self.hardwareManager.polling_rate)
 
-    def refresh_controller(self):
+    def refresh(self):
         """
-        Update all values from the temperature controller.
+        Update all values
         """
         #measured_values = self.parent.hardwareManager.buffer[-1]
         measured_values = {}

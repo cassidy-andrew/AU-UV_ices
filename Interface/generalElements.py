@@ -26,6 +26,135 @@ from PyQt5.QtCore import *
 from PyQt5.Qt import *
 
 
+class bigNumbersViewWindow(QWidget):
+    """
+    A window for displaying the most important parameters in huge, high contrast
+    text, readable from across the room. There are four corners with values. In
+    the future these should be adjustable to display whatever you want. For now,
+    they just display the substrate temperature, setpoint temperature, main
+    chamber pressure, and dosing line pressure.
+    """
+    def __init__(self, parent):
+        super().__init__()
+        self.parent = parent
+
+        self.setWindowTitle("DUVET BIG NUMBER VIEWER")
+
+        # define fonts
+        self.titleFontA = QFont("Arial", 30)
+        self.valueFontA = QFont("Consolas", 60)
+
+        self.outerLayout = QGridLayout()
+
+        # -----------------------------------------
+        # Measured Temperature
+        # -----------------------------------------
+        self.measuredTempLayout = QVBoxLayout()
+        self.measuredTempLayout.addItem(self.verticalSpacer)
+        
+        # measured temperature display title
+        self.mtLabelTitle = QLabel("Sample Temperature (K)")
+        self.mtLabelTitle.setFont(self.titleFontA)
+        self.mtLabelTitle.setAlignment(Qt.AlignHCenter)
+        self.measuredTempLayout.addWidget(self.mtLabelTitle)
+
+        # measured temperature display value
+        self.measured_temperature = "No Signal Yet"
+        self.mtLabel = QLabel(self.measured_temperature)
+        self.mtLabel.setFont(self.valueFontA)
+        self.mtLabel.setAlignment(Qt.AlignHCenter)
+        self.measuredTempLayout.addWidget(self.mtLabel)
+        
+        self.measuredTempLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addLayout(self.measuredTempLayout, 0, 0)
+
+        # -----------------------------------------
+        # Current set point
+        # -----------------------------------------
+        self.measuredSetPointLayout = QVBoxLayout()
+        
+        # measured set point display title
+        self.mspLabelTitle = QLabel("Setpoint Temperature (K)")
+        self.mspLabelTitle.setFont(self.titleFontA)
+        self.mspLabelTitle.setAlignment(Qt.AlignHCenter)
+        self.measuredSetPointLayout.addWidget(self.mspLabelTitle)
+
+        # measured temperature display value
+        self.measured_set_point = "No Signal Yet"
+        self.mspLabel = QLabel(self.measured_temperature)
+        self.mspLabel.setFont(self.valueFontA)
+        self.mspLabel.setAlignment(Qt.AlignHCenter)
+        self.measuredSetPointLayout.addWidget(self.mspLabel)
+        
+        self.measuredSetPointLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addLayout(self.measuredSetPointLayout, 0, 1)
+
+        # -----------------------------------------
+        # Main Chamber Pressure
+        # -----------------------------------------
+        self.mcpLayout = QVBoxLayout()
+        
+        # display title
+        self.mcpLabelTitle = QLabel("Main Chamber Pressure (mbar)")
+        self.mcpLabelTitle.setFont(self.titleFontA)
+        self.mcpLabelTitle.setAlignment(Qt.AlignHCenter)
+        self.mcpLayout.addWidget(self.mcpLabelTitle)
+
+        # display value
+        self.mcp = "No Signal Yet"
+        self.mcpLabel = QLabel(self.mcp)
+        self.mcpLabel.setFont(self.valueFontA)
+        self.mcpLabel.setAlignment(Qt.AlignHCenter)
+        self.mcpLayout.addWidget(self.mcpLabel)
+        
+        self.mcpLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addLayout(self.mcpLayout, 1, 0)
+
+        # -----------------------------------------
+        # Dosing Line Pressure
+        # -----------------------------------------
+
+        self.dlpLayout = QVBoxLayout()
+        
+        # display title
+        self.dlpLabelTitle = QLabel("Dosing Line Pressure (mbar)")
+        self.dlpLabelTitle.setFont(self.titleFontA)
+        self.dlpLabelTitle.setAlignment(Qt.AlignHCenter)
+        self.dlpLayout.addWidget(self.dlpLabelTitle)
+
+        # display value
+        self.dlp = "No Signal Yet"
+        self.dlpLabel = QLabel(self.dlp)
+        self.dlpLabel.setFont(self.valueFontA)
+        self.dlpLabel.setAlignment(Qt.AlignHCenter)
+        self.dlpLayout.addWidget(self.dlpLabel)
+        
+        self.dlpLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addLayout(self.dlpLayout, 1, 1)
+
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.refresh)
+        self.timer.start(self.hardwareManager.polling_rate)
+
+    def refresh(self):
+        """
+        Update all values
+        """
+        #measured_values = self.parent.hardwareManager.buffer[-1]
+        measured_values = {}
+        for key in self.parent.hardwareManager.buffer:
+            measured_values[key] = self.parent.hardwareManager.buffer[key][-1]
+        # measured temperature
+        self.mtLabel.setText(str(measured_values['Sample T (K)']))
+        # current target temperature
+        self.mspLabel.setText(str(measured_values['Setpoint T (K)']))
+
+        self.mcpLabel.setText(
+            f"{measured_values['MC Pressure (mbar)']:.2e}")
+        self.dlpLabel.setText(
+            f"{measured_values['DL Pressure (mbar)']:.2e}")
+
+
 class configViewWindow(QWidget):
     """
     A window for viewing the current configuration of DUVET, such as the
@@ -35,7 +164,7 @@ class configViewWindow(QWidget):
         super().__init__()
         self.parent = parent
 
-        self.setWindowTitle(f'DUVET Current Configuration')
+        self.setWindowTitle('DUVET Current Configuration')
 
         # define fonts
         self.titleFontA = QFont("Arial", 15)
