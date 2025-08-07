@@ -17,10 +17,12 @@ Functions relating to analysis, fitting, etc, should be under 'Tools'.
 import sys
 import traceback
 from datetime import datetime
+import json
 
 sys.path.insert(0, 'Interface')
 import analysisGUI
 import controlGUI
+from generalElements import configViewWindow
 
 sys.path.insert(0, 'Devices')
 import hardwareManager
@@ -34,20 +36,36 @@ from PyQt5.QtWidgets import (
     QWidget,
     QTabWidget,
     QMessageBox,
-    QDesktopWidget
+    QDesktopWidget,
+    QMainWindow,
+    QAction,
+    QFileDialog
 )
 
 from PyQt5.QtCore import *
 
+def get_config():
+    """
+    Open the configuration json file and return its contents in a dictionary
+    """
+    with open("config.json", "r", encoding='utf-8') as f:
+        config_file = json.load(f)
+    return config_file
+
+def save_config(config_file):
+    """
+    Save the contents of a dictionary to the configuration json file
+    """
+    with open("config.json", "w", encoding='utf-8') as f:
+        json.dump(config_file, f, ensure_ascii=False, indent=4)
+
 def excepthook(exc_type, exc_value, exc_tb):
     """
-    Catch errors
+    Catch errors and allow the program to continue
     """
     tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
     print("error caught!:")
     print("error message:\n", tb)
-    #QtWidgets.QApplication.quit()
-    # or QtWidgets.QApplication.exit(0)
 
 def center(window):
     """
@@ -63,10 +81,11 @@ def center(window):
 
 
 class Worker(QObject):
-    def __init__(self, debug):
+    def __init__(self, debug, parent):
         super().__init__()
         self.debug = debug
-        self.hardwareManager = hardwareManager.HardwareManager(self.debug)
+        self.hardwareManager = hardwareManager.HardwareManager(self.debug,
+                                                               parent)
 
     def run(self):
         self.timer = QTimer()
@@ -74,13 +93,14 @@ class Worker(QObject):
         self.timer.start(self.hardwareManager.polling_rate)
 
 
-class MainWindow(QWidget):
+class MainWindow(QMainWindow):
     """
     The main window which opens at the beginning once DUVET is run
     """
     def __init__(self, debug):
         super().__init__()
         self.debug = debug
+        self.config = get_config()
 
         # initialize the log file
         self.changelog = ""
@@ -92,7 +112,7 @@ class MainWindow(QWidget):
         #self.hardwareManager = hardwareManager.HardwareManager(self.debug)
         self.hardwareThread = QThread()
         #self.hardwareWorker = Worker(self.hardwareManager)
-        self.hardwareWorker = Worker(self.debug)
+        self.hardwareWorker = Worker(self.debug, self)
         self.hardwareThread.started.connect(self.hardwareWorker.run)
         self.hardwareThread.start()
         self.hardwareManager = self.hardwareWorker.hardwareManager
@@ -100,9 +120,14 @@ class MainWindow(QWidget):
         self.log("Started DUVET!")
         if self.debug:
             self.log("Debug mode is ON. Exciting!")
+
+        # ---------------------------------------------------------------------
+        # Setup accessory windows
+        # ---------------------------------------------------------------------
+        self.configWindow = configViewWindow(self)
         
         # ---------------------------------------------------------------------
-        # Setup window and tabs
+        # Setup main window and tabs
         # ---------------------------------------------------------------------
         self.setWindowTitle("DUVET: Danish UV End-station Tool")
         # define the top-level layout of the window
@@ -127,7 +152,33 @@ class MainWindow(QWidget):
         self.controlTab = QWidget()
         self.CT = controlGUI.ControlTab(self, debug)
         self.controlTab.setLayout(self.CT.outerLayout)
+
+        # ---------------------------------------------------------------------
+        # Create the menu bar
+        # ---------------------------------------------------------------------
+
+        self.menu = self.menuBar()
+
+        self.fileMenu = self.menu.addMenu("&File")
+        self.saveDirSelAction = QAction(QtGui.QIcon("./Icons/floppyDisk.png"),
+                                        "Change Save Directory", self)
+        self.saveDirSelAction.triggered.connect(self.update_save_dir)
+        self.fileMenu.addAction(self.saveDirSelAction)
+
+        self.CCAction = QAction(QtGui.QIcon("./Icons/clipboard.png"),
+                                "View Current Configuration", self)
+        self.CCAction.triggered.connect(self.configWindow.show_window)
+        self.fileMenu.addAction(self.CCAction)
         
+        self.BNWAction = QAction(QtGui.QIcon("./Icons/magnifyingGlass.png"),
+                                 "Open Big Numbers Window", self)
+        self.fileMenu.addAction(self.BNWAction)
+
+        self.helpAction = QAction(QtGui.QIcon("./Icons/sad.png"),
+                                        "help", self)
+        self.helpAction.setStatusTip("Ahhhhhhhhh")
+        self.fileMenu.addAction(self.helpAction)
+
         # ---------------------------------------------------------------------
         # Finalize main window
         # ---------------------------------------------------------------------
@@ -139,7 +190,30 @@ class MainWindow(QWidget):
 
         # Set the window's main layout
         self.layout.addWidget(self.tabs)
-        self.setLayout(self.layout)
+        self.centralWidget = QWidget()
+        self.centralWidget.setLayout(self.layout)
+        self.setCentralWidget(self.centralWidget)
+
+    def update_save_dir(self):
+        """
+        Update the directory where new data will be saved
+        """
+        oldDir = self.config["save_directory"]
+
+        new_dir = QFileDialog.getExistingDirectory(
+            self, "Select Directory", directory=oldDir)
+        
+        self.config["save_directory"] = new_dir
+
+        # we have a / at the end right?
+        if self.config["save_directory"][-1] != "/":
+            self.config["save_directory"] += '/'
+
+        # update the configwindow
+        self.configWindow.refresh()
+
+        logMessage = f"changed save directory from {oldDir} to {new_dir}"
+        self.log(logMessage)
 
     def log(self, message):
         """
@@ -149,7 +223,6 @@ class MainWindow(QWidget):
         current_time = now.strftime("%d-%m-%Y %H:%M:%S")
         self.changelog += current_time + " " + message + "\n"
         if self.debug:
-            # printed message specifies which spectrum we are dealing with
             print(current_time + " " + message)
 
     def _save_log(self):
@@ -185,6 +258,7 @@ class MainWindow(QWidget):
             if reply2 == QMessageBox.Yes:
                 self.log("Quitting DUVET")
                 self._save_log()
+                save_config(self.config)
                 self.log("Closing ConSys API")
                 self.hardwareManager.ConSysInterface.close()
                 self.log("ConSys API closed")

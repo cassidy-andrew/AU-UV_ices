@@ -170,7 +170,8 @@ class TimescanDisplayTab():
         """
         """
         # ask the user for a file
-        fname = QFileDialog.getOpenFileName()[0]
+        fname = QFileDialog.getOpenFileName(
+            directory=self.mainWindow.config["save_directory"])[0]
         #print(fname)
         self.guiTS.load_timescan(fname)
         self.update_plot()

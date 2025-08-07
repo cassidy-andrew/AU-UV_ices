@@ -37,11 +37,12 @@ class HardwareManager():
     This class also contains a timer, which periodically asks the hardware for
     updates.
     """
-    def __init__(self, debug):
+    def __init__(self, debug, parent):
         
         #super().__init__()
         self.debug = debug
-        self.polling_rate = config_file['polling_rate']
+        self.parent = parent
+        self.polling_rate = self.parent.config['polling_rate']
 
         self.temperatureController = TC.TemperatureController(debug=self.debug)
         self.ConSysInterface = CSI.ConSysInterface(debug=self.debug)
@@ -161,13 +162,11 @@ class HardwareManager():
         self.data = pd.DataFrame.from_dict(self.buffer)
         df = self.data[(self.data['Time']>self.collectionStartTime) &
                        (self.data['Time']<self.collectionEndTime)]
-        df.to_csv(f"T{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        
+        df.to_csv(self.parent.config["save_directory"] + \
+                  f"T{self.parent.config["latest_scan_number"]}.csv",
                   index=False)
+        self.parent.config["latest_scan_number"] += 1
         self.collectionStartTime = None
-
-        if self.debug:
-            self.data.to_csv(
-                f"DEBUG{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                index=False)
 
    

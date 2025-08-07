@@ -24,7 +24,7 @@ class ConSysInterface():
             # Now we want to register the parameters we are interested in.
             # ConSys only lets us register a few parameters, however within
             # those parameters we can have as many values as we need.
-            
+
             regStr = b'PLCAI1uv1.adc PLCAI2uv1.adc'
             self.LShandle1 = self.CSAPI.RegisterParameterStringEx1(
                 regStr, len(regStr), 0
@@ -47,16 +47,16 @@ class ConSysInterface():
 
         This uses an Infinicon PBR 260 compact full range guage. See page 29
         (appendix A) of the guage's manual for the details on converting the
-        voltage into a pressure.
+        measured voltage into a pressure.
         """
+        if self.CSAPI == None:
+            print("ConSys connection not open")
+            return None
+
+        # get the sensor voltage from ConSys
         V = self.CSAPI.GetValue(self.LShandle1, 0)
 
-        """if V < 0.774:
-            P = "under range"
-        elif V > 10:
-            P = "over range"
-        else:
-            P = 10**((V-7.75)/0.75)"""
+        # check if we are over or under range, just set the value to the limit
         if V < 0.774:
             V = 0.774
         elif V > 10:
@@ -70,10 +70,40 @@ class ConSysInterface():
         """
         Returns the pressure in mbar of the dosing line.
 
+        This uses a ThyrCont VSR53/54MV guage. See page 24 of the guage's manual
+        for details on converting the measured voltage into a pressure.
+        """
+        if self.CSAPI == None:
+            print("ConSys connection not open")
+            return None
+
+        # Get the sensor voltage from ConSys
+        V = self.CSAPI.GetValue(self.LShandle1, 1)
+
+        # check if we are over or under range, just set the value to the limit
+        if V < 1.2:
+            V = 1.2
+        elif V > 8.8:
+            V = 8.8
+
+        P = 10**(V-5.5)
+
+        return P
+
+    def get_DL_pressure_IMR265(self):
+        """
+        [Depreciated, the current guage is a ThyrCont VSR53/54MV]
+        Returns the pressure in mbar of the dosing line.
+
         This uses a Pfeiffer IMR 265 compact process ion guage. See page 25
         (appendix B) of the guage's manual for the details on converting the
-        voltage into a pressure.
+        measured voltage into a pressure.
         """
+        if self.CSAPI == None:
+            print("ConSys connection not open")
+            return None
+
+        # Get the sensor voltage from ConSys
         V = self.CSAPI.GetValue(self.LShandle1, 1)
 
         # are we using the hot or cold cathode?
@@ -90,15 +120,14 @@ class ConSysInterface():
             # over range, give the highest value
             P = 10**(4*(9.75-9))
         else:
-            # between the hot and cold cathode regions. Not sure how to handle
-            # this so give none I guess...
+            # between the hot and cold cathode regions. Measurement is undefined
             P = np.nan
 
         return P
 
     def close(self):
         """
-        It is important to run this when the program ends!
+        It is important to run this when the program ends, to ensure stability!
         """
         if self.CSAPI == None:
             # we are already closed / never opened to begin with

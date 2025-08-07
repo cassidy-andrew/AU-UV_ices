@@ -347,7 +347,8 @@ class guiSpectrum():
         """
         Choose a file, a background or a sample
         """
-        fnames = QFileDialog.getOpenFileNames()
+        fnames = QFileDialog.getOpenFileNames(
+            directory=self.parentWindow.mainWindow.config["save_directory"])
         if len(fnames[0]) > 0 and dtype == 'bkgd':
             # add each file
             for fname in fnames[0]:
@@ -534,7 +535,8 @@ class guiSpectrum():
         else:
             # choose where to export to
             fnames = QFileDialog.getSaveFileName(
-                directory=f"./{self.spec.name}.txt",
+                directory=self.parentWindow.mainWindow.config["save_directory"]+\
+                f"{self.spec.name}.txt",
                 filter="Text files (*.txt)")
             fname = fnames[0]
             # check for extension
