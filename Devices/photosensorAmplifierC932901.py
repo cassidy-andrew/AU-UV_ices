@@ -29,8 +29,7 @@ class Photosensor():
                                      timeout=self.read_timeout,
                                      write_timeout=self.write_timeout,
                                      bytesize=serial.EIGHTBITS,
-                                     stopbits=serial.STOPBITS_ONE,
-                                     parity=serial.PARITY_TWO)
+                                     stopbits=serial.STOPBITS_ONE)
         except Exception:
             traceback.print_exc()
 
