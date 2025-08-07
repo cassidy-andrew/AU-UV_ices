@@ -22,7 +22,7 @@ import json
 sys.path.insert(0, 'Interface')
 import analysisGUI
 import controlGUI
-from generalElements import configViewWindow
+from generalElements import configViewWindow, bigNumbersViewWindow
 
 sys.path.insert(0, 'Devices')
 import hardwareManager
@@ -125,6 +125,7 @@ class MainWindow(QMainWindow):
         # Setup accessory windows
         # ---------------------------------------------------------------------
         self.configWindow = configViewWindow(self)
+        self.bigNumbersWindow = bigNumbersViewWindow(self)
         
         # ---------------------------------------------------------------------
         # Setup main window and tabs
@@ -172,6 +173,7 @@ class MainWindow(QMainWindow):
         
         self.BNWAction = QAction(QtGui.QIcon("./Icons/magnifyingGlass.png"),
                                  "Open Big Numbers Window", self)
+        self.BNWAction.triggered.connect(self.bigNumbersWindow.show_window)
         self.fileMenu.addAction(self.BNWAction)
 
         self.helpAction = QAction(QtGui.QIcon("./Icons/sad.png"),
@@ -202,8 +204,9 @@ class MainWindow(QMainWindow):
 
         new_dir = QFileDialog.getExistingDirectory(
             self, "Select Directory", directory=oldDir)
-        
-        self.config["save_directory"] = new_dir
+
+        if (new_dir is not None) and (new_dir != ""):
+            self.config["save_directory"] = new_dir
 
         # we have a / at the end right?
         if self.config["save_directory"][-1] != "/":

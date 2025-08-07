@@ -50,7 +50,7 @@ class bigNumbersViewWindow(QWidget):
         # Measured Temperature
         # -----------------------------------------
         self.measuredTempLayout = QVBoxLayout()
-        self.measuredTempLayout.addItem(self.verticalSpacer)
+        #self.measuredTempLayout.addItem(self.verticalSpacer)
         
         # measured temperature display title
         self.mtLabelTitle = QLabel("Sample Temperature (K)")
@@ -65,7 +65,7 @@ class bigNumbersViewWindow(QWidget):
         self.mtLabel.setAlignment(Qt.AlignHCenter)
         self.measuredTempLayout.addWidget(self.mtLabel)
         
-        self.measuredTempLayout.addItem(self.verticalSpacer)
+        #self.measuredTempLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.measuredTempLayout, 0, 0)
 
         # -----------------------------------------
@@ -86,7 +86,7 @@ class bigNumbersViewWindow(QWidget):
         self.mspLabel.setAlignment(Qt.AlignHCenter)
         self.measuredSetPointLayout.addWidget(self.mspLabel)
         
-        self.measuredSetPointLayout.addItem(self.verticalSpacer)
+        #self.measuredSetPointLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.measuredSetPointLayout, 0, 1)
 
         # -----------------------------------------
@@ -107,7 +107,7 @@ class bigNumbersViewWindow(QWidget):
         self.mcpLabel.setAlignment(Qt.AlignHCenter)
         self.mcpLayout.addWidget(self.mcpLabel)
         
-        self.mcpLayout.addItem(self.verticalSpacer)
+        #self.mcpLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.mcpLayout, 1, 0)
 
         # -----------------------------------------
@@ -129,7 +129,7 @@ class bigNumbersViewWindow(QWidget):
         self.dlpLabel.setAlignment(Qt.AlignHCenter)
         self.dlpLayout.addWidget(self.dlpLabel)
         
-        self.dlpLayout.addItem(self.verticalSpacer)
+        #self.dlpLayout.addItem(self.verticalSpacer)
         self.outerLayout.addLayout(self.dlpLayout, 1, 1)
 
         self.timer = QTimer()
@@ -142,6 +142,8 @@ class bigNumbersViewWindow(QWidget):
         """
         #measured_values = self.parent.hardwareManager.buffer[-1]
         measured_values = {}
+        if len(self.parent.hardwareManager.buffer) == 0:
+            return None
         for key in self.parent.hardwareManager.buffer:
             measured_values[key] = self.parent.hardwareManager.buffer[key][-1]
         # measured temperature
@@ -153,6 +155,9 @@ class bigNumbersViewWindow(QWidget):
             f"{measured_values['MC Pressure (mbar)']:.2e}")
         self.dlpLabel.setText(
             f"{measured_values['DL Pressure (mbar)']:.2e}")
+
+    def show_window(self):
+        self.show()
 
 
 class configViewWindow(QWidget):
