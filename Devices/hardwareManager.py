@@ -47,7 +47,7 @@ class HardwareManager():
 
         self.temperatureController = TC.TemperatureController(debug=self.debug)
         self.ConSysInterface = CSI.ConSysInterface(debug=self.debug)
-        self.photosentor = PA.Photosensor(debug=self.debug)
+        self.photosensor = PA.Photosensor(debug=self.debug)
         
         # a place to store the refresh functions that should be called
         self.hardware_refresh_functions = [self.collect_data]
