@@ -1,7 +1,7 @@
 {
-    "polling_rate": 1000,
-    "temperature_controller_channel": "COM4",
-    "guage_controller_channel": "COM1",
-    "save_directory": "/mnt/c/Users/au728583/OneDrive - Aarhus universitet/astro-research/AU-UV/DUVET-development/AU-UV_ices_main/raw_data/SergioIoppolo-November2023/20231101/",
-    "latest_scan_number": 0
+    "polling_rate":1000,
+    "temperature_controller_channel":"COM4",
+    "photosensor_channel":"COM3",
+    "save_directory":"./Scans/",
+    "latest_scan_number":0
 }

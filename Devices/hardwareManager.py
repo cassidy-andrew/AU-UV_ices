@@ -21,6 +21,7 @@ with open("config.json") as f:
 
 import tempControllerITC502 as TC
 import ConSysInterface as CSI
+import photosensorAmplifierC932901 as PA
 
 from PyQt5.QtCore import QTimer, QObject
 
@@ -46,6 +47,7 @@ class HardwareManager():
 
         self.temperatureController = TC.TemperatureController(debug=self.debug)
         self.ConSysInterface = CSI.ConSysInterface(debug=self.debug)
+        self.photosentor = PA.Photosensor(debug=self.debug)
         
         # a place to store the refresh functions that should be called
         self.hardware_refresh_functions = [self.collect_data]
@@ -63,7 +65,8 @@ class HardwareManager():
                        'Wavelength (nm)':deque(maxlen=84000),
                        'ITC502_P (%)':deque(maxlen=84000),
                        'ITC502_I (min)':deque(maxlen=84000),
-                       'ITC502_D (min)':deque(maxlen=84000),}
+                       'ITC502_D (min)':deque(maxlen=84000),
+                       'Hamamatsu (V)':deque(maxlen=84000)}
         self.data = None
 
     def _refresh(self):
@@ -93,6 +96,7 @@ class HardwareManager():
         ITC502_D = self.temperatureController.get_D()
         MC_Pressure = self.ConSysInterface.get_MC_pressure()
         DL_Pressure = self.ConSysInterface.get_DL_pressure()
+        hamamatsu = self.photosensor.get_output()
         this_dict = {'Time':time,
                      'Timestamp':datetime.timestamp(time),
                      'Sample T (K)':temp,
@@ -103,7 +107,8 @@ class HardwareManager():
                      'Wavelength (nm)':wavelength,
                      'ITC502_P (%)':ITC502_P,
                      'ITC502_I (min)':ITC502_I,
-                     'ITC502_D (min)':ITC502_D,}
+                     'ITC502_D (min)':ITC502_D,
+                     'Hamamatsu (V)':hamamatsu}
         # replace bad values with np.nan, but skip the first 10 so we know how
         # to even identify them
         
