@@ -18,6 +18,7 @@ sys.path.insert(0, maindir)
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+import matplotlib.animation as animation
 from matplotlib.backends.backend_qt5agg import (
     FigureCanvasQTAgg,
     NavigationToolbar2QT as NavigationToolbar
