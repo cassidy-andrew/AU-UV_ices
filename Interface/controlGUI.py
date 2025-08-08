@@ -114,12 +114,18 @@ class TimescanPlot():
         self.yMenu.setCurrentText(self.yDataName)
         self.yMenu.currentTextChanged.connect(self._update_yAxis)
 
+        self.figureWidget = pg.PlotWidget(
+                self.parent.parentWindow,
+                axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
+            )
+        self._update_yAxis()
+
         """self.figureWidget = pg.PlotWidget(
                 self.parent.parentWindow,
                 axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
             )"""
 
-        if "pressure" in self.yDataName.lower():
+        """if "pressure" in self.yDataName.lower():
             self.figureWidget = pg.PlotWidget(
                 self.parent.parentWindow,
                 axisItems={'bottom':pg.DateAxisItem(orientation='bottom'),
@@ -130,7 +136,7 @@ class TimescanPlot():
             self.figureWidget = pg.PlotWidget(
                 self.parent.parentWindow,
                 axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
-            )
+            )"""
         self.figureLegend = self.figureWidget.addLegend()
         self.figureWidget.setMinimumWidth(500)
         #self.figureWidget.setMinimumHeight(300)
@@ -157,6 +163,7 @@ class TimescanPlot():
             self.data_line1.setLogMode(False, True)
             self.data_line2.setLogMode(False, True)
             self.figureWidget.setLogMode(False, True)
+            self.figureWidget.setYRange(1e-10, 1)
         else:
             self.data_line1.setLogMode(False, False)
             self.data_line2.setLogMode(False, False)
