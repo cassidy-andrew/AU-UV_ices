@@ -118,7 +118,6 @@ class TimescanPlot():
                 self.parent.parentWindow,
                 axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
             )
-        self._update_yAxis()
 
         """self.figureWidget = pg.PlotWidget(
                 self.parent.parentWindow,
@@ -146,6 +145,8 @@ class TimescanPlot():
 
         self.data_line1 = self.figureWidget.plot([], [])
         self.data_line2 = self.figureWidget.plot([], []) # None
+
+        self._update_yAxis()
 
         # add items to the layout
         self.layout.addWidget(self.yMenu)
