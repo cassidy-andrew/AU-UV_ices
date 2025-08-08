@@ -88,7 +88,7 @@ class TemperatureController():
         some parameter specified by a number n 0-9. For reading the temperature,
         n = 1, 2, or 3 corresponding to sensors 1, 2, or 3.
         """
-        command = "R1\n"
+        command = "R1\r"
         value = self._send_command(command, debug=False)
         return value
 
