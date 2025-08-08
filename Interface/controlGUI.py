@@ -166,10 +166,14 @@ class TimescanPlot():
             self.data_line2.setLogMode(False, True)
             self.figureWidget.setLogMode(False, True)
             #self.figureWidget.setDefaultPadding(1)
-            self.figureWidget.setYRange(-1, 0, padding=2, update=True)
+            self.figureWidget.setRange(rect=None, xRange=None, yRange=(-10, 0),
+                                       padding=None, update=True,
+                                       disableAutoRange=False)
         else:
             #self.figureWidget.setDefaultPadding(0.02)
-            self.figureWidget.setYRange(0, 1, padding=0.02, update=True)
+            self.figureWidget.setRange(rect=None, xRange=None, yRange=(0, 300),
+                                       padding=None, update=True,
+                                       disableAutoRange=False)
             self.data_line1.setLogMode(False, False)
             self.data_line2.setLogMode(False, False)
             self.figureWidget.setLogMode(False, False)
