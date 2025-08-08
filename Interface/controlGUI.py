@@ -123,7 +123,7 @@ class TimescanPlot():
             self.figureWidget = pg.PlotWidget(
                 self.parent.parentWindow,
                 axisItems={'bottom':pg.DateAxisItem(orientation='bottom'),
-                           'left': scientificAxisItem(orientation='left')}
+                           #'left': scientificAxisItem(orientation='left')}
             )
             self.figureWidget.setLogMode(False, True)
         else:
@@ -152,7 +152,7 @@ class TimescanPlot():
         if "pressure" in self.yDataName.lower():
             self.figureWidget.setAxisItems(axisItems={
                 'bottom':pg.DateAxisItem(orientation='bottom'),
-                'left': scientificAxisItem(orientation='left')
+                #'left': scientificAxisItem(orientation='left')
             })
             self.data_line1.setLogMode(False, True)
             self.data_line2.setLogMode(False, True)
@@ -162,7 +162,7 @@ class TimescanPlot():
             self.data_line2.setLogMode(False, False)
             self.figureWidget.setLogMode(False, False)
             self.figureWidget.setAxisItems(axisItems={
-                'left': scientificAxisItem(orientation='left')
+                'bottom':pg.DateAxisItem(orientation='bottom')
             })
         self.data_line1.clear()
         self.data_line2.clear()
