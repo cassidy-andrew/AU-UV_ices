@@ -141,7 +141,7 @@ class bigNumbersViewWindow(QWidget):
         self.dlpLayout.addWidget(self.dlpLabel)
         
         self.dlpLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addWidget(self.dlpContainer, 1, 1)
+        self.outerLayout.addWidget(self.dlpContainer, 1, 0)
 
         # -----------------------------------------
         # Photosensor Amplifier Voltage
