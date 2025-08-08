@@ -162,10 +162,12 @@ class TimescanPlot():
                 #'left': scientificAxisItem(orientation='left')
             })
             #self.figureWidget.setYRange(1e-10, 1)
+            self.figureWidget.setDefaultPadding(1)
             self.data_line1.setLogMode(False, True)
             self.data_line2.setLogMode(False, True)
             self.figureWidget.setLogMode(False, True)
         else:
+            self.figureWidget.setDefaultPadding(0.02)
             self.data_line1.setLogMode(False, False)
             self.data_line2.setLogMode(False, False)
             self.figureWidget.setLogMode(False, False)
