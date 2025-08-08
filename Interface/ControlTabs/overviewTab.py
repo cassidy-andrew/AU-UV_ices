@@ -149,6 +149,8 @@ class OverviewTab():
         #)
         self.timer = QTimer()
         self.timer.timeout.connect(self.refresh)
+        while len(self.parent.hardwareManager.buffer['Time']) < 2:
+            continue
         self.timer.start(self.parent.hardwareManager.polling_rate)
 
     def refresh(self):
@@ -158,8 +160,6 @@ class OverviewTab():
         #measured_values = self.parent.hardwareManager.buffer[-1]
         measured_values = {}
         for key in self.parent.hardwareManager.buffer:
-            if len(self.parent.hardwareManager.buffer[key]) == 0:
-                continue
             measured_values[key] = self.parent.hardwareManager.buffer[key][-1]
         # measured temperature
         self.mtLabel.setText(str(measured_values['Sample T (K)']))
