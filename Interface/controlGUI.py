@@ -67,7 +67,7 @@ pg.setConfigOption('background', (255,255,255, 100))
 class TSMplCanvas(FigureCanvasQTAgg):
     def __init__(self, parent=None):
         self.fig, self.axes = plt.subplots(1, 1)
-        super(SpecMplCanvas, self).__init__(self.fig)
+        super(TSMMplCanvas, self).__init__(self.fig)
 
 
 class scientificAxisItem(pg.AxisItem):
