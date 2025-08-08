@@ -58,7 +58,7 @@ class bigNumbersViewWindow(QWidget):
         self.measuredTempLayout.addItem(self.verticalSpacer)
         
         # measured temperature display title
-        self.mtLabelTitle = QLabel("Sample Temperature (K)")
+        self.mtLabelTitle = QLabel("    Sample Temperature (K)    ")
         self.mtLabelTitle.setFont(self.titleFontA)
         self.mtLabelTitle.setAlignment(Qt.AlignHCenter)
         self.measuredTempLayout.addWidget(self.mtLabelTitle)
@@ -82,7 +82,7 @@ class bigNumbersViewWindow(QWidget):
         self.measuredSetPointLayout.addItem(self.verticalSpacer)
         
         # measured set point display title
-        self.mspLabelTitle = QLabel("Setpoint Temperature (K)")
+        self.mspLabelTitle = QLabel("    Setpoint Temperature (K)    ")
         self.mspLabelTitle.setFont(self.titleFontA)
         self.mspLabelTitle.setAlignment(Qt.AlignHCenter)
         self.measuredSetPointLayout.addWidget(self.mspLabelTitle)
@@ -95,7 +95,7 @@ class bigNumbersViewWindow(QWidget):
         self.measuredSetPointLayout.addWidget(self.mspLabel)
         
         self.measuredSetPointLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.measuredSetPointLayout, 0, 1)
+        self.outerLayout.addLayout(self.mspContainer, 0, 1)
 
         # -----------------------------------------
         # Main Chamber Pressure
@@ -103,7 +103,7 @@ class bigNumbersViewWindow(QWidget):
         self.mcpLayout = QVBoxLayout()
         
         # display title
-        self.mcpLabelTitle = QLabel("Main Chamber Pressure (mbar)")
+        self.mcpLabelTitle = QLabel("    Main Chamber Pressure (mbar)    ")
         self.mcpLabelTitle.setFont(self.titleFontA)
         self.mcpLabelTitle.setAlignment(Qt.AlignHCenter)
         self.mcpLayout.addWidget(self.mcpLabelTitle)
@@ -125,7 +125,7 @@ class bigNumbersViewWindow(QWidget):
         self.dlpLayout = QVBoxLayout()
         
         # display title
-        self.dlpLabelTitle = QLabel("Dosing Line Pressure (mbar)")
+        self.dlpLabelTitle = QLabel("    Dosing Line Pressure (mbar)    ")
         self.dlpLabelTitle.setFont(self.titleFontA)
         self.dlpLabelTitle.setAlignment(Qt.AlignHCenter)
         self.dlpLayout.addWidget(self.dlpLabelTitle)
