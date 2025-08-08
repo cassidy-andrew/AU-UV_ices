@@ -42,7 +42,7 @@ class bigNumbersViewWindow(QWidget):
 
         # define fonts
         self.titleFontA = QFont("Arial", 60)
-        self.valueFontA = QFont("Consolas", 120)
+        self.valueFontA = QFont("Consolas", 200)
 
         # this is good for making things a little easier to read
         self.verticalSpacer = QSpacerItem(10, 10)   # x, y
@@ -95,7 +95,7 @@ class bigNumbersViewWindow(QWidget):
         self.measuredSetPointLayout.addWidget(self.mspLabel)
         
         self.measuredSetPointLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.mspContainer, 0, 1)
+        self.outerLayout.addWidget(self.mspContainer, 0, 1)
 
         # -----------------------------------------
         # Main Chamber Pressure
