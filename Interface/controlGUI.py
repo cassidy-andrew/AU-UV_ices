@@ -124,7 +124,7 @@ class TimescanPlotMPL():
         #self.sc.axes[0].set_xlim(self.xlims)
 
         ani = animation.FuncAnimation(self.sc.fig, self.refresh_plot, interval=1000)
-        plt.show()
+        #plt.show()
 
     def refresh_plot(self):
         # get the latest data from the hardware manager
@@ -235,7 +235,7 @@ class TimescanPlot():
             #self.figureWidget.setDefaultPadding(1)
             self.figureWidget.setRange(rect=None, xRange=None, yRange=(-10, 0),
                                        padding=None, update=True,
-                                       disableAutoRange=False)
+                                       disableAutoRange=True)
         else:
             #self.figureWidget.setDefaultPadding(0.02)
             self.figureWidget.setRange(rect=None, xRange=None, yRange=(0, 300),
@@ -343,7 +343,7 @@ class ControlTab():
         self.plotterLayout.addLayout(self.plot1.layout)
         self.plot2 = TimescanPlot(self, self.debug, yData="MC Pressure (mbar)")
         self.plotterLayout.addLayout(self.plot2.layout)
-        self.plot3 = TimescanPlotMPL(self, self.debug, yData="DL Pressure (mbar)")
+        self.plot3 = TimescanPlot(self, self.debug, yData="DL Pressure (mbar)")
         self.plotterLayout.addLayout(self.plot3.layout)
 
         # collection buttons
