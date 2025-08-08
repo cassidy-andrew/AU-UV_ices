@@ -178,20 +178,23 @@ class bigNumbersViewWindow(QWidget):
         """
         #measured_values = self.parent.hardwareManager.buffer[-1]
         measured_values = {}
-        for key in self.parent.hardwareManager.buffer:
-            measured_values[key] = self.parent.hardwareManager.buffer[key][-1]
-        # measured temperature
-        self.mtLabel.setText(str(measured_values['Sample T (K)']))
-        # current target temperature
-        self.mspLabel.setText(str(measured_values['Setpoint T (K)']))
-
-        self.mcpLabel.setText(
-            f"{measured_values['MC Pressure (mbar)']:.2e}")
-        self.dlpLabel.setText(
-            f"{measured_values['DL Pressure (mbar)']:.2e}")
-        
-        self.hVLabel.setText(
-            f"{measured_values['Hamamatsu (V)']:.2f}")
+        try:
+            for key in self.parent.hardwareManager.buffer:
+                measured_values[key]=self.parent.hardwareManager.buffer[key][-1]
+            # measured temperature
+            self.mtLabel.setText(str(measured_values['Sample T (K)']))
+            # current target temperature
+            self.mspLabel.setText(str(measured_values['Setpoint T (K)']))
+    
+            self.mcpLabel.setText(
+                f"{measured_values['MC Pressure (mbar)']:.2e}")
+            self.dlpLabel.setText(
+                f"{measured_values['DL Pressure (mbar)']:.2e}")
+            
+            self.hVLabel.setText(
+                f"{measured_values['Hamamatsu (V)']:.2f}")
+        except:
+            pass
 
     def show_window(self):
         self.showMaximized()

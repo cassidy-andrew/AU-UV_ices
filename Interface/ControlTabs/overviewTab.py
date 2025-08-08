@@ -156,8 +156,8 @@ class OverviewTab():
         Update all values
         """
         #measured_values = self.parent.hardwareManager.buffer[-1]
+        measured_values = {}
         try:
-            measured_values = {}
             for key in self.parent.hardwareManager.buffer:
                 measured_values[key]=self.parent.hardwareManager.buffer[key][-1]
             # measured temperature
