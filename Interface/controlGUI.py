@@ -116,6 +116,7 @@ class TimescanPlotMPL():
         self.sc = TSMplCanvas(self)
         self.sc.setMinimumWidth(800)
         self.sc.setMinimumHeight(200)
+        self.layout.addWidget(self.sc)
         #self.toolbar = NavigationToolbar(self.sc)
         #self.xlims = [100, 700]
         #self.ylims = [-0.1, 1.1]
@@ -133,18 +134,18 @@ class TimescanPlotMPL():
             y1 = 'Sample T (K)'
             #y1Data = [row[y1] for row in data]
             y1Data = list(data[y1])
-            self.sc.axes[0].clear()
-            self.sc.axes[0].plot(xData, y1Data, linestyle='-', label=y1)
+            self.sc.axes.clear()
+            self.sc.axes.plot(xData, y1Data, linestyle='-', label=y1)
             y2 = 'Setpoint T (K)'
             #y2Data = [row[y2] for row in data]
             y2Data = list(data[y2])
-            self.sc.axes[0].clear()
-            self.sc.axes[0].plot(xData, y2Data, linestyle='-', label=y2)
+            self.sc.axes.clear()
+            self.sc.axes.plot(xData, y2Data, linestyle='-', label=y2)
         else:
             #yData = [row[self.yDataName] for row in data]
             yData = list(data[self.yDataName])
-            self.sc.axes[0].clear()
-            self.sc.axes[0].plot(xData, yData, linestyle='-', label=self.yDataName)
+            self.sc.axes.clear()
+            self.sc.axes.plot(xData, yData, linestyle='-', label=self.yDataName)
 
 class TimescanPlot():
     """
