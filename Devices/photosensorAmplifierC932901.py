@@ -5,6 +5,7 @@ import sys
 import inspect
 import json
 import time
+import numpy as np
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -38,11 +39,16 @@ class Photosensor():
 
 
     def get_output(self):
-        line = self.ser.readline().decode('utf-8').strip()
-        values = line.split(',')
-        print(values)
-        measurement_raw = int("0x"+values[0], 0)
-        volts = measurement_raw *5/32767
+        try:
+            line = self.ser.readline().decode('utf-8').strip()
+            values = line.split(',')
+            #print(values)
+            measurement_raw = int("0x"+values[0], 0)
+            volts = measurement_raw *5/32767
+        except:
+            if self.debug:
+                print("Unable to read photosensor output")
+            volts = np.nan
         
         return volts
 
