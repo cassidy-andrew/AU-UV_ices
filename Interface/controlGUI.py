@@ -81,6 +81,70 @@ class scientificAxisItem(pg.AxisItem):
         return [f'{10**v:.2e}' for v in values]
 
 
+class TimescanPlotMPL():
+    """
+    A matplotlib based version of the timescan plot
+    """
+    def __init__(self, parent, debug, yData="Temperatures (K)"):
+        self.parent = parent
+        self.hardwareManager = self.parent.hardwareManager
+        self.debug = debug
+        self.yDataName = yData
+
+        # what can we plot, and in what style?
+        self.yItems = {
+            'Sample T (K)':{'pen':pg.mkPen('black', width=2)},
+            'Setpoint T (K)':{'pen':pg.mkPen('red', width=2)},
+            'Heater Power (%)':{'pen':pg.mkPen('black', width=2)},
+            'MC Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
+            'DL Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
+            'Hamamatsu (V)':{'pen':pg.mkPen('black', width=2)},
+        }
+
+        self.layout = QVBoxLayout()
+    
+        # menu for selecting what is on the y axis
+        self.yMenu = QComboBox()
+        self.yMenu.addItem('Temperatures (K)')
+        # add all the available data fields to the dropdown menu
+        for col in self.yItems:
+            self.yMenu.addItem(col)
+        self.yMenu.setCurrentText(self.yDataName)
+        self.yMenu.currentTextChanged.connect(self._update_yAxis)
+
+        self.sc = TSMplCanvas(self)
+        self.sc.setMinimumWidth(800)
+        self.sc.setMinimumHeight(200)
+        #self.toolbar = NavigationToolbar(self.sc)
+        #self.xlims = [100, 700]
+        #self.ylims = [-0.1, 1.1]
+        #self.sc.axes[0].set_ylim(self.ylims)
+        #self.sc.axes[0].set_xlim(self.xlims)
+
+        ani = animation.FuncAnimation(self.sc.fig, self.refresh_plot, interval=100)
+
+    def refresh_plot(self):
+        # get the latest data from the hardware manager
+        data = self.hardwareManager.buffer
+        xData = list(data['Timestamp'])
+        
+        if self.yDataName == 'Temperatures (K)':
+            y1 = 'Sample T (K)'
+            #y1Data = [row[y1] for row in data]
+            y1Data = list(data[y1])
+            self.sc.axes[0].clear()
+            self.sc.axes[0].plot(xData, y1Data, linestyle='-', label=y1)
+            y2 = 'Setpoint T (K)'
+            #y2Data = [row[y2] for row in data]
+            y2Data = list(data[y2])
+            self.sc.axes[0].clear()
+            self.sc.axes[0].plot(xData, y2Data, linestyle='-', label=y2)
+        else:
+            #yData = [row[self.yDataName] for row in data]
+            yData = list(data[self.yDataName])
+            self.sc.axes[0].clear()
+            self.sc.axes[0].plot(xData, yData, linestyle='-', label=self.yDataName)
+
 class TimescanPlot():
     """
     Represents a plot specifically for timescan data. The control tab has three
@@ -276,7 +340,7 @@ class ControlTab():
         self.plotterLayout.addLayout(self.plot1.layout)
         self.plot2 = TimescanPlot(self, self.debug, yData="MC Pressure (mbar)")
         self.plotterLayout.addLayout(self.plot2.layout)
-        self.plot3 = TimescanPlot(self, self.debug, yData="DL Pressure (mbar)")
+        self.plot3 = TimescanPlotMPL(self, self.debug, yData="DL Pressure (mbar)")
         self.plotterLayout.addLayout(self.plot3.layout)
 
         # collection buttons
