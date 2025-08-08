@@ -41,8 +41,8 @@ class bigNumbersViewWindow(QWidget):
         self.setWindowTitle("DUVET BIG NUMBER VIEWER")
 
         # define fonts
-        self.titleFontA = QFont("Arial", 30)
-        self.valueFontA = QFont("Consolas", 60)
+        self.titleFontA = QFont("Arial", 60)
+        self.valueFontA = QFont("Consolas", 120)
 
         # this is good for making things a little easier to read
         self.verticalSpacer = QSpacerItem(10, 10)   # x, y
@@ -76,7 +76,9 @@ class bigNumbersViewWindow(QWidget):
         # -----------------------------------------
         # Current set point
         # -----------------------------------------
-        self.measuredSetPointLayout = QVBoxLayout()
+        self.mspContainer = QWidget()
+        self.mspContainer.setStyleSheet("background-color:#82fffd")
+        self.measuredSetPointLayout = QVBoxLayout(self.mspContainer)
         self.measuredSetPointLayout.addItem(self.verticalSpacer)
         
         # measured set point display title
