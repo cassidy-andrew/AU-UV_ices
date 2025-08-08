@@ -97,19 +97,19 @@ class TemperatureController():
         See page 47 of the manual, which specifies the syntax for setting the
         temperature.
         """
-        command = "T" + str(target) + "\n\r"
+        command = "T" + str(target) + "\r"
 
     def get_target_temp(self, channel=None):
         """
         """
-        command = "R0\n\r"
+        command = "R0\r"
         value = self._send_command(command, debug=False)
         return value
 
     def get_heater_power(self, channel=None):
         """
         """            
-        command = "R5\n\r"
+        command = "R5\r"
         value = self._send_command(command, debug=False)
         return value
 
@@ -117,7 +117,7 @@ class TemperatureController():
         """
         PROPORTIONAL BAND
         """
-        command = "R8\n\r"
+        command = "R8\r"
         value = self._send_command(command, debug=False)
         return value
 
@@ -125,7 +125,7 @@ class TemperatureController():
         """
         INTEGRAL ACTION TIME
         """
-        command = "R9\n\r"
+        command = "R9\r"
         value = self._send_command(command, debug=False)
         return value
 
@@ -133,12 +133,12 @@ class TemperatureController():
         """
         DERIVATIVE ACTION TIME
         """
-        command = "R10\n\r"
+        command = "R10\r"
         value = self._send_command(command, debug=False)
         return value
 
     def get_heater_status_no(self, channel=None):
-        command = "X\n\r"
+        command = "X\r"
         value = self._send_command(command, debug=False)
         return value
         
