@@ -170,8 +170,6 @@ class bigNumbersViewWindow(QWidget):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.refresh)
-        while len(self.parent.hardwareManager.buffer['Time']) < 2:
-            continue
         self.timer.start(self.parent.hardwareManager.polling_rate)
 
     def refresh(self):
