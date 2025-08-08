@@ -110,7 +110,7 @@ class TimescanPlotMPL():
         for col in self.yItems:
             self.yMenu.addItem(col)
         self.yMenu.setCurrentText(self.yDataName)
-        self.yMenu.currentTextChanged.connect(self._update_yAxis)
+        #self.yMenu.currentTextChanged.connect(self._update_yAxis)
 
         self.sc = TSMplCanvas(self)
         self.sc.setMinimumWidth(800)
