@@ -124,7 +124,7 @@ class bigNumbersViewWindow(QWidget):
         # Dosing Line Pressure
         # -----------------------------------------
         self.dlpContainer = QWidget()
-        self.dlpContainer.setStyleSheet("background-color:#f99eff")
+        self.dlpContainer.setStyleSheet("background-color:#fbd4ff")
         self.dlpLayout = QVBoxLayout(self.dlpContainer)
         
         # display title
@@ -142,6 +142,29 @@ class bigNumbersViewWindow(QWidget):
         
         self.dlpLayout.addItem(self.verticalSpacer)
         self.outerLayout.addWidget(self.dlpContainer, 1, 1)
+
+        # -----------------------------------------
+        # Photosensor Amplifier Voltage
+        # -----------------------------------------
+        self.hVContainer = QWidget()
+        self.hVContainer.setStyleSheet("background-color:#fc9a9a")
+        self.hVLayout = QVBoxLayout(self.hVContainer)
+        
+        # display title
+        self.hVLabelTitle = QLabel("    Hamamatsu Photosensor (V)    ")
+        self.hVLabelTitle.setFont(self.titleFontA)
+        self.hVLabelTitle.setAlignment(Qt.AlignHCenter)
+        self.hVLayout.addWidget(self.hVLabelTitle)
+
+        # display value
+        self.hV = "No Signal Yet"
+        self.hVLabel = QLabel(self.hV)
+        self.hVLabel.setFont(self.valueFontA)
+        self.hVLabel.setAlignment(Qt.AlignHCenter)
+        self.hVLayout.addWidget(self.hVLabel)
+        
+        self.hVLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addWidget(self.hVContainer, 2, 1)
 
         self.setLayout(self.outerLayout)
 
@@ -168,9 +191,12 @@ class bigNumbersViewWindow(QWidget):
             f"{measured_values['MC Pressure (mbar)']:.2e}")
         self.dlpLabel.setText(
             f"{measured_values['DL Pressure (mbar)']:.2e}")
+        
+        self.hVLabel.setText(
+            f"{measured_values['Hamamatsu (V)']:.2f}")
 
     def show_window(self):
-        self.show()
+        self.showMaximized()
 
 
 class configViewWindow(QWidget):

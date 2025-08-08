@@ -115,6 +115,28 @@ class OverviewTab():
         self.outerLayout.addLayout(self.dlpLayout, 3, 0)
 
         # -----------------------------------------
+        # Photosensor Amplifier Voltage
+        # -----------------------------------------
+
+        self.hVLayout = QVBoxLayout()
+        
+        # display title
+        self.hVLabelTitle = QLabel("Hamamatsu Photosensor (V)")
+        self.hVLabelTitle.setFont(self.titleFontA)
+        self.hVLabelTitle.setAlignment(Qt.AlignHCenter)
+        self.hVLayout.addWidget(self.hVLabelTitle)
+
+        # display value
+        self.hV = "No Signal Yet"
+        self.hVLabel = QLabel(self.hV)
+        self.hVLabel.setFont(self.valueFontA)
+        self.hVLabel.setAlignment(Qt.AlignHCenter)
+        self.hVLayout.addWidget(self.hVLabel)
+        
+        self.hVLayout.addItem(self.verticalSpacer)
+        self.outerLayout.addLayout(self.hVLayout, 4, 0)
+
+        # -----------------------------------------
         # Configuration & Logistics
         # -----------------------------------------
 
@@ -148,3 +170,6 @@ class OverviewTab():
             f"{measured_values['MC Pressure (mbar)']:.2e}")
         self.dlpLabel.setText(
             f"{measured_values['DL Pressure (mbar)']:.2e}")
+
+        self.hVLabel.setText(
+            f"{measured_values['Hamamatsu (V)']:.2f}")
