@@ -115,7 +115,7 @@ class TimescanPlotMPL():
 
         self.sc = TSMplCanvas(self)
         self.sc.setMinimumWidth(800)
-        self.sc.setMinimumHeight(200)
+        self.sc.setMinimumHeight(50)
         self.layout.addWidget(self.sc)
         #self.toolbar = NavigationToolbar(self.sc)
         #self.xlims = [100, 700]
@@ -123,7 +123,8 @@ class TimescanPlotMPL():
         #self.sc.axes[0].set_ylim(self.ylims)
         #self.sc.axes[0].set_xlim(self.xlims)
 
-        ani = animation.FuncAnimation(self.sc.fig, self.refresh_plot, interval=100)
+        ani = animation.FuncAnimation(self.sc.fig, self.refresh_plot, interval=1000)
+        plt.show()
 
     def refresh_plot(self):
         # get the latest data from the hardware manager
