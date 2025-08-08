@@ -124,7 +124,7 @@ class TimescanPlot():
                 self.parent.parentWindow,
                 axisItems={'bottom':pg.DateAxisItem(orientation='bottom'),
                            #'left': scientificAxisItem(orientation='left')}
-            )
+                          })
             self.figureWidget.setLogMode(False, True)
         else:
             self.figureWidget = pg.PlotWidget(
