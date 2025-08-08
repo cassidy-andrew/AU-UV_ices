@@ -25,18 +25,18 @@ class Photosensor():
         self.default_channel = config_file['photosensor_channel']
 
         try:
+            # establish the connection
             self.ser = serial.Serial(self.default_channel,
                                      baudrate=self.baudrate,
                                      timeout=self.read_timeout,
                                      write_timeout=self.write_timeout,
                                      bytesize=serial.EIGHTBITS,
                                      stopbits=serial.STOPBITS_ONE)
+            # set the sensor to continuous measurement mode
+            written = self.ser.write("*MOD0\n".encode('utf-8'))
         except Exception:
             traceback.print_exc()
-
-        # set the sensor to continuous measurement mode
-        written = self.ser.write("*MOD0\n".encode('utf-8'))
-
+            self.ser = None
 
     def get_output(self):
         try:
