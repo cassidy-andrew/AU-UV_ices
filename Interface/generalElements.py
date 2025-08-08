@@ -41,7 +41,7 @@ class bigNumbersViewWindow(QWidget):
         self.setWindowTitle("DUVET BIG NUMBER VIEWER")
 
         # define fonts
-        self.titleFontA = QFont("Arial", 80)
+        self.titleFontA = QFont("Arial", 60)
         self.valueFontA = QFont("Consolas", 160)
 
         # this is good for making things a little easier to read
@@ -67,7 +67,7 @@ class bigNumbersViewWindow(QWidget):
         self.measured_temperature = "No Signal Yet"
         self.mtLabel = QLabel(self.measured_temperature)
         self.mtLabel.setFont(self.valueFontA)
-        #self.mtLabel.setAlignment(Qt.AlignHCenter)
+        self.mtLabel.setAlignment(Qt.AlignHCenter)
         self.measuredTempLayout.addWidget(self.mtLabel)
         
         self.measuredTempLayout.addItem(self.verticalSpacer)
