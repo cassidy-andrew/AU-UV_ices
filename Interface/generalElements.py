@@ -41,8 +41,8 @@ class bigNumbersViewWindow(QWidget):
         self.setWindowTitle("DUVET BIG NUMBER VIEWER")
 
         # define fonts
-        self.titleFontA = QFont("Arial", 60)
-        self.valueFontA = QFont("Consolas", 200)
+        self.titleFontA = QFont("Arial", 80)
+        self.valueFontA = QFont("Consolas", 160)
 
         # this is good for making things a little easier to read
         self.verticalSpacer = QSpacerItem(10, 10)   # x, y
@@ -67,7 +67,7 @@ class bigNumbersViewWindow(QWidget):
         self.measured_temperature = "No Signal Yet"
         self.mtLabel = QLabel(self.measured_temperature)
         self.mtLabel.setFont(self.valueFontA)
-        self.mtLabel.setAlignment(Qt.AlignHCenter)
+        #self.mtLabel.setAlignment(Qt.AlignHCenter)
         self.measuredTempLayout.addWidget(self.mtLabel)
         
         self.measuredTempLayout.addItem(self.verticalSpacer)
@@ -100,7 +100,9 @@ class bigNumbersViewWindow(QWidget):
         # -----------------------------------------
         # Main Chamber Pressure
         # -----------------------------------------
-        self.mcpLayout = QVBoxLayout()
+        self.mcpContainer = QWidget()
+        self.mcpContainer.setStyleSheet("background-color:#a0ff9e")
+        self.mcpLayout = QVBoxLayout(self.mcpContainer)
         
         # display title
         self.mcpLabelTitle = QLabel("    Main Chamber Pressure (mbar)    ")
@@ -116,13 +118,14 @@ class bigNumbersViewWindow(QWidget):
         self.mcpLayout.addWidget(self.mcpLabel)
         
         self.mcpLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.mcpLayout, 1, 0)
+        self.outerLayout.addWidget(self.mcpContainer, 1, 0)
 
         # -----------------------------------------
         # Dosing Line Pressure
         # -----------------------------------------
-
-        self.dlpLayout = QVBoxLayout()
+        self.dlpContainer = QWidget()
+        self.dlpContainer.setStyleSheet("background-color:#f99eff")
+        self.dlpLayout = QVBoxLayout(self.dlpContainer)
         
         # display title
         self.dlpLabelTitle = QLabel("    Dosing Line Pressure (mbar)    ")
@@ -138,7 +141,7 @@ class bigNumbersViewWindow(QWidget):
         self.dlpLayout.addWidget(self.dlpLabel)
         
         self.dlpLayout.addItem(self.verticalSpacer)
-        self.outerLayout.addLayout(self.dlpLayout, 1, 1)
+        self.outerLayout.addWidget(self.dlpContainer, 1, 1)
 
         self.setLayout(self.outerLayout)
 
