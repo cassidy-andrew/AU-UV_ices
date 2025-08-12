@@ -1,4 +1,5 @@
 import sys
+import traceback
 import os
 import inspect
 import json
@@ -172,5 +173,5 @@ class OverviewTab():
     
             self.hVLabel.setText(
                 f"{measured_values['Hamamatsu (V)']:.2f}")
-        except:
-            pass
+        except Exception:
+            traceback.print_exc()

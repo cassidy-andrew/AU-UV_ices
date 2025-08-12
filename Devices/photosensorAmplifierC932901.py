@@ -42,13 +42,14 @@ class Photosensor():
         try:
             line = self.ser.readline().decode('utf-8').strip()
             values = line.split(',')
-            #print(values)
+            print(values)
             measurement_raw = int("0x"+values[0], 0)
             volts = measurement_raw *5/32767
         except:
             if self.debug:
                 print("Unable to read photosensor output")
             volts = np.nan
-        
+
+        print(volts)
         return volts
 
