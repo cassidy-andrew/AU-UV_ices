@@ -48,16 +48,16 @@ class Photosensor():
                 # we have a negative sign in front, see the manual page 18
                 v0 = values[0][1:]
                 sign = -1
-            elif len(values[0][0]) == 5:
+            elif len(values[0]) == 5:
                 # we measure a positive value
                 v0 = values[0][1:]
                 sign = 1
-            elif len(values[0][0]) == 4:
+            elif len(values[0]) == 4:
                 # we measure a positive value
                 v0 = values[0]
                 sign = 1
             else:
-                print(f"what? v0={v0}, sign={sign}, values={values}")
+                print("what?")
 
             print(sign, v0)
             measurement_raw = sign*int("0x"+v0, 0)
