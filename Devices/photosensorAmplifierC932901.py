@@ -53,11 +53,10 @@ class Photosensor():
                 sign = 1
 
             print(sign, v0)
-            measurement_raw = sign*int("0x"+values[0], 0)
+            measurement_raw = sign*int("0x"+v0, 0)
             volts = measurement_raw *5/32767
-        except:
-            if self.debug:
-                print("Unable to read photosensor output")
+        except Exception:
+            traceback.print_exc()
             volts = np.nan
 
         print(volts)
