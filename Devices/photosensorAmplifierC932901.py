@@ -42,7 +42,7 @@ class Photosensor():
         try:
             line = self.ser.readline().decode('utf-8').strip()
             values = line.split(',')
-            print(values)
+            #print(values)
             if len(values[0]) == 5:
                 # we have a negative sign in front, see the manual page 18
                 v0 = values[0][1:]
@@ -52,13 +52,13 @@ class Photosensor():
                 v0 = values[0]
                 sign = 1
 
-            print(sign, v0)
+            #print(sign, v0)
             measurement_raw = sign*int("0x"+v0, 0)
             volts = measurement_raw *5/32767
         except Exception:
             traceback.print_exc()
             volts = np.nan
 
-        print(volts)
+        #print(volts)
         return volts
 

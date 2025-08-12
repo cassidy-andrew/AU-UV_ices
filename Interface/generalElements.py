@@ -193,7 +193,7 @@ class bigNumbersViewWindow(QWidget):
                 f"{measured_values['DL Pressure (mbar)']:.2e}")
             
             self.hVLabel.setText(
-                f"{measured_values['Hamamatsu (V)']:.2f}")
+                f"{measured_values['Hamamatsu (V)']:.3f}")
         except Exception:
             traceback.print_exc()
 
