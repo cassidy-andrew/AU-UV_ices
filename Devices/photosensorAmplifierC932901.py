@@ -45,7 +45,7 @@ class Photosensor():
             self.ser.reset_input_buffer()
             sleep(0.05)
             line = self.ser.readline().decode('utf-8').strip()
-            self.ser.reset_ouput_buffer()
+            self.ser.reset_output_buffer()
             values = line.split(',')
             print(values)
             if values[0][0] == '-':
