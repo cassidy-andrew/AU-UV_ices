@@ -40,25 +40,32 @@ class Photosensor():
 
     def get_output(self):
         try:
+            written = self.ser.write("*MOD0\n".encode('utf-8'))
             line = self.ser.readline().decode('utf-8').strip()
             values = line.split(',')
-            #print(values)
-            if len(values[0]) == 5:
+            print(values)
+            if values[0][0] == '-':
                 # we have a negative sign in front, see the manual page 18
                 v0 = values[0][1:]
                 sign = -1
-            else:
+            elif len(values[0][0]) == 5:
+                # we measure a positive value
+                v0 = values[0][1:]
+                sign = 1
+            elif len(values[0][0]) == 4:
                 # we measure a positive value
                 v0 = values[0]
                 sign = 1
+            else:
+                print(f"what? v0={v0}, sign={sign}, values={values}")
 
-            #print(sign, v0)
+            print(sign, v0)
             measurement_raw = sign*int("0x"+v0, 0)
             volts = measurement_raw *5/32767
         except Exception:
             traceback.print_exc()
             volts = np.nan
 
-        #print(volts)
+        print(volts)
         return volts
 
