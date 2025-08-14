@@ -90,7 +90,7 @@ class HardwareManager():
         temp = self.temperatureController.get_temp()
         target_temp = self.temperatureController.get_target_temp()
         power = self.temperatureController.get_heater_power()
-        wavelength = None
+        wavelength = self.ConSysInterface.get_wavelength()
         ITC502_P = self.temperatureController.get_P()
         ITC502_I = self.temperatureController.get_I()
         ITC502_D = self.temperatureController.get_D()

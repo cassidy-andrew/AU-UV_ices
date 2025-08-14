@@ -25,7 +25,7 @@ class ConSysInterface():
             # ConSys only lets us register a few parameters, however within
             # those parameters we can have as many values as we need.
 
-            regStr = b'PLCAI1uv1.adc PLCAI2uv1.adc'
+            regStr = b'PLCAI1uv1.adc PLCAI2uv1.adc MONOuv1.cwl'
             self.LShandle1 = self.CSAPI.RegisterParameterStringEx1(
                 regStr, len(regStr), 0
             )
@@ -65,6 +65,20 @@ class ConSysInterface():
         P = 10**((V-7.75)/0.75)
 
         return P
+
+    def get_wavelength(self):
+        """
+        Returns the wavelength measured by the monochromator
+        """
+        if self.CSAPI == None:
+            print("ConSys connection not open")
+            return None
+
+        # get the wavelength value from ConSys
+        wl = self.CSAPI.GetValue(self.LShandle1, 2)
+
+        return wl
+        
 
     def get_DL_pressure(self):
         """
