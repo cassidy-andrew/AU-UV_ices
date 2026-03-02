@@ -29,6 +29,7 @@ tools.py
 # Data products
 data/
 raw_data/
+Scans/
 calibrated_data/
 Logs/*
 
