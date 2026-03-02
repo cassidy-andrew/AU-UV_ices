@@ -37,7 +37,8 @@ class Photosensor():
             written = self.ser.write("*MOD0\n".encode('utf-8'))
             self.ser.reset_input_buffer()
         except Exception:
-            traceback.print_exc()
+            if self.debug:
+                traceback.print_exc()
             self.ser = None
 
     def get_output(self):
@@ -68,7 +69,8 @@ class Photosensor():
             measurement_raw = sign*int("0x"+v0, 0)
             volts = measurement_raw *5/32767
         except Exception:
-            traceback.print_exc()
+            if self.debug:
+                traceback.print_exc()
             volts = np.nan
 
         #print(volts)

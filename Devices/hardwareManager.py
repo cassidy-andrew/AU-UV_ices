@@ -126,17 +126,19 @@ class HardwareManager():
                         # last non-nan indicies
                         lnnis = np.flatnonzero(mask)[-5:-1]
                         # last non-nan values
-                        lnnvs = arr[lnnis]
-                        sigma = np.std(lnnvs)
-                        mean = np.mean(lnnvs)
-                        diff = np.abs(this_dict[key]-lnnvs[-1])
-                        if (diff > 5*sigma and diff > 0.2) or \
-                           (np.abs(this_dict[key]-mean)>50):
-                            if self.debug:
-                                print(f"Bad value! diff={diff}, sigma={sigma}")
-                            this_dict[key] = np.nan
+                        if len(lnnvs > 1):
+                            lnnvs = arr[lnnis]
+                            sigma = np.std(lnnvs)
+                            mean = np.mean(lnnvs)
+                            diff = np.abs(this_dict[key]-lnnvs[-1])
+                            if (diff > 5*sigma and diff > 0.2) or \
+                               (np.abs(this_dict[key]-mean)>50):
+                                if self.debug:
+                                    print(f"Bad value! diff={diff}, sigma={sigma}")
+                                this_dict[key] = np.nan
                     except Exception:
-                        traceback.print_exc()
+                        if self.debug:
+                            traceback.print_exc()
                         this_dict[key] = np.nan
             if this_dict[key] == "No Signal":
                 if self.debug:

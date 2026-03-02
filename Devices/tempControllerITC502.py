@@ -34,7 +34,8 @@ class TemperatureController():
                                      stopbits=serial.STOPBITS_ONE,
                                      parity=serial.PARITY_NONE)
         except Exception:
-            traceback.print_exc()
+            if self.debug:
+                traceback.print_exc()
 
     def _parse_output(self, line):
         """
@@ -73,13 +74,14 @@ class TemperatureController():
                 value = sign*float(output[2:])/10
             if self.debug:
                 print(f"wrote {written} bytes, got {read} with value {value}")
+            self.ser.reset_input_buffer()
+            self.ser.reset_output_buffer()
         except Exception:
             if self.debug:
                 print(f"wrote {written} bytes, got {read}")
                 traceback.print_exc()
             value = "No Signal"
-        self.ser.reset_input_buffer()
-        self.ser.reset_output_buffer()
+
         return value
 
     def get_temp(self, channel=None):

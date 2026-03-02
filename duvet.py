@@ -125,7 +125,7 @@ class MainWindow(QMainWindow):
         # Setup accessory windows
         # ---------------------------------------------------------------------
         self.configWindow = configViewWindow(self)
-        self.bigNumbersWindow = bigNumbersViewWindow(self)
+        self.bigNumbersWindow = bigNumbersViewWindow(self, self.debug)
         
         # ---------------------------------------------------------------------
         # Setup main window and tabs

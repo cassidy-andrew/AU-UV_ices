@@ -25,27 +25,7 @@ matplotlib.use('QtAgg')
 plt.style.use('./au-uv.mplstyle')
 plt.autoscale(False)
 
-from PyQt5.QtWidgets import (
-    QApplication,
-    QCheckBox,
-    QFormLayout,
-    QLineEdit,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QListWidget,
-    QListWidgetItem,
-    QLabel,
-    QWidget,
-    QFileDialog,
-    QDoubleSpinBox,
-    QTabWidget,
-    QTextEdit,
-    QDialog,
-    QScrollArea,
-    QComboBox,
-    QAbstractItemView
-)
+from PyQt5.QtWidgets import *
 
 from PyQt5.QtGui import (
     QPalette,
@@ -136,33 +116,76 @@ class TimescanDisplayTab():
                                       self.tEndLineEdit.value())
         )
 
+        # m
+        self.mgForm = QDoubleSpinBox()
+        self.mgForm.setRange(-9999999, 9999999)
+        self.mgForm.setDecimals(5)
+        self.mgForm.setSingleStep(1)
+        self.mgForm.setValue(self.guiTS.default_guesses[0]['guess'])
+
+        # c
+        self.cgForm = QDoubleSpinBox()
+        self.cgForm.setRange(-9999999, 9999999)
+        self.cgForm.setDecimals(5)
+        self.cgForm.setSingleStep(1)
+        self.cgForm.setValue(self.guiTS.default_guesses[1]['guess'])
+
+        # t_c
+        self.tcgForm = QDoubleSpinBox()
+        self.tcgForm.setRange(-9999999, 9999999)
+        self.tcgForm.setDecimals(5)
+        self.tcgForm.setSingleStep(1)
+        self.tcgForm.setValue(self.guiTS.default_guesses[2]['guess'])
+
+        # w
+        self.wgForm = QDoubleSpinBox()
+        self.wgForm.setRange(0, 9999999)
+        self.wgForm.setDecimals(5)
+        self.wgForm.setSingleStep(1)
+        self.wgForm.setValue(self.guiTS.default_guesses[3]['guess'])
+
+        # A
+        self.agForm = QDoubleSpinBox()
+        self.agForm.setRange(0, 100)
+        self.agForm.setDecimals(5)
+        self.agForm.setSingleStep(1)
+        self.agForm.setValue(self.guiTS.default_guesses[4]['guess'])
+
+        self.paramsTopFormLayout.addRow("File Name: ", self.nameLabel)
+        self.paramsTopFormLayout.addRow("Fit Lower Limit (s)", self.tStartLineEdit)
+        self.paramsTopFormLayout.addRow("Fit Upper Limit (s)", self.tEndLineEdit)
+        self.paramsTopFormLayout.addRow("Parameter:", QLabel("Guess:"))
+        self.paramsTopFormLayout.addRow("m", self.mgForm)
+        self.paramsTopFormLayout.addRow("c", self.cgForm)
+        self.paramsTopFormLayout.addRow("t_c", self.tcgForm)
+        self.paramsTopFormLayout.addRow("w", self.wgForm)
+        self.paramsTopFormLayout.addRow("A", self.agForm)
+        self.paramsTopLayout.addLayout(self.paramsTopFormLayout)
+
         self.paramsBottomLayout = QVBoxLayout()
         self.fitTitleLabel = QLabel("Fitted Parameters")
         self.paramsBottomLayout.addWidget(self.fitTitleLabel)
 
-        self.paramsBottomFormLayout = QFormLayout()
+        self.paramsResultsFormLayout = QFormLayout()
         # the fitted parameter values
         self.redchi2Label = QLabel("")
         self.depRateLabel = QLabel("")
         self.refractiveIndexLabel = QLabel("")
         
-        self.paramsTopFormLayout.addRow("File Name: ", self.nameLabel)
-        self.paramsTopFormLayout.addRow("Fit Lower Limit (s)", self.tStartLineEdit)
-        self.paramsTopFormLayout.addRow("Fit Upper Limit (s)", self.tEndLineEdit)
-        self.paramsBottomFormLayout.addRow("Reduced Chi Square = ",
+        self.paramsResultsFormLayout.addRow("Reduced Chi Square = ",
                                      self.redchi2Label)
-        self.paramsBottomFormLayout.addRow("Ice Deposition Rate = ",
+        self.paramsResultsFormLayout.addRow("Ice Deposition Rate = ",
                                      self.depRateLabel)
-        self.paramsBottomFormLayout.addRow("Ice Index of Refraction = ",
+        self.paramsResultsFormLayout.addRow("Ice Index of Refraction = ",
                                      self.refractiveIndexLabel)
+
+        self.paramsBottomLayout.addLayout(self.paramsResultsFormLayout)
 
         # ---------------------------
         # Nest the inner layouts into the outer layout
         # ---------------------------
         self.outerLayout.addLayout(self.plotLayout)
-        self.paramsTopLayout.addLayout(self.paramsTopFormLayout)
         self.paramsOuterLayout.addLayout(self.paramsTopLayout)
-        self.paramsBottomLayout.addLayout(self.paramsBottomFormLayout)
         self.paramsOuterLayout.addLayout(self.paramsBottomLayout)
         self.outerLayout.addLayout(self.paramsOuterLayout)
 
@@ -181,6 +204,8 @@ class TimescanDisplayTab():
         """
         """
         if self.guiTS.timescan is not None:
+            guesses = self.guiTS.default_guesses
+            
             self.guiTS.timescan.find_deposition_rate(guesses=None,
                                                      t_start=t_start, 
                                                      t_end=t_end,
@@ -210,6 +235,14 @@ class guiTimescan():
         self.debug = debug
         self.default_laser_wavelength = 632.8   # nm
         self.timescan = None
+
+        self.default_guesses = [
+            {'lower':-10.0, 'guess':0.0, 'upper':10.0}, # m
+            {'lower':-10.0, 'guess':0.0, 'upper':10.0}, # c
+            {'lower':-1000.0, 'guess':200.0, 'upper':1000.0}, # tc
+            {'lower':0.0, 'guess':300.0, 'upper':20000.0}, # w
+            {'lower':0.0, 'guess':0.1, 'upper':100.0} # A
+            ]
 
     def load_timescan(self, fname):
         self.timescan = depTools.DepositionTimeScan(fname)

@@ -100,6 +100,7 @@ class TimescanPlotMPL():
             'MC Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
             'DL Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
             'Hamamatsu (V)':{'pen':pg.mkPen('black', width=2)},
+            'Wavelength (nm)':{'pen':pg.mkPen('black', width=2)},
         }
 
         self.layout = QVBoxLayout()

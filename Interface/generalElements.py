@@ -35,8 +35,9 @@ class bigNumbersViewWindow(QWidget):
     they just display the substrate temperature, setpoint temperature, main
     chamber pressure, and dosing line pressure.
     """
-    def __init__(self, parent):
+    def __init__(self, parent, debug):
         super().__init__()
+        self.debug = debug
         self.parent = parent
 
         self.setWindowTitle("DUVET BIG NUMBER VIEWER")
@@ -195,7 +196,8 @@ class bigNumbersViewWindow(QWidget):
             self.hVLabel.setText(
                 f"{measured_values['Hamamatsu (V)']:.3f}")
         except Exception:
-            traceback.print_exc()
+            if self.debug:
+                traceback.print_exc()
 
     def show_window(self):
         self.showMaximized()

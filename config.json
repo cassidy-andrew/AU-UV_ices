@@ -1,7 +1,7 @@
 {
-    "polling_rate":1000,
-    "temperature_controller_channel":"COM4",
-    "photosensor_channel":"COM3",
-    "save_directory":"./Scans/",
-    "latest_scan_number":0
+    "polling_rate": 1000,
+    "temperature_controller_channel": "COM4",
+    "photosensor_channel": "COM3",
+    "save_directory": "./Scans/",
+    "latest_scan_number": 8
 }

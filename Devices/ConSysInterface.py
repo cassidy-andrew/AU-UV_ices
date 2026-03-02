@@ -39,7 +39,8 @@ class ConSysInterface():
             self.registeredParameters = None
             self.LShandle1 = None
             print("Unable to establish connection to ConSys")
-            traceback.print_exc()
+            if self.debug:
+                traceback.print_exc()
 
     def get_MC_pressure(self):
         """
@@ -50,8 +51,9 @@ class ConSysInterface():
         measured voltage into a pressure.
         """
         if self.CSAPI == None:
-            print("ConSys connection not open")
-            return None
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
 
         # get the sensor voltage from ConSys
         V = self.CSAPI.GetValue(self.LShandle1, 0)
@@ -71,8 +73,9 @@ class ConSysInterface():
         Returns the wavelength measured by the monochromator
         """
         if self.CSAPI == None:
-            print("ConSys connection not open")
-            return None
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
 
         # get the wavelength value from ConSys
         wl = self.CSAPI.GetValue(self.LShandle1, 2)
@@ -88,8 +91,9 @@ class ConSysInterface():
         for details on converting the measured voltage into a pressure.
         """
         if self.CSAPI == None:
-            print("ConSys connection not open")
-            return None
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
 
         # Get the sensor voltage from ConSys
         V = self.CSAPI.GetValue(self.LShandle1, 1)
@@ -114,8 +118,9 @@ class ConSysInterface():
         measured voltage into a pressure.
         """
         if self.CSAPI == None:
-            print("ConSys connection not open")
-            return None
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
 
         # Get the sensor voltage from ConSys
         V = self.CSAPI.GetValue(self.LShandle1, 1)

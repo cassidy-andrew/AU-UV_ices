@@ -174,4 +174,5 @@ class OverviewTab():
             self.hVLabel.setText(
                 f"{measured_values['Hamamatsu (V)']:.3f}")
         except Exception:
-            traceback.print_exc()
+            if self.debug:
+                traceback.print_exc()
