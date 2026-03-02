@@ -3,5 +3,6 @@
     "temperature_controller_channel": "COM4",
     "photosensor_channel": "COM3",
     "save_directory": "./Scans/",
-    "latest_scan_number": 8
+    "buffer_dump_directory": "./Buffer_Dump/",
+    "latest_scan_number": 28
 }

@@ -51,22 +51,33 @@ class HardwareManager():
         
         # a place to store the refresh functions that should be called
         self.hardware_refresh_functions = [self.collect_data]
-
+        
+        # data collection
         self.collectionStartTime = None
         self.collectionEndTime = None
-        #self.buffer = deque(maxlen=84000)
-        self.buffer = {'Time':deque(maxlen=84000),
-                       'Timestamp':deque(maxlen=84000),
-                       'Sample T (K)':deque(maxlen=84000),
-                       'Setpoint T (K)':deque(maxlen=84000),
-                       'Heater Power (%)':deque(maxlen=84000),
-                       'MC Pressure (mbar)':deque(maxlen=84000),
-                       'DL Pressure (mbar)':deque(maxlen=84000),
-                       'Wavelength (nm)':deque(maxlen=84000),
-                       'ITC502_P (%)':deque(maxlen=84000),
-                       'ITC502_I (min)':deque(maxlen=84000),
-                       'ITC502_D (min)':deque(maxlen=84000),
-                       'Hamamatsu (V)':deque(maxlen=84000)}
+        maxlen = 84000    # data points
+        self.buffer = {'Time':deque(maxlen=maxlen),
+                       'DateTime':deque(maxlen=maxlen),
+                       'Timestamp':deque(maxlen=maxlen),
+                       'Sample T (K)':deque(maxlen=maxlen),
+                       'Setpoint T (K)':deque(maxlen=maxlen),
+                       'Heater Power (%)':deque(maxlen=maxlen),
+                       'MC Pressure (mbar)':deque(maxlen=maxlen),
+                       'DL Pressure (mbar)':deque(maxlen=maxlen),
+                       'Wavelength (nm)':deque(maxlen=maxlen),
+                       'ITC502_P (%)':deque(maxlen=maxlen),
+                       'ITC502_I (min)':deque(maxlen=maxlen),
+                       'ITC502_D (min)':deque(maxlen=maxlen),
+                       'Hamamatsu (V)':deque(maxlen=maxlen),
+                       'Ch0 (V)':deque(maxlen=maxlen),
+                       'Ch1 (V)':deque(maxlen=maxlen),
+                       'Ch2 (V)':deque(maxlen=maxlen),
+                       'Ch3 (V)':deque(maxlen=maxlen),
+                       'Z_Motor':deque(maxlen=maxlen),
+                       'Beam_current':deque(maxlen=maxlen),
+                       'UBX_x':deque(maxlen=maxlen),
+                       'MRS_h':deque(maxlen=maxlen),
+                       'GC_Pres':deque(maxlen=maxlen)}
         self.data = None
 
     def _refresh(self):
@@ -97,7 +108,8 @@ class HardwareManager():
         MC_Pressure = self.ConSysInterface.get_MC_pressure()
         DL_Pressure = self.ConSysInterface.get_DL_pressure()
         hamamatsu = self.photosensor.get_output()
-        this_dict = {'Time':time,
+        this_dict = {'Time':time.strftime("%H:%M:%S"),
+                     'DateTime':time,
                      'Timestamp':datetime.timestamp(time),
                      'Sample T (K)':temp,
                      'Setpoint T (K)':target_temp,
@@ -108,7 +120,16 @@ class HardwareManager():
                      'ITC502_P (%)':ITC502_P,
                      'ITC502_I (min)':ITC502_I,
                      'ITC502_D (min)':ITC502_D,
-                     'Hamamatsu (V)':hamamatsu}
+                     'Hamamatsu (V)':hamamatsu,
+                     'Ch0 (V)':np.nan,
+                     'Ch1 (V)':np.nan,
+                     'Ch2 (V)':np.nan,
+                     'Ch3 (V)':np.nan,
+                     'Z_Motor':np.nan,
+                     'Beam_current':np.nan,
+                     'UBX_x':np.nan,
+                     'MRS_h':np.nan,
+                     'GC_Pres':np.nan}
         # replace bad values with np.nan, but skip the first 10 so we know how
         # to even identify them
         
@@ -148,6 +169,113 @@ class HardwareManager():
             self.buffer[key].append(this_dict[key])
         #self.buffer.append(this_dict)
 
+    def dump_buffer(self):
+        """
+        """
+        self.data = pd.DataFrame.from_dict(self.buffer)
+        fname = self.parent.config["buffer_dump_directory"] + "buffer.csv"
+        self.data.to_csv(fname)
+        return None
+
+    def save_data(self, do_legacy=True, dXX=1):
+        """
+        Saves the data from the buffer into a dat file. 
+
+        do_legacy (bool) : whether to save a file compatible with the legacy
+            excel system, in addition to the full file. Defaults to true.
+
+        dXX (int) : this file's index within the current scan. Defaults to 1
+        """
+        # we save these columns in this order, using these names
+        saved_cols = {
+            "Wavelength (nm)":"Wavelength/nm",
+            "Ch0 (V)":"Ch0/V",
+            "Ch1 (V)":"Ch1/V",
+            "Ch2 (V)":"Ch2/V",
+            "Ch3 (V)":"Ch3/V",
+            "Z_Motor":"Z_Motor",
+            "Beam_current":"Beam_current",
+            "Sample T (K)":"Temperature/K",
+            "GC_Pres":"GC_Pres/mbar",
+            "Time":"Time",
+            "UBX_x":"UBX_x",
+            "MRS_h":"MRS_h"
+        }
+        
+        # slice the buffer to the data we recorded
+        self.collectionEndTime = datetime.now()
+        self.data = pd.DataFrame.from_dict(self.buffer)
+        df = self.data[(self.data['DateTime']>self.collectionStartTime) &
+                       (self.data['DateTime']<self.collectionEndTime)]
+        
+        dXX_str = str(dXX).zfill(2)
+        fname = self.parent.config["save_directory"] + \
+                f"Scan{self.parent.config["latest_scan_number"]}.d"+dXX_str
+
+        float_decimals = 5
+        col_spacing = 8
+        output_path = fname
+        config = {"Sample":"value", "Loooooooong Sample": "value"}
+
+        header_lines = []
+
+        # Determine longest header key (for alignment)
+        max_key_len = max(len(str(k)) for k in config.keys())
+    
+        for key, value in config.items():
+            key_str = f";{key}"
+            key_str = key_str.ljust(max_key_len + 2)
+    
+            if value is None:
+                header_lines.append(key_str)
+            else:
+                header_lines.append(f"{key_str}{value}")
+
+        # Format numeric columns
+        
+        formatted_df = df[list(saved_cols.keys())].copy()
+        for col in formatted_df.columns:
+            if pd.api.types.is_float_dtype(formatted_df[col]):
+                formatted_df[col] = formatted_df[col].map(
+                    lambda x: f"{x:.{float_decimals}f}"
+                )
+            else:
+                formatted_df[col] = formatted_df[col].astype(str)
+    
+        # Determine column widths
+        col_width = 15
+    
+        # Build header row
+        header_row = ";"
+        for col in formatted_df.columns:
+                header_row += saved_cols[col].ljust(col_width)
+    
+        # ---------------------------
+        # 3. BUILD DATA ROWS (FIXED)
+        # ---------------------------
+    
+        data_lines = []
+    
+        for _, row in formatted_df.iterrows():
+            line = ""
+            for col, val in zip(formatted_df.columns, row):
+                if col != "DateTime":
+                    line += val.ljust(col_width)
+            data_lines.append(line)
+
+        with open(output_path, "w") as f:
+            for line in header_lines:
+                f.write(line + "\n")
+    
+            f.write(header_row.rstrip() + "\n")
+    
+            for line in data_lines:
+                f.write(line.rstrip() + "\n")
+        
+        #np.savetxt(fname, df, fmt='%s        ', header=header, comments=";")
+        self.parent.config["latest_scan_number"] += 1
+        self.collectionStartTime = None
+
     def start_timescan_collection(self):
         """
         """
@@ -165,15 +293,7 @@ class HardwareManager():
             return None
         
         # export the data
-        self.collectionEndTime = datetime.now()
-        self.data = pd.DataFrame.from_dict(self.buffer)
-        df = self.data[(self.data['Time']>self.collectionStartTime) &
-                       (self.data['Time']<self.collectionEndTime)]
-        
-        df.to_csv(self.parent.config["save_directory"] + \
-                  f"T{self.parent.config["latest_scan_number"]}.csv",
-                  index=False)
-        self.parent.config["latest_scan_number"] += 1
-        self.collectionStartTime = None
+        self.save_data()
+        self.dump_buffer()
 
    

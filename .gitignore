@@ -30,6 +30,7 @@ tools.py
 data/
 raw_data/
 Scans/
+Buffer_dump/
 calibrated_data/
 Logs/*
 
