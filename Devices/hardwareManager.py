@@ -57,6 +57,7 @@ class HardwareManager():
         self.collectionEndTime = None
         maxlen = 84000    # data points
         self.today = datetime.now().strftime("%Y-%m-%d")
+        self.last_dump_time = datetime.now()
         self.buffer = {'Time':deque(maxlen=maxlen),
                        'DateTime':deque(maxlen=maxlen),
                        'Timestamp':deque(maxlen=maxlen),
@@ -173,12 +174,17 @@ class HardwareManager():
     def dump_buffer(self):
         """
         """
+        # what data to dump? Everything, but avoid duplicates
         self.data = pd.DataFrame.from_dict(self.buffer)
+        to_dump = self.data[(self.data['DateTime']>self.last_dump_time)]
+        self.last_dump_time = datetime.now()
+        
         fname = self.parent.config["buffer_dump_directory"] + f"{self.today}.csv"
         if os.path.isfile(fname):
-            self.data.to_csv(fname, mode="a", index=False, header=False)
+            to_dump.to_csv(fname, mode="a", index=False, header=False)
         else:
-            self.data.to_csv(fname, mode="a", index=False)
+            to_dump.to_csv(fname, mode="a", index=False)
+
         return None
 
     def save_data(self, do_legacy=True, dXX=1):
