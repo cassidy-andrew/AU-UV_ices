@@ -4,5 +4,5 @@
     "photosensor_channel": "COM3",
     "save_directory": "./Scans/",
     "buffer_dump_directory": "./Buffer_Dump/",
-    "latest_scan_number": 28
+    "latest_scan_number": 33
 }

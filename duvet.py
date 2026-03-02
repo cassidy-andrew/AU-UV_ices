@@ -261,6 +261,7 @@ class MainWindow(QMainWindow):
             if reply2 == QMessageBox.Yes:
                 self.log("Quitting DUVET")
                 self._save_log()
+                self.hardwareManager.dump_buffer()
                 save_config(self.config)
                 self.log("Closing ConSys API")
                 self.hardwareManager.ConSysInterface.close()
