@@ -80,7 +80,7 @@ class HardwareManager():
                        'UBX_x':deque(maxlen=maxlen),
                        'MRS_h':deque(maxlen=maxlen),
                        'GC_Pres':deque(maxlen=maxlen),
-                       'Block Time (ms)':deque(maxlen=maxlen),
+                       't_block':deque(maxlen=maxlen),
                        'PMTVac':deque(maxlen=maxlen),
                        'n_avg':deque(maxlen=maxlen),
                        'EXS_rPos':deque(maxlen=maxlen),
@@ -97,6 +97,8 @@ class HardwareManager():
             "n_scans":1,
             "n_points":111,
             "n_avg":np.nan,
+            "t_avg":np.nan,
+            "t_bllock":np.nan,
             "UnduPos_start":np.nan,
             "UnduPos_end":np.nan,
             "Table_Pos":np.nan,
@@ -149,18 +151,19 @@ class HardwareManager():
              'UBX_x':self.ConSysInterface.get_UBX_x(),
              'MRS_h':self.ConSysInterface.get_MRS_h(),
              'GC_Pres':np.nan,
-             'Block Time (ms)':self.ConSysInterface.get_block_time(),
+             't_block':self.ConSysInterface.get_block_time(),
              'PMTVac':self.ConSysInterface.get_PMTVac_status(),
              'n_avg':self.ConSysInterface.get_n_avg(),
              'EXS_rPos':self.ConSysInterface.get_exit_slit_position(),
              'ENS_rPos':self.ConSysInterface.get_entrance_slit_position(),
              'Table_Pos':self.ConSysInterface.get_table_position(),
-             'Grating':self.ConSysInterface.get_grating()
+             'Grating':self.ConSysInterface.get_grating(),
+             't_avg':np.nan,
         }
         
         # update the scanning configuration with values read from ConSys
         consys_vals = ["n_avg", "Grating", "EXS_rPos", "ENS_rPos", "Table_Pos",
-                       "PMTVac"]
+                       "PMTVac", "t_avg", "t_block"]
         for value in consys_vals:
             self.scan_config[value] = this_dict[value]
                 
@@ -258,11 +261,12 @@ class HardwareManager():
         float_decimals = 5
         col_spacing = 8
         output_path = fname
-        config = self.scan_config
+        cfg = self.scan_config
 
-        header_lines = []
+        
+        hls = []   # header lines
 
-        # Determine longest header key (for alignment)
+        """# Determine longest header key (for alignment)
         max_key_len = max(len(str(k)) for k in config.keys())
     
         for key, value in config.items():
@@ -270,9 +274,24 @@ class HardwareManager():
             key_str = key_str.ljust(max_key_len + 2)
     
             if value is None:
-                header_lines.append(key_str)
+                hls.append(key_str)
             else:
-                header_lines.append(f"{key_str}{value}")
+                hls.append(f"{key_str}{value}")"""
+        hls.append(f";Start wavelength (nm)         {cfg['wl_start']}")
+        hls.append(f";End wavelength (nm)           {cfg['wl_end']}")
+        hls.append(f";Wavelength step (nm)          {cfg['wl_step']}")
+        hls.append(f";Num. of scans / points        {cfg['n_scans']} / {cfg['n_points']}")
+        hls.append(f";File date                     {self.today}")
+        hls.append(f";Num. of avg. per point        {cfg['n_avg']}/ cRio {cfg['t_block']} ms")
+        hls.append(f";Avg time per point            {cfg['t_avg']}")
+        hls.append(f";UnduPos Start/End             {cfg['UnduPos_start']}/{cfg['UnduPos_end']}")
+        hls.append(f";Table pos                     {cfg['Table_Pos']} kStp")
+        hls.append(f";n/a                           ###")
+        hls.append(f";Grating                       {cfg['Grating']}")
+        hls.append(f";Slits                          {cfg['ENS_rPos']}/{cfg['EXS_rPos']}")
+        hls.append(f";PMT Vacuum Status              {cfg['PMTVac']}")
+        hls.append(f";  Comments: {cfg['Comments']}")
+        hls.append(f";  Sample: {cfg['Sample']}")
 
         # Format numeric columns
         
@@ -307,7 +326,7 @@ class HardwareManager():
             data_lines.append(line)
 
         with open(output_path, "w") as f:
-            for line in header_lines:
+            for line in hls:
                 f.write(line + "\n")
     
             f.write(header_row.rstrip() + "\n")
