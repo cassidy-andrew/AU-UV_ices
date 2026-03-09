@@ -100,38 +100,30 @@ class HardwareManager():
         """
         #if self.collecting:
         time = datetime.now()
-        temp = self.temperatureController.get_temp()
-        target_temp = self.temperatureController.get_target_temp()
-        power = self.temperatureController.get_heater_power()
-        wavelength = self.ConSysInterface.get_wavelength()
-        ITC502_P = self.temperatureController.get_P()
-        ITC502_I = self.temperatureController.get_I()
-        ITC502_D = self.temperatureController.get_D()
-        MC_Pressure = self.ConSysInterface.get_MC_pressure()
-        DL_Pressure = self.ConSysInterface.get_DL_pressure()
-        hamamatsu = self.photosensor.get_output()
-        this_dict = {'Time':time.strftime("%H:%M:%S"),
-                     'DateTime':time,
-                     'Timestamp':datetime.timestamp(time),
-                     'Sample T (K)':temp,
-                     'Setpoint T (K)':target_temp,
-                     'Heater Power (%)':power,
-                     'MC Pressure (mbar)':MC_Pressure,
-                     'DL Pressure (mbar)':DL_Pressure,
-                     'Wavelength (nm)':wavelength,
-                     'ITC502_P (%)':ITC502_P,
-                     'ITC502_I (min)':ITC502_I,
-                     'ITC502_D (min)':ITC502_D,
-                     'Hamamatsu (V)':hamamatsu,
-                     'Ch0 (V)':np.nan,
-                     'Ch1 (V)':np.nan,
-                     'Ch2 (V)':np.nan,
-                     'Ch3 (V)':np.nan,
-                     'Z_Motor':np.nan,
-                     'Beam_current':np.nan,
-                     'UBX_x':np.nan,
-                     'MRS_h':np.nan,
-                     'GC_Pres':np.nan}
+        this_dict = {
+            'Time':time.strftime("%H:%M:%S"),
+             'DateTime':time,
+             'Timestamp':datetime.timestamp(time),
+             'Sample T (K)':self.temperatureController.get_temp(),
+             'Setpoint T (K)':self.temperatureController.get_target_temp(),
+             'Heater Power (%)':self.temperatureController.get_heater_power(),
+             'MC Pressure (mbar)':self.ConSysInterface.get_MC_pressure(),
+             'DL Pressure (mbar)':self.ConSysInterface.get_DL_pressure(),
+             'Wavelength (nm)':self.ConSysInterface.get_wavelength(),
+             'ITC502_P (%)':self.temperatureController.get_P(),
+             'ITC502_I (min)':self.temperatureController.get_I(),
+             'ITC502_D (min)':self.temperatureController.get_D(),
+             'Hamamatsu (V)':self.photosensor.get_output(),
+             'Ch0 (V)':self.ConSysInterface.get_ch0(),
+             'Ch1 (V)':self.ConSysInterface.get_ch1(),
+             'Ch2 (V)':self.ConSysInterface.get_ch2(),
+             'Ch3 (V)':self.ConSysInterface.get_ch3(),
+             'Z_Motor':self.ConSysInterface.get_z_motor(),
+             'Beam_current':self.ConSysInterface.get_beam_current(),
+             'UBX_x':np.nan,
+             'MRS_h':np.nan,
+             'GC_Pres':np.nan
+        }
         # replace bad values with np.nan, but skip the first 10 so we know how
         # to even identify them
         

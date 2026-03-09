@@ -25,43 +25,35 @@ class ConSysInterface():
             # ConSys only lets us register a few parameters, however within
             # those parameters we can have as many values as we need.
 
-            # ------------------------------------------------------------------
-            # Overivew of Registered Valaues in LShandle1
-            # ------------------------------------------------------------------
-            #  0 PLCAI1uv1.adc  -> voltage for the main chamber pressure
-            #  1 PLCAI2uv1.adc  -> voltage for the dosing line pressure
-            #  2 MONOuv1.cwl    -> wavelength measured by the monochromator
-            #  3 MONOuv1.whichGr  -> which grating is being used
-            #  4
-            #  5
-            #  6
-            #  7
-            #  8
-            #  9
-            # 10
-            # 11
-            # 12
-            # 13
-            # 14
-            # 15
-            # 16
-            # 17
-            # 18
-            # 19
-            # 20
-            # 21
+            # Which values do we want to register?
             reg_values = [
                 'PLCAI1uv1.adc',    # 0 voltage for the main chamber pressure
                 'PLCAI2uv1.adc',    # 1 voltage for the dosing line pressure
                 'MONOuv1.cwl',      # 2 wavelength measured by the monochromator
+                'MONOuv1.whichGr',  # 3 the grating being used
+                'TABLEPOSuv1.rPos', # 4 the table position
+                'ENSuv1.rPos',      # 5 the entrance slit position
+                'EXSuv1.rPos',      # 6 the exit slit position
+                'CRIO02AI0uv1.average',  # 7 Ch0/V
+                'CRIO02AI1uv1.average',  # 8 Ch1/V
+                'CRIO02AI2uv1.average',  # 9 Ch2/V
+                'CRIO02AI3uv1.average',  # 10 Ch3/V
+                'CRIO02AI0uv1.NumToAverage', # 11 data blocks to average
+                'A2BeamCurrent.normal',   # 12 ASTRID2 beam current
+                'PLCDO0uv1.out1',    # 13 PMTVac on or off
+                'MO1E_SCANuv1.rPos',  # 14 Z_motor position in mm
+                'CRIO02AVGuv1.blockTime', # 15 cRIO block time  
             ]
 
             #regStr = b'PLCAI1uv1.adc PLCAI2uv1.adc MONOuv1.cwl'
+            
+            # construct our parameter string for registration
             valStr = ''
             for value in reg_values:
                 valStr += value + " "
             # encode the string of values to bytes
             regStr = valStr[:-1].encode()
+
             # register the parameter string
             self.LShandle1 = self.CSAPI.RegisterParameterStringEx1(
                 regStr, len(regStr), 0
@@ -78,6 +70,188 @@ class ConSysInterface():
             print("Unable to establish connection to ConSys")
             if self.debug:
                 traceback.print_exc()
+
+    def get_template(self):
+        """
+        Returns the
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, N)
+        return value
+
+    def get_grating(self):
+        """
+        Returns the grating being used
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 3)
+        return value
+
+    def get_table_position(self):
+        """
+        Returns the table position in units kStp
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 4)
+        return value
+
+    def get_entrance_slit_position(self):
+        """
+        Returns the entrance slit position
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 5)
+        return value
+
+    def get_exit_slit_position(self):
+        """
+        Returns the exit slit position
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 6)
+        return value
+
+    def get_ch0(self):
+        """
+        Returns the Ch0 value in volts
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 7)
+        return value
+
+    def get_ch1(self):
+        """
+        Returns the Ch1 value in volts
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 8)
+        return value
+
+    def get_ch2(self):
+        """
+        Returns the Ch2 value in volts
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 9)
+        return value
+
+    def get_ch3(self):
+        """
+        Returns the Ch3 value in volts
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 10)
+        return value
+
+    def get_n_avg(self):
+        """
+        Returns the number of datablocks to average in a scan
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 11)
+        return value
+
+    def get_beam_current(self):
+        """
+        Returns the ASTRID2 beam current in micro amps
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 12)
+        return value
+
+    def get_PMTVac_status(self):
+        """
+        Returns the status of the PMT vacuum
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 13)
+        return value
+
+    def get_z_motor(self):
+        """
+        Returns the z motor position in mm
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 14)
+        return value
+
+    def get_block_time(self):
+        """
+        Returns the time per block for the cRIO in milliseconds
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self, LShandle1, 15)
+        return value
 
     def get_MC_pressure(self):
         """
@@ -117,8 +291,7 @@ class ConSysInterface():
         # get the wavelength value from ConSys
         wl = self.CSAPI.GetValue(self.LShandle1, 2)
 
-        return wl
-        
+        return wl        
 
     def get_DL_pressure(self):
         """
