@@ -81,7 +81,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, N)
+        value = self.CSAPI.GetValue(self.LShandle1, N)
         return value
 
     def get_grating(self):
@@ -94,7 +94,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 3)
+        value = self.CSAPI.GetValue(self.LShandle1, 3)
         return value
 
     def get_table_position(self):
@@ -107,7 +107,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 4)
+        value = self.CSAPI.GetValue(self.LShandle1, 4)
         return value
 
     def get_entrance_slit_position(self):
@@ -120,7 +120,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 5)
+        value = self.CSAPI.GetValue(self.LShandle1, 5)
         return value
 
     def get_exit_slit_position(self):
@@ -133,7 +133,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 6)
+        value = self.CSAPI.GetValue(self.LShandle1, 6)
         return value
 
     def get_ch0(self):
@@ -146,7 +146,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 7)
+        value = self.CSAPI.GetValue(self.LShandle1, 7)
         return value
 
     def get_ch1(self):
@@ -159,7 +159,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 8)
+        value = self.CSAPI.GetValue(self.LShandle1, 8)
         return value
 
     def get_ch2(self):
@@ -172,7 +172,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 9)
+        value = self.CSAPI.GetValue(self.LShandle1, 9)
         return value
 
     def get_ch3(self):
@@ -185,7 +185,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 10)
+        value = self.CSAPI.GetValue(self.LShandle1, 10)
         return value
 
     def get_n_avg(self):
@@ -198,7 +198,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 11)
+        value = self.CSAPI.GetValue(self.LShandle1, 11)
         return value
 
     def get_beam_current(self):
@@ -211,7 +211,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 12)
+        value = self.CSAPI.GetValue(self.LShandle1, 12)
         return value
 
     def get_PMTVac_status(self):
@@ -224,7 +224,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 13)
+        value = self.CSAPI.GetValue(self.LShandle1, 13)
         return value
 
     def get_z_motor(self):
@@ -237,7 +237,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 14)
+        value = self.CSAPI.GetValue(self.LShandle1, 14)
         return value
 
     def get_block_time(self):
@@ -250,7 +250,7 @@ class ConSysInterface():
             return "No Signal"
 
         # get the value from ConSys
-        value = self.CSAPI.GetValue(self, self.LShandle1, 15)
+        value = self.CSAPI.GetValue(self.LShandle1, 15)
         return value
 
     def get_MC_pressure(self):
