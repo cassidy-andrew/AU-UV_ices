@@ -79,8 +79,34 @@ class HardwareManager():
                        'Beam_current':deque(maxlen=maxlen),
                        'UBX_x':deque(maxlen=maxlen),
                        'MRS_h':deque(maxlen=maxlen),
-                       'GC_Pres':deque(maxlen=maxlen)}
+                       'GC_Pres':deque(maxlen=maxlen),
+                       'Block Time (ms)':deque(maxlen=maxlen),
+                       'PMTVac':deque(maxlen=maxlen),
+                       'n_avg':deque(maxlen=maxlen),
+                       'EXS_rPos':deque(maxlen=maxlen),
+                       'ENS_rPos':deque(maxlen=maxlen),
+                       'Table_Pos':deque(maxlen=maxlen),
+                       'Grating':deque(maxlen=maxlen)}
         self.data = None
+
+        # configuration for scanning
+        self.scan_config = {
+            "wl_start":110,
+            "wl_end":220,
+            "wl_step":1.0,
+            "n_scans":1,
+            "n_points":111,
+            "n_avg":np.nan,
+            "UnduPos_start":np.nan,
+            "UnduPos_end":np.nan,
+            "Table_Pos":np.nan,
+            "Grating":np.nan,
+            "Comments":"",
+            "Sample":"",
+            "EXS_rPos":np.nan,
+            "ENS_rPos":np.nan,
+            "PMTVac":np.nan
+        }
 
     def _refresh(self):
         """
@@ -120,10 +146,24 @@ class HardwareManager():
              'Ch3 (V)':self.ConSysInterface.get_ch3(),
              'Z_Motor':self.ConSysInterface.get_z_motor(),
              'Beam_current':self.ConSysInterface.get_beam_current(),
-             'UBX_x':np.nan,
-             'MRS_h':np.nan,
-             'GC_Pres':np.nan
+             'UBX_x':self.ConSysInterface.get_UBX_x(),
+             'MRS_h':self.ConSysInterface.get_MRS_h(),
+             'GC_Pres':np.nan,
+             'Block Time (ms)':self.ConSysInterface.get_block_time(),
+             'PMTVac':self.ConSysInterface.get_PMTVac_status(),
+             'n_avg':self.ConSysInterface.get_n_avg(),
+             'EXS_rPos':self.ConSysInterface.get_exit_slit_position(),
+             'ENS_rPos':self.ConSysInterface.get_entrance_slit_position(),
+             'Table_Pos':self.ConSysInterface.get_table_position(),
+             'Grating':self.ConSysInterface.get_grating()
         }
+        
+        # update the scanning configuration with values read from ConSys
+        consys_vals = ["n_avg", "Grating", "EXS_rPos", "ENS_rPos", "Table_Pos",
+                       "PMTVac"]
+        for value in consys_values:
+            self.scan_config[value] = this_dict[value]
+                
         # replace bad values with np.nan, but skip the first 10 so we know how
         # to even identify them
         target_temp = this_dict['Setpoint T (K)']
@@ -218,7 +258,7 @@ class HardwareManager():
         float_decimals = 5
         col_spacing = 8
         output_path = fname
-        config = {"Sample":"value", "Loooooooong Sample": "value"}
+        config = self.scan_config
 
         header_lines = []
 

@@ -42,7 +42,9 @@ class ConSysInterface():
                 'A2BeamCurrent.normal',   # 12 ASTRID2 beam current
                 'PLCDO0uv1.out1',    # 13 PMTVac on or off
                 'MO1E_SCANuv1.rPos',  # 14 Z_motor position in mm
-                'CRIO02AVGuv1.blockTime', # 15 cRIO block time  
+                'CRIO02AVGuv1.blockTime', # 15 cRIO block time 
+                'A2SAOrbitControl.UBX_Xavg', # 16 UBX_x the beam position in x
+                'MRS441CAMast2.h', # 17 MRS_h Camera MRS 441 vertical height
             ]
 
             #regStr = b'PLCAI1uv1.adc PLCAI2uv1.adc MONOuv1.cwl'
@@ -82,6 +84,32 @@ class ConSysInterface():
 
         # get the value from ConSys
         value = self.CSAPI.GetValue(self.LShandle1, N)
+        return value
+
+    def get_MRS_h(self):
+        """
+        Returns the MRS Camera 441 vertical height in mm
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self.LShandle1, 17)
+        return value
+
+    def get_UBX_x(self):
+        """
+        Returns the beam position in the x direction in mm
+        """
+        if self.CSAPI == None:
+            if self.debug:
+                print("ConSys connection not open")
+            return "No Signal"
+
+        # get the value from ConSys
+        value = self.CSAPI.GetValue(self.LShandle1, 16)
         return value
 
     def get_grating(self):
@@ -203,7 +231,7 @@ class ConSysInterface():
 
     def get_beam_current(self):
         """
-        Returns the ASTRID2 beam current in micro amps
+        Returns the ASTRID2 beam current in milli amps
         """
         if self.CSAPI == None:
             if self.debug:
