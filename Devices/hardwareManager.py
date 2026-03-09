@@ -126,6 +126,7 @@ class HardwareManager():
         }
         # replace bad values with np.nan, but skip the first 10 so we know how
         # to even identify them
+        target_temp = this_dict['Setpoint T (K)']
         
         for key in this_dict:
             #if len(self.buffer) >= 10:
