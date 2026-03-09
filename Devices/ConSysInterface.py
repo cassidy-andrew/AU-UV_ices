@@ -57,9 +57,12 @@ class ConSysInterface():
             ]
 
             #regStr = b'PLCAI1uv1.adc PLCAI2uv1.adc MONOuv1.cwl'
-            regStr = b''
+            valStr = ''
             for value in reg_values:
-                regStr += value + " "
+                valStr += value + " "
+            # encode the string of values to bytes
+            regStr = valStr[:-1].encode()
+            # register the parameter string
             self.LShandle1 = self.CSAPI.RegisterParameterStringEx1(
                 regStr, len(regStr), 0
             )
