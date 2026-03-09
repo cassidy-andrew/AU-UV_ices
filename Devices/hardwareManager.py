@@ -161,7 +161,7 @@ class HardwareManager():
         # update the scanning configuration with values read from ConSys
         consys_vals = ["n_avg", "Grating", "EXS_rPos", "ENS_rPos", "Table_Pos",
                        "PMTVac"]
-        for value in consys_values:
+        for value in consys_vals:
             self.scan_config[value] = this_dict[value]
                 
         # replace bad values with np.nan, but skip the first 10 so we know how
