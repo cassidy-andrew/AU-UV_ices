@@ -25,7 +25,41 @@ class ConSysInterface():
             # ConSys only lets us register a few parameters, however within
             # those parameters we can have as many values as we need.
 
-            regStr = b'PLCAI1uv1.adc PLCAI2uv1.adc MONOuv1.cwl'
+            # ------------------------------------------------------------------
+            # Overivew of Registered Valaues in LShandle1
+            # ------------------------------------------------------------------
+            #  0 PLCAI1uv1.adc  -> voltage for the main chamber pressure
+            #  1 PLCAI2uv1.adc  -> voltage for the dosing line pressure
+            #  2 MONOuv1.cwl    -> wavelength measured by the monochromator
+            #  3 MONOuv1.whichGr  -> which grating is being used
+            #  4
+            #  5
+            #  6
+            #  7
+            #  8
+            #  9
+            # 10
+            # 11
+            # 12
+            # 13
+            # 14
+            # 15
+            # 16
+            # 17
+            # 18
+            # 19
+            # 20
+            # 21
+            reg_values = [
+                'PLCAI1uv1.adc',    # 0 voltage for the main chamber pressure
+                'PLCAI2uv1.adc',    # 1 voltage for the dosing line pressure
+                'MONOuv1.cwl',      # 2 wavelength measured by the monochromator
+            ]
+
+            #regStr = b'PLCAI1uv1.adc PLCAI2uv1.adc MONOuv1.cwl'
+            regStr = b''
+            for value in reg_values:
+                regStr += value + " "
             self.LShandle1 = self.CSAPI.RegisterParameterStringEx1(
                 regStr, len(regStr), 0
             )
