@@ -86,7 +86,8 @@ class HardwareManager():
                        'EXS_rPos':deque(maxlen=maxlen),
                        'ENS_rPos':deque(maxlen=maxlen),
                        'Table_Pos':deque(maxlen=maxlen),
-                       'Grating':deque(maxlen=maxlen)}
+                       'Grating':deque(maxlen=maxlen),
+                       't_avg':deque(maxlen=maxlen)}
         self.data = None
 
         # configuration for scanning
