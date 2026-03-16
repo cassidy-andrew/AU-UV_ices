@@ -92,6 +92,20 @@ class Worker(QObject):
         self.timer.timeout.connect(self.hardwareManager._refresh)
         self.timer.start(self.hardwareManager.polling_rate)
 
+class EventLog(QObject):
+    item_added = pyqtSignal(str)
+    
+    def __init__(self):
+        super().__init__()
+        self._events = []
+
+    def add_event(self, event):
+        self._events.append(event)
+        self.item_added.emit(event)
+
+    def last(self):
+        return self._events[-1] if self._events else ""
+
 
 class MainWindow(QMainWindow):
     """
@@ -103,10 +117,10 @@ class MainWindow(QMainWindow):
         self.config = get_config()
 
         # initialize the log file
-        self.changelog = ""
+        self.eventLog = EventLog()
         now = datetime.now()
         current_time = now.strftime("%Y-%m-%d_%H%M%S")
-        self.changelogFile = "./Logs/"+current_time+".log"
+        self.eventLogFile = "./Logs/"+current_time+".log"
 
         # create the hardware manager, which gets its own thread
         #self.hardwareManager = hardwareManager.HardwareManager(self.debug)
@@ -220,21 +234,23 @@ class MainWindow(QMainWindow):
 
     def log(self, message):
         """
-        Log an event to the changelog file.
+        Log an event to the event log file.
         """
         now = datetime.now()
         current_time = now.strftime("%d-%m-%Y %H:%M:%S")
-        self.changelog += current_time + " " + message + "\n"
+        self.eventLog.add_event(current_time + " " + message)
+        #self.changelog.append(current_time + " " + message)
         if self.debug:
             print(current_time + " " + message)
 
     def _save_log(self):
         """
-        Save the changelog to file
+        Save the event log to file
         """
-        with open(self.changelogFile, 'w') as file:
+        with open(self.eventLogFile, 'w') as file:
             self.log("Saving .log file")
-            file.write(self.changelog)
+            for item in self.eventLog._events:
+                file.write("%s\n" % item)
 
     def closeEvent(self, event):
         """

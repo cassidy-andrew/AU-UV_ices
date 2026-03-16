@@ -289,8 +289,8 @@ class HardwareManager():
         hls.append(f";Table pos                     {cfg['Table_Pos']} kStp")
         hls.append(f";n/a                           ###")
         hls.append(f";Grating                       {cfg['Grating']}")
-        hls.append(f";Slits                          {cfg['ENS_rPos']}/{cfg['EXS_rPos']}")
-        hls.append(f";PMT Vacuum Status              {cfg['PMTVac']}")
+        hls.append(f";Slits                         {cfg['ENS_rPos']}/{cfg['EXS_rPos']}")
+        hls.append(f";PMT Vacuum Status             {cfg['PMTVac']}")
         hls.append(f";  Comments: {cfg['Comments']}")
         hls.append(f";  Sample: {cfg['Sample']}")
 

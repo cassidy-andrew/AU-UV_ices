@@ -356,7 +356,7 @@ class AnnealTab():
 
     def refresh_controller(self):
         """
-        Update all values from the temperature controller.
+        Update all values from the Hardware Manager / temperature controller
         """
         #measured_values = self.parent.hardwareManager.data.iloc[-1]
         #measured_values = self.parent.hardwareManager.buffer[-1]

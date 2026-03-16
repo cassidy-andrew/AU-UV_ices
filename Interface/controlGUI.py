@@ -8,6 +8,7 @@ from datetime import datetime
 sys.path.insert(0, "Interface/ControlTabs")
 import annealTab
 import overviewTab
+import acquisitionTab
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 interfacedir = os.path.dirname(currentdir)
@@ -294,7 +295,7 @@ class ControlTab():
         # functional item tabs
         # ------------------------------------
         self.tabs = QTabWidget()
-        self.tabs.setFixedWidth(500)
+        self.tabs.setMinimumWidth(500)
 
         self.overviewTabWidget = QWidget()
         #self.annealTabWidget.setFixedWidth(500)
@@ -308,8 +309,10 @@ class ControlTab():
         self.annealTabWidget.setLayout(self.annealTabObject.outerLayout)
         self.tabs.addTab(self.annealTabWidget, "Set Temperature")
 
-        self.acquisitionTab = QWidget()
-        self.tabs.addTab(self.acquisitionTab, "Acquire Spectrum")
+        self.acquisitionTabWidget = QWidget()
+        self.acquisitionTabObject = acquisitionTab.AcquisitionTab(self, debug)
+        self.acquisitionTabWidget.setLayout(self.acquisitionTabObject.outerLayout)
+        self.tabs.addTab(self.acquisitionTabWidget, "Acquire Spectrum")
 
         # ------------------------------------
         # Scheduler
@@ -321,8 +324,11 @@ class ControlTab():
         self.schedulerLayout.addWidget(self.queueTitle)
 
         self.queueList = QListWidget()
-        self.queueList.setMinimumWidth(100)
+        self.queueList.setMinimumWidth(200)
         self.queueList.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.queueList.setWordWrap(True)
+        self.queueList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.queueList.setUniformItemSizes(False)
         self.schedulerLayout.addWidget(self.queueList)
 
         self.historyTitle = QLabel("History")
@@ -330,8 +336,15 @@ class ControlTab():
         self.schedulerLayout.addWidget(self.historyTitle)
 
         self.historyList = QListWidget()
-        self.historyList.setMinimumWidth(100)
+        self.historyList.setMinimumWidth(200)
         self.historyList.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.historyList.setWordWrap(True)
+        self.historyList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.historyList.setUniformItemSizes(False)
+        self.parentWindow.eventLog.item_added.connect(self.refresh_history)
+
+        #self.historyScrollBar = QScrollBar
+        
         self.schedulerLayout.addWidget(self.historyList)
 
         # ------------------------------------
@@ -381,6 +394,13 @@ class ControlTab():
         self.timer = QTimer()
         self.timer.timeout.connect(self.refresh_figures)
         self.timer.start(self.hardwareManager.polling_rate)
+
+    def refresh_history(self, event):
+        scrollbar = self.historyList.verticalScrollBar()
+        at_bottom = scrollbar.value() >= scrollbar.maximum() -2
+        self.historyList.addItem(event[10:])
+        if at_bottom:
+            self.historyList.scrollToBottom()
 
     def refresh_figures(self):
         self.plot1.refresh_plot()
