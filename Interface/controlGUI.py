@@ -314,6 +314,8 @@ class ControlTab():
         self.acquisitionTabWidget.setLayout(self.acquisitionTabObject.outerLayout)
         self.tabs.addTab(self.acquisitionTabWidget, "Acquire Spectrum")
 
+        self.tabs.setCurrentIndex(0)
+
         # ------------------------------------
         # Scheduler
         # ------------------------------------

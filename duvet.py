@@ -131,10 +131,6 @@ class MainWindow(QMainWindow):
         self.hardwareThread.start()
         self.hardwareManager = self.hardwareWorker.hardwareManager
 
-        self.log("Started DUVET!")
-        if self.debug:
-            self.log("Debug mode is ON. Exciting!")
-
         # ---------------------------------------------------------------------
         # Setup accessory windows
         # ---------------------------------------------------------------------
@@ -181,19 +177,21 @@ class MainWindow(QMainWindow):
         self.fileMenu.addAction(self.saveDirSelAction)
 
         self.CCAction = QAction(QtGui.QIcon("./Icons/clipboard.png"),
-                                "View Current Configuration", self)
+                                "DUVET Configuration", self)
         self.CCAction.triggered.connect(self.configWindow.show_window)
         self.fileMenu.addAction(self.CCAction)
-        
+
+        self.helpAction = QAction(QtGui.QIcon("./Icons/sad.png"),
+                                        "Help", self)
+        self.helpAction.setStatusTip("Ahhhhhhhhh")
+        self.fileMenu.addAction(self.helpAction)
+
+        self.viewMenu = self.menu.addMenu("&View")
+
         self.BNWAction = QAction(QtGui.QIcon("./Icons/magnifyingGlass.png"),
                                  "Open Big Numbers Window", self)
         self.BNWAction.triggered.connect(self.bigNumbersWindow.show_window)
-        self.fileMenu.addAction(self.BNWAction)
-
-        self.helpAction = QAction(QtGui.QIcon("./Icons/sad.png"),
-                                        "help", self)
-        self.helpAction.setStatusTip("Ahhhhhhhhh")
-        self.fileMenu.addAction(self.helpAction)
+        self.viewMenu.addAction(self.BNWAction)
 
         # ---------------------------------------------------------------------
         # Finalize main window
@@ -203,12 +201,17 @@ class MainWindow(QMainWindow):
         self.tabs.addTab(self.specTab, "Analysis")
         #self.tabs.addTab(self.depTab, "Timescan")
         self.tabs.addTab(self.controlTab, "Control")
+        self.tabs.setCurrentIndex(1)
 
         # Set the window's main layout
         self.layout.addWidget(self.tabs)
         self.centralWidget = QWidget()
         self.centralWidget.setLayout(self.layout)
         self.setCentralWidget(self.centralWidget)
+
+        self.log("Started DUVET!")
+        if self.debug:
+            self.log("Debug mode is ON. Exciting!")
 
     def update_save_dir(self):
         """
