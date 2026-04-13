@@ -43,6 +43,7 @@ class HardwareManager():
         #super().__init__()
         self.debug = debug
         self.parent = parent
+        self.abort_status = False
         self.polling_rate = self.parent.config['polling_rate']
 
         self.temperatureController = TC.TemperatureController(debug=self.debug)
@@ -97,7 +98,7 @@ class HardwareManager():
             "wl_step":1.0,
             "n_scans":1,
             "n_points":111,
-            "n_avg":np.nan,
+            "n_avg":15,
             "t_avg":np.nan,
             "t_bllock":np.nan,
             "UnduPos_start":np.nan,

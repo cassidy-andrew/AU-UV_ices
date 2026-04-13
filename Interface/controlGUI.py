@@ -9,6 +9,7 @@ sys.path.insert(0, "Interface/ControlTabs")
 import annealTab
 import overviewTab
 import acquisitionTab
+import cryoTab
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 interfacedir = os.path.dirname(currentdir)
@@ -83,73 +84,6 @@ class scientificAxisItem(pg.AxisItem):
         return [f'{10**v:.2e}' for v in values]
 
 
-class TimescanPlotMPL():
-    """
-    A matplotlib based version of the timescan plot
-    """
-    def __init__(self, parent, debug, yData="Temperatures (K)"):
-        self.parent = parent
-        self.hardwareManager = self.parent.hardwareManager
-        self.debug = debug
-        self.yDataName = yData
-
-        # what can we plot, and in what style?
-        self.yItems = {
-            'Sample T (K)':{'pen':pg.mkPen('black', width=2)},
-            'Setpoint T (K)':{'pen':pg.mkPen('red', width=2)},
-            'Heater Power (%)':{'pen':pg.mkPen('black', width=2)},
-            'MC Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
-            'DL Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
-            'Hamamatsu (V)':{'pen':pg.mkPen('black', width=2)},
-            'Wavelength (nm)':{'pen':pg.mkPen('black', width=2)},
-        }
-
-        self.layout = QVBoxLayout()
-    
-        # menu for selecting what is on the y axis
-        self.yMenu = QComboBox()
-        self.yMenu.addItem('Temperatures (K)')
-        # add all the available data fields to the dropdown menu
-        for col in self.yItems:
-            self.yMenu.addItem(col)
-        self.yMenu.setCurrentText(self.yDataName)
-        #self.yMenu.currentTextChanged.connect(self._update_yAxis)
-
-        self.sc = TSMplCanvas(self)
-        self.sc.setMinimumWidth(800)
-        self.sc.setMinimumHeight(50)
-        self.layout.addWidget(self.sc)
-        #self.toolbar = NavigationToolbar(self.sc)
-        #self.xlims = [100, 700]
-        #self.ylims = [-0.1, 1.1]
-        #self.sc.axes[0].set_ylim(self.ylims)
-        #self.sc.axes[0].set_xlim(self.xlims)
-
-        ani = animation.FuncAnimation(self.sc.fig, self.refresh_plot, interval=1000)
-        #plt.show()
-
-    def refresh_plot(self):
-        # get the latest data from the hardware manager
-        data = self.hardwareManager.buffer
-        xData = list(data['Timestamp'])
-        
-        if self.yDataName == 'Temperatures (K)':
-            y1 = 'Sample T (K)'
-            #y1Data = [row[y1] for row in data]
-            y1Data = list(data[y1])
-            self.sc.axes.clear()
-            self.sc.axes.plot(xData, y1Data, linestyle='-', label=y1)
-            y2 = 'Setpoint T (K)'
-            #y2Data = [row[y2] for row in data]
-            y2Data = list(data[y2])
-            self.sc.axes.clear()
-            self.sc.axes.plot(xData, y2Data, linestyle='-', label=y2)
-        else:
-            #yData = [row[self.yDataName] for row in data]
-            yData = list(data[self.yDataName])
-            self.sc.axes.clear()
-            self.sc.axes.plot(xData, yData, linestyle='-', label=self.yDataName)
-
 class TimescanPlot():
     """
     Represents a plot specifically for timescan data. The control tab has three
@@ -170,6 +104,10 @@ class TimescanPlot():
             'MC Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
             'DL Pressure (mbar)':{'pen':pg.mkPen('black', width=2)},
             'Hamamatsu (V)':{'pen':pg.mkPen('black', width=2)},
+            'Ch0 (V)':{'pen':pg.mkPen('black', width=2)},
+            'Ch1 (V)':{'pen':pg.mkPen('black', width=2)},
+            'Ch2 (V)':{'pen':pg.mkPen('black', width=2)},
+            'Ch3 (V)':{'pen':pg.mkPen('black', width=2)},
         }
 
         self.layout = QVBoxLayout()
@@ -188,23 +126,6 @@ class TimescanPlot():
                 axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
             )
 
-        """self.figureWidget = pg.PlotWidget(
-                self.parent.parentWindow,
-                axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
-            )"""
-
-        """if "pressure" in self.yDataName.lower():
-            self.figureWidget = pg.PlotWidget(
-                self.parent.parentWindow,
-                axisItems={'bottom':pg.DateAxisItem(orientation='bottom'),
-                           #'left': scientificAxisItem(orientation='left')}
-                          })
-            self.figureWidget.setLogMode(False, True)
-        else:
-            self.figureWidget = pg.PlotWidget(
-                self.parent.parentWindow,
-                axisItems={'bottom':pg.DateAxisItem(orientation='bottom')}
-            )"""
         self.figureLegend = self.figureWidget.addLegend()
         self.figureWidget.setMinimumWidth(500)
         #self.figureWidget.setMinimumHeight(300)
@@ -314,6 +235,11 @@ class ControlTab():
         self.acquisitionTabWidget.setLayout(self.acquisitionTabObject.outerLayout)
         self.tabs.addTab(self.acquisitionTabWidget, "Acquire Spectrum")
 
+        self.cryoTabWidget = QWidget()
+        self.cryoTabObject = cryoTab.CryoTab(self, debug)
+        self.cryoTabWidget.setLayout(self.cryoTabObject.outerLayout)
+        self.tabs.addTab(self.cryoTabWidget, "Cryostat")
+
         self.tabs.setCurrentIndex(0)
 
         # ------------------------------------
@@ -332,6 +258,28 @@ class ControlTab():
         self.queueList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.queueList.setUniformItemSizes(False)
         self.schedulerLayout.addWidget(self.queueList)
+
+        self.startStopLayout = QHBoxLayout()
+        self.schedulerLayout.addLayout(self.startStopLayout)
+
+        self.SQBtn = QPushButton("Start")
+        self.SQBtn.pressed.connect(self.start_queue)
+        self.SQBtn.setFont(self.titleFont)
+        self.startStopLayout.addWidget(self.SQBtn)
+        self.AQBtn = QPushButton("Abort")
+        self.AQBtn.pressed.connect(self.abort_queue)
+        self.AQBtn.setFont(self.titleFont)
+        self.startStopLayout.addWidget(self.AQBtn)
+        self.CQBtn = QPushButton("Clear")
+        self.CQBtn.pressed.connect(self.clear_queue)
+        self.CQBtn.setFont(self.titleFont)
+        self.startStopLayout.addWidget(self.CQBtn)
+
+        self.queueStatusLabel = QLabel()
+        self.queueStatusLabel.setText("Not Running")
+        self.queueStatusLabel.setStyleSheet("background-color: lightgrey")
+        self.queueStatusLabel.setAlignment(Qt.AlignCenter)
+        self.schedulerLayout.addWidget(self.queueStatusLabel)
 
         self.historyTitle = QLabel("History")
         self.historyTitle.setFont(self.titleFont)
@@ -366,11 +314,11 @@ class ControlTab():
         self.collectorLayout = QHBoxLayout()
         # start collection button
         self.startColButton = QPushButton("Start Recording")
-        self.startColButton.clicked.connect(self.start_recording)
+        self.startColButton.clicked.connect(self.start_timescan)
         self.collectorLayout.addWidget(self.startColButton)
         # stop collection button
         self.stopColButton = QPushButton("Stop Recording")
-        self.stopColButton.clicked.connect(self.stop_recording)
+        self.stopColButton.clicked.connect(self.stop_timescan)
         self.collectorLayout.addWidget(self.stopColButton)
         self.plotterLayout.addLayout(self.collectorLayout)
         # status light
@@ -409,13 +357,25 @@ class ControlTab():
         self.plot2.refresh_plot()
         self.plot3.refresh_plot()
 
-    def start_recording(self):
+    def start_timescan(self):
         self.hardwareManager.start_timescan_collection()
-        self.collectionStatusLabel.setText("Recording!")
+        self.collectionStatusLabel.setText("Recording Timescan!")
         self.collectionStatusLabel.setStyleSheet("background-color: lightgreen")
 
-    def stop_recording(self):
+    def stop_timescan(self):
         self.hardwareManager.stop_timescan_collection()
         self.collectionStatusLabel.setText("Not Recording")
         self.collectionStatusLabel.setStyleSheet("background-color: lightgrey")
+
+    def start_queue(self):
+        self.queueStatusLabel.setText("Running Queue!")
+        self.queueStatusLabel.setStyleSheet("background-color: lightgreen")
+
+    def abort_queue(self):
+        self.queueStatusLabel.setText("Not Running")
+        self.queueStatusLabel.setStyleSheet("background-color: lightgrey")
+
+    def clear_queue(self):
+        self.abort_queue()
+        
         
