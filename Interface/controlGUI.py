@@ -252,7 +252,7 @@ class ControlTab():
         self.schedulerLayout.addWidget(self.queueTitle)
 
         self.queueList = QListWidget()
-        self.queueList.setMinimumWidth(200)
+        self.queueList.setMinimumWidth(300)
         self.queueList.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.queueList.setWordWrap(True)
         self.queueList.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)

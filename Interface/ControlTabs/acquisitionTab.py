@@ -74,8 +74,8 @@ class AcquisitionTab():
         }
 
         # define fonts
-        self.titleFontA = QFont("Arial", 11)
-        self.valueFontA = QFont("Consolas", 11)
+        self.titleFontA = QFont("Arial", 12)
+        self.valueFontA = QFont("Consolas", 12)
 
         # where we hold all the smaller UI elements
         self.outerLayout = QVBoxLayout()
@@ -101,7 +101,7 @@ class AcquisitionTab():
         # -----------------------------------------
 
         self.measuredWavelengthLayout = QVBoxLayout()
-        self.measuredWavelengthLayout.addItem(self.verticalSpacer)
+        #self.measuredWavelengthLayout.addItem(self.verticalSpacer)
 
         self.mwlLabelTitle = QLabel("AU-UV Wavelength (nm)")
         self.mwlLabelTitle.setFont(self.titleFontA)
@@ -140,7 +140,7 @@ class AcquisitionTab():
 
         # Measured Table position
         self.mtpLayout = QVBoxLayout()
-        self.mtpLayout.addItem(self.verticalSpacerS)
+        #self.mtpLayout.addItem(self.verticalSpacerS)
         self.mtpLabelTitle = QLabel("Table Position (kstep)")
         self.mtpLabelTitle.setFont(self.titleFontA)
         self.mtpLabelTitle.setAlignment(Qt.AlignLeft)
@@ -402,7 +402,7 @@ class AcquisitionTab():
         self.setGratingVLayout.addWidget(self.setGratingTitle)
         self.setGratingParamLayout = QHBoxLayout()
         self.SGcheckmark = QCheckBox("Auto")
-        self.setGratingParamLayout.addWidget(self.SGcheckmark)
+        #self.setGratingParamLayout.addWidget(self.SGcheckmark)
         self.SGComboBox = QComboBox()
         self.SGComboBox.addItem("Low Energy (HEG)")
         self.SGComboBox.addItem("High Energy (LEG)")
@@ -413,7 +413,7 @@ class AcquisitionTab():
 
         # set the PMT Vac
         self.setPMTVacVLayout = QVBoxLayout()
-        self.setPMTVacTitle = QLabel("Configure PMT Vacuum")
+        self.setPMTVacTitle = QLabel("Set Detector Air Filter")
         self.setPMTVacTitle.setFont(self.titleFontA)
         #self.setPMTVacTitle.setStyleSheet("color:blue")
         self.setPMTVacVLayout.addWidget(self.setPMTVacTitle)
@@ -442,7 +442,7 @@ class AcquisitionTab():
         self.parameterLayout.addLayout(self.sdLayout)
 
         # -----------------------------------------
-        # Start the scan button (Depreciated)
+        # Start the scan button
         # -----------------------------------------
         # define a layout for the elements
         self.startScanLayout = QVBoxLayout()

@@ -26,6 +26,7 @@ from generalElements import configViewWindow, bigNumbersViewWindow
 
 sys.path.insert(0, 'Devices')
 import hardwareManager
+import queueManager
 
 from PyQt5 import QtGui
 
@@ -80,18 +81,6 @@ def center(window):
     window.move(frameGm.topLeft())
 
 
-class Worker(QObject):
-    def __init__(self, debug, parent):
-        super().__init__()
-        self.debug = debug
-        self.hardwareManager = hardwareManager.HardwareManager(self.debug,
-                                                               parent)
-
-    def run(self):
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.hardwareManager._refresh)
-        self.timer.start(self.hardwareManager.polling_rate)
-
 class EventLog(QObject):
     item_added = pyqtSignal(str)
     
@@ -125,11 +114,14 @@ class MainWindow(QMainWindow):
         # create the hardware manager, which gets its own thread
         #self.hardwareManager = hardwareManager.HardwareManager(self.debug)
         self.hardwareThread = QThread()
-        #self.hardwareWorker = Worker(self.hardwareManager)
-        self.hardwareWorker = Worker(self.debug, self)
-        self.hardwareThread.started.connect(self.hardwareWorker.run)
+        #self.collectorWorker = Worker(self.hardwareManager)
+        self.collectorWorker = hardwareManager.CollectorWorker(self.debug, self)
+        self.hardwareThread.started.connect(self.collectorWorker.run)
         self.hardwareThread.start()
-        self.hardwareManager = self.hardwareWorker.hardwareManager
+        self.hardwareManager = self.collectorWorker.hardwareManager
+
+        # create the queue which schedules and runs user defined operations
+        
 
         # ---------------------------------------------------------------------
         # Setup accessory windows

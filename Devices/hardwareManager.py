@@ -25,6 +25,17 @@ import photosensorAmplifierC932901 as PA
 
 from PyQt5.QtCore import QTimer, QObject
 
+class CollectorWorker(QObject):
+    def __init__(self, debug, parent):
+        super().__init__()
+        self.debug = debug
+        self.hardwareManager = HardwareManager(self.debug, parent)
+
+    def run(self):
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.hardwareManager._refresh)
+        self.timer.start(self.hardwareManager.polling_rate)
+
 class HardwareManager():
     """
     This class interfaces with all the hardware. Hardware should be represented
