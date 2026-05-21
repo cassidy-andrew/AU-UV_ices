@@ -111,7 +111,9 @@ class MainWindow(QMainWindow):
         current_time = now.strftime("%Y-%m-%d_%H%M%S")
         self.eventLogFile = "./Logs/"+current_time+".log"
 
+        # ---------------------------------------------------------------------
         # create the hardware manager, which gets its own thread
+        # ---------------------------------------------------------------------
         #self.hardwareManager = hardwareManager.HardwareManager(self.debug)
         self.hardwareThread = QThread()
         #self.collectorWorker = Worker(self.hardwareManager)
@@ -120,8 +122,31 @@ class MainWindow(QMainWindow):
         self.hardwareThread.start()
         self.hardwareManager = self.collectorWorker.hardwareManager
 
+        # ---------------------------------------------------------------------
         # create the queue which schedules and runs user defined operations
-        
+        # ---------------------------------------------------------------------
+        self.operationQueue = queueManager.OperationQueue(self, self.debug)
+
+        # setup the queue worker thread
+        self.queueThread = QThread()
+        self.queueWorker = queueManager.QueueWorker(
+            self.operationQueue, self.hardwareManager, self.debug
+        )
+        self.queueWorker.moveToThread(self.queueThread)
+
+        # connect the signals
+        self.queueThread.started.connect(self.queueWorker.run)
+        # hardware commands / signals
+        self.queueWorker.set_temperature.connect(self._set_temperature)
+        #self.queueWorker.acquire_spectrum.connect(self._acquire_spectrum)
+        #self.queueWorker.move_parameter.connect(self._move_parameter)
+        # GUI signals
+        #self.queueWorker.operation_started.connect(self._on_operation_started)
+        #self.queueWorker.operation_completed.connect(self._on_operation_completed)
+        #self.queueWorker.progress_update.connect(self._on_progress_update)
+
+        # start the thread
+        self.queueThread.start()
 
         # ---------------------------------------------------------------------
         # Setup accessory windows
@@ -204,6 +229,9 @@ class MainWindow(QMainWindow):
         self.log("Started DUVET!")
         if self.debug:
             self.log("Debug mode is ON. Exciting!")
+
+    def _set_temperature(self, setpoint):
+        self.hardwareManager.temperatureController.set_temp(setpoint)
 
     def update_save_dir(self):
         """
