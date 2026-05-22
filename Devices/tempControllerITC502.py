@@ -100,7 +100,7 @@ class TemperatureController():
         temperature.
         """
         command = "T" + str(target) + "\r"
-        value = self._send_command(command, debug=False)
+        value = self._send_command(command, debug=True)
         return value
 
     def get_target_temp(self, channel=None):

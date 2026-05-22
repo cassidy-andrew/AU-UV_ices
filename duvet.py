@@ -231,6 +231,7 @@ class MainWindow(QMainWindow):
             self.log("Debug mode is ON. Exciting!")
 
     def _set_temperature(self, setpoint):
+        print(f"sending setpoint {setpoint} to hardwareManager")
         self.hardwareManager.temperatureController.set_temp(setpoint)
 
     def update_save_dir(self):
