@@ -134,7 +134,7 @@ class QueueWorker(QObject):
     queue_finished = pyqtSignal()
 
     # signals for control to HardwareManager
-    set_temperature = pyqtSignal()
+    set_temperature = pyqtSignal(float)
     acquire_spectrum = pyqtSignal()
     move_parameter = pyqtSignal()
     do_wait = pyqtSignal()
@@ -270,6 +270,11 @@ class QueueWorker(QObject):
         print("handling temperature!!!!!")
         print(params)
         return True
+
+        setpoint = params.get('setpoint')
+
+        self.progress_update.emit(f"Setting temperature to {setpoint} K")
+        self.set_temperature.emit(setpoint)
 
     def _handle_spectrum(self, params):
         """
