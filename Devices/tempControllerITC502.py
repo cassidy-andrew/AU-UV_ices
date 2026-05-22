@@ -99,7 +99,13 @@ class TemperatureController():
         See page 47 of the manual, which specifies the syntax for setting the
         temperature.
         """
-        command = "T" + str(target) + "\r"
+        # parse the target temperature to the format +XXXDD
+        temp_int = int(target * 100)
+    
+        # Format as 5-digit zero-padded integer
+        temp_str = str(temp_int).zfill(5)
+        
+        command = "T" + temp_str + "\r"
         value = self._send_command(command, debug=True)
         return value
 
