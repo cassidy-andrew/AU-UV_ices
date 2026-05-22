@@ -269,12 +269,13 @@ class QueueWorker(QObject):
         """
         print("handling temperature!!!!!")
         print(params)
-        return True
 
         setpoint = params.get('setpoint')
 
         self.progress_update.emit(f"Setting temperature to {setpoint} K")
         self.set_temperature.emit(setpoint)
+
+        return True
 
     def _handle_spectrum(self, params):
         """
