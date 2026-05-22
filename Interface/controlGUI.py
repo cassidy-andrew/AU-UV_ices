@@ -204,6 +204,8 @@ class TimescanPlot():
 class ControlTab():
     def __init__(self, parentWindow, debug):
         self.parentWindow = parentWindow
+        self.operationQueue = self.parentWindow.operationQueue
+        self.queueWorker = self.parentWindow.queueWorker
         self.debug = debug
         self.hardwareManager = parentWindow.hardwareManager
         self.valueFont = QFont("Consolas", 30)
@@ -211,6 +213,14 @@ class ControlTab():
         
         self.outerLayout = QHBoxLayout()
         self.splitter = QSplitter(Qt.Horizontal)
+
+        self.operationQueue.operation_added.connect(self.refresh_queue_display)
+        self.operationQueue.operation_removed.connect(self.refresh_queue_display)
+        self.operationQueue.queue_cleared.connect(self.refresh_queue_display)
+
+        self.queueWorker.operation_started.connect(self.refresh_queue_display)
+        self.queueWorker.operation_completed.connect(self.refresh_queue_display)
+        self.queueWorker.operation_failed.connect(self.refresh_queue_display)
 
         # ------------------------------------
         # functional item tabs
@@ -368,14 +378,25 @@ class ControlTab():
         self.collectionStatusLabel.setStyleSheet("background-color: lightgrey")
 
     def start_queue(self):
+        self.parentWindow.operationQueue.start_processing.emit()
         self.queueStatusLabel.setText("Running Queue!")
         self.queueStatusLabel.setStyleSheet("background-color: lightgreen")
 
     def abort_queue(self):
+        self.parentWindow.operationQueue.stop_processing.emit()
         self.queueStatusLabel.setText("Not Running")
         self.queueStatusLabel.setStyleSheet("background-color: lightgrey")
 
     def clear_queue(self):
         self.abort_queue()
+
+    def refresh_queue_display(self):
+        operations = self.operationQueue.get_all_operations()
+
+        self.queueList.clear()
+
+        for index, operation in enumerate(operations):
+            item = QListWidgetItem(operation.label)
+            self.queueList.addItem(item)
         
         

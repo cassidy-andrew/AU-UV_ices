@@ -22,14 +22,12 @@ from PyQt5.QtCore import *
 
 
 class Operation():
-    def __init__(self, parent, debug, opType=None, parameters=None):
+    def __init__(self, opType=None, parameters=None):
         """
         A single operation. It could be anything, but has a type and associated
         parameters. The QueueWorker implements the operation depending on its
         type, and handles the parameters accordingly.
         """
-        self.parent = parent
-        self.debug = debug
 
         # operation ID, making it uniquely identifyable in the queue
         # It is just the prefix op_ plus the time it was created.
@@ -38,19 +36,9 @@ class Operation():
         self.is_running = False
         
         self.opType = opType
-        self.paramters = parameters
+        self.parameters = parameters
 
-    def get(self, thing):
-        """
-        Get a thing from the operation. This could be its type, ID, or
-        parameters
-        """
-        if thing.lower() == "id":
-            return self.opID
-        elif thing.lower() == "type":
-            return self.opType
-        elif thing.lower() == "parameters":
-            return self.parameters
+        self.label = self.opType + "_" + self.opID
 
 
 class OperationQueue(QObject):
@@ -59,7 +47,7 @@ class OperationQueue(QObject):
     It therefore exists in the main GUI thread.
     """
     # Signals to communicate with QueueWorker
-    operation_added = pyqtSignal()
+    operation_added = pyqtSignal(object)
     operation_removed = pyqtSignal(int)  # by index
     queue_cleared = pyqtSignal()
     start_processing = pyqtSignal()
@@ -85,6 +73,8 @@ class OperationQueue(QObject):
         """
         with self._lock:
             self._operations.append(operation)
+            if self.debug:
+                print(f"Operation {operation.opID} added to the queue!")
         self.operation_added.emit(operation)
 
     def clear(self):
@@ -137,9 +127,9 @@ class QueueWorker(QObject):
     communicates with the HardwareManager and GUI using PyQt signals.
     """
     # signals for GUI feedback
-    operation_started = pyqtSignal()
-    operation_completed = pyqtSignal()
-    operation_failed = pyqtSignal()
+    operation_started = pyqtSignal(object)
+    operation_completed = pyqtSignal(object, bool)
+    operation_failed = pyqtSignal(object, str)
     progress_update = pyqtSignal(str)
     queue_finished = pyqtSignal()
 
@@ -165,7 +155,10 @@ class QueueWorker(QObject):
         self.operationQueue.pause_processing.connect(self.pause)
         self.operationQueue.resume_processing.connect(self.resume)
         self.operationQueue.stop_processing.connect(self.abort)
-        
+
+    @pyqtSlot()
+    def run(self):
+        """Called when thread starts"""
         # Timer for polling queue status
         # the timer is useful because the process_queue function only looks at
         # the next item in the queue. When it is done it needs to be called
@@ -173,10 +166,6 @@ class QueueWorker(QObject):
         # running state is True, which is set by the GUI buttons.
         self.worker_timer = QTimer()
         self.worker_timer.timeout.connect(self.process_queue)
-
-    @pyqtSlot()
-    def run(self):
-        """Called when thread starts"""
         self.worker_timer.start(100)  # Poll every 100ms
 
     @pyqtSlot()
@@ -186,6 +175,8 @@ class QueueWorker(QObject):
             self.is_running = True
             self.is_paused = False
             self._abort_requested = False
+            if self.debug:
+                print("Set queue runnning to True")
 
     @pyqtSlot()
     def pause(self):
@@ -216,8 +207,11 @@ class QueueWorker(QObject):
             if not self.is_running or self.is_paused or self._abort_requested:
                 return
 
+            if self.debug:
+                print("Started processing the queue!")
+
             # what's next in the queue?
-            operation = self.operationQeue.peek_next()
+            operation = self.operationQueue.peek_next()
 
             # are we done?
             if operation is None:
@@ -250,8 +244,8 @@ class QueueWorker(QObject):
         Execute a single operation.
         Returns True if successful, False otherwise.
         """
-        op_type = operation.get('type')
-        params = operation.get('params', {})
+        op_type = operation.opType
+        params = operation.parameters
         
         try:
             if op_type == 'temperature':
@@ -275,6 +269,7 @@ class QueueWorker(QObject):
         """
         print("handling temperature!!!!!")
         print(params)
+        return True
 
     def _handle_spectrum(self, params):
         """

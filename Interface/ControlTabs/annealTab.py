@@ -3,6 +3,9 @@ import os
 import inspect
 import json
 
+sys.path.insert(0, "Devices/")
+import queueManager
+
 from PyQt5.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -454,18 +457,18 @@ class AnnealTab():
         Turns the heater off
         """
 
-    def add_to_queue():
+    def add_to_queue(self):
         """
         Adds the sweep instruction to the queue
         """
-        instruction = {
-            'type':'heater',
-            'params':{
+        parameters = {
                 'setpoint':self.tempLineEdit.value(),
                 'P':self.pLineEdit.value(),
                 'I':self.iLineEdit.value(),
                 'D':self.dLineEdit.value(),
                 'comment':self.sdTextEdit
             }
-        }
+        newOp = queueManager.Operation(opType="temperature",
+                                       parameters=parameters)
+        self.parent.operationQueue.add(newOp)
         
