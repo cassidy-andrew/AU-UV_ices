@@ -33,6 +33,8 @@ class TemperatureController():
                                      bytesize=serial.EIGHTBITS,
                                      stopbits=serial.STOPBITS_ONE,
                                      parity=serial.PARITY_NONE)
+
+            self.enable_remote_operation()
         except Exception:
             if self.debug:
                 traceback.print_exc()
@@ -84,6 +86,11 @@ class TemperatureController():
 
         return value
 
+    def enable_remote_operation(self):
+        command = "C3\r"
+        value = self._send_command(command, debug=False)
+        return value
+
     def get_temp(self, channel=None):
         """
         See page 44 of the manual for the Rn command, which reads the value of
@@ -100,12 +107,12 @@ class TemperatureController():
         temperature.
         """
         # parse the target temperature to the format +XXXDD
-        temp_int = int(target * 100)
+        #temp_int = int(target * 100)
     
         # Format as 5-digit zero-padded integer
-        temp_str = str(temp_int).zfill(5)
+        #temp_str = str(temp_int).zfill(5)
         
-        command = "T" + temp_str + "\r"
+        command = "T" + str(target) + "\r"
         value = self._send_command(command, debug=True)
         return value
 
