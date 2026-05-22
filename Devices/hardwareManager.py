@@ -198,7 +198,7 @@ class HardwareManager():
                         # last non-nan indicies
                         lnnis = np.flatnonzero(mask)[-5:-1]
                         # last non-nan values
-                        if len(lnnvs > 1):
+                        if len(lnnis > 1):
                             lnnvs = arr[lnnis]
                             sigma = np.std(lnnvs)
                             mean = np.mean(lnnvs)
