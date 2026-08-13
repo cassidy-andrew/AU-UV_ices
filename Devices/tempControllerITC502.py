@@ -67,6 +67,9 @@ class TemperatureController():
             prefix = output[0]
             if prefix == "?":
                 value = "No Signal"
+            elif prefix == "X":
+                # this is the heater status and is fine
+                value = output
             else:
                 sign_symbol = output[1]
                 if sign_symbol == '+':
