@@ -450,7 +450,7 @@ class AnnealTab():
         # ramp rate
         #self.mrrLabel.setText(self.measured_ramp_rate)
         # heater status
-        #self.mhsLabel.setText(self.heater_status)
+        self.mhsLabel.setText(str(measured_values['Heater Status']))
 
     def heater_off(self):
         """

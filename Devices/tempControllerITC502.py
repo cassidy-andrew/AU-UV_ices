@@ -154,7 +154,7 @@ class TemperatureController():
         value = self._send_command(command, debug=False)
         return value
 
-    def get_heater_status_no(self, channel=None):
+    def get_heater_status(self, channel=None):
         command = "X\r"
         value = self._send_command(command, debug=False)
         return value
